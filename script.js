@@ -1,0 +1,1 @@
+console.log("Absensi Prototype aktif!");
