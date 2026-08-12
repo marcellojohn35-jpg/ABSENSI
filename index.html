@@ -8,9 +8,67 @@
 </head>
 
 <body>
-<h1>ABSENSI FINAL</h1>
-<p>Auto Deploy OK 🚀</p>
+    <!-- ===== EXISTING CODE ===== -->
+    <h1>ABSENSI FINAL</h1>
+    <p>Auto Deploy OK 🚀</p>
+    
+    <!-- ===== FOUNDATION: SPA CONTAINER ===== -->
+    <div id="app">
+        <!-- Loading State -->
+        <div id="loadingState" style="display:none;">
+            <p>⏳ Memuat...</p>
+        </div>
 
-    <script src="script.js"></script>
+        <!-- Login Section -->
+        <div id="loginSection" style="display:none;">
+            <h2>Login</h2>
+            <p>Silakan login dengan akun Google</p>
+            <button id="loginBtn">Login dengan Google</button>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboardSection" style="display:none;">
+            <div id="userInfo">
+                <img id="userPhoto" src="" alt="Foto Profil" width="50">
+                <span id="userName"></span>
+                <span id="userRole"></span>
+                <button id="logoutBtn">Logout</button>
+            </div>
+            <hr>
+            <div id="dashboardContent">
+                <p>Dashboard akan muncul di sini.</p>
+                <p>Role: <span id="roleDisplay"></span></p>
+            </div>
+        </div>
+
+        <!-- Profile Setup Section (jika belum lengkap) -->
+        <div id="profileSetupSection" style="display:none;">
+            <h2>Lengkapi Profil</h2>
+            <p>Mohon lengkapi data diri Anda sebelum melanjutkan.</p>
+            <form id="profileForm">
+                <label>Nama:</label>
+                <input type="text" id="profileNama" required><br>
+                <label>NIS:</label>
+                <input type="text" id="profileNis"><br>
+                <label>Kelas:</label>
+                <input type="text" id="profileKelas"><br>
+                <button type="submit">Simpan Profil</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== FOUNDATION: FIREBASE MODULAR SDK ===== -->
+    <script type="importmap">
+        {
+            "imports": {
+                "firebase-app": "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js",
+                "firebase-auth": "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js",
+                "firebase-firestore": "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js"
+            }
+        }
+    </script>
+
+    <!-- ===== EXISTING SCRIPT (dipertahankan) ===== -->
+    <script type="module" src="script.js"></script>
 </body>
 </html>

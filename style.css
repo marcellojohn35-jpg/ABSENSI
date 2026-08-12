@@ -1,4 +1,161 @@
+/* ===== EXISTING CODE ===== */
 body {
     font-family: Arial, sans-serif;
     padding: 30px;
+}
+
+/* ===== FOUNDATION: ADDITIONAL STYLES ===== */
+
+/* Container SPA */
+#app {
+    margin-top: 20px;
+}
+
+/* Loading State */
+#loadingState {
+    text-align: center;
+    padding: 20px;
+    font-size: 18px;
+}
+
+/* Login Section */
+#loginSection {
+    text-align: center;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    max-width: 400px;
+    margin: 0 auto;
+    background: #f9f9f9;
+}
+
+#loginBtn {
+    background: #4285f4;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+#loginBtn:hover {
+    background: #357ae8;
+}
+
+/* Dashboard Section */
+#dashboardSection {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #f9f9f9;
+}
+
+#userInfo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+#userPhoto {
+    border-radius: 50%;
+}
+
+#userName {
+    font-weight: bold;
+    font-size: 18px;
+}
+
+#userRole {
+    background: #e0e0e0;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+}
+
+#logoutBtn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: auto;
+}
+
+#logoutBtn:hover {
+    background: #c82333;
+}
+
+#dashboardContent {
+    margin-top: 16px;
+    padding: 12px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+
+/* Profile Setup Section */
+#profileSetupSection {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff3cd;
+}
+
+#profileSetupSection h2 {
+    margin-top: 0;
+}
+
+#profileForm label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+#profileForm input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+#profileForm button {
+    margin-top: 16px;
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#profileForm button:hover {
+    background: #218838;
+}
+
+/* Utility */
+.hidden {
+    display: none !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.error-message {
+    color: #dc3545;
+    padding: 8px;
+    margin: 8px 0;
+    background: #f8d7da;
+    border-radius: 4px;
 }
