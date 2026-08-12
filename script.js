@@ -28,6 +28,7 @@ const dashboardSection = document.getElementById('dashboardSection');
 const profileSetupSection = document.getElementById('profileSetupSection');
 const qrScannerSection = document.getElementById('qrScannerSection');
 const attendanceResultSection = document.getElementById('attendanceResultSection');
+const qrGeneratorSection = document.getElementById('qrGeneratorSection');
 
 const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
@@ -76,6 +77,7 @@ function showSection(sectionId) {
     profileSetupSection.style.display = 'none';
     qrScannerSection.style.display = 'none';
     attendanceResultSection.style.display = 'none';
+    qrGeneratorSection.style.display = 'none';
     
     if (sectionId === 'loading') {
         loadingState.style.display = 'block';
@@ -89,6 +91,8 @@ function showSection(sectionId) {
         qrScannerSection.style.display = 'block';
     } else if (sectionId === 'attendanceResult') {
         attendanceResultSection.style.display = 'block';
+    } else if (sectionId === 'qrGenerator') {
+        qrGeneratorSection.style.display = 'block';
     }
 }
 
@@ -149,7 +153,7 @@ function showDashboard(userData) {
             showProfileSetup(auth.currentUser);
         });
     } else {
-        // ===== STEP 9A: QR GENERATOR UI =====
+        // ===== DASHBOARD WITH QR GENERATOR & SCANNER =====
         document.getElementById('dashboardContent').innerHTML = `
             <p>✅ Selamat datang di dashboard!</p>
             <p><strong>Nama:</strong> ${userData.nama}</p>
@@ -157,69 +161,54 @@ function showDashboard(userData) {
             <p><strong>Kelas:</strong> ${userData.classId}</p>
             <p><strong>Role:</strong> ${userData.role}</p>
             
-            <!-- QR Generator Section -->
             <div style="margin-top:16px;padding:16px;background:#e8f5e9;border-radius:8px;border:1px solid #c8e6c9;">
                 <p><strong>🧪 QR Test</strong></p>
                 <p style="font-size:14px;color:#555;">Token: <code style="background:#f5f5f5;padding:2px 8px;border-radius:4px;">qrmvp2026</code></p>
                 
                 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
                     <button id="generateQrBtn" style="background:#28a745;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">Generate QR</button>
-                    <button id="downloadQrBtn" style="background:#007bff;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;disabled;">Download PNG</button>
-                    <button id="printQrBtn" style="background:#6c757d;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;disabled;">Print QR</button>
+                    <button id="downloadQrBtn" style="background:#007bff;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">Download PNG</button>
+                    <button id="printQrBtn" style="background:#6c757d;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">Print QR</button>
                 </div>
                 
                 <div id="qrTestResult" style="margin-top:16px;display:flex;justify-content:center;min-height:50px;"></div>
                 <div id="qrTokenDisplay" style="margin-top:8px;font-size:14px;color:#666;"></div>
             </div>
             
-            <!-- Scan QR Button -->
             <button id="scanQrBtn" style="margin-top:16px;background:#17a2b8;color:white;border:none;padding:12px 24px;border-radius:4px;cursor:pointer;font-size:16px;width:100%;">📷 Scan QR Absensi</button>
             <div id="qrStatusMessage" style="margin-top:12px;padding:12px;border-radius:4px;display:none;"></div>
         `;
         
         // ===== QR GENERATOR: Event Listeners =====
-        const generateBtn = document.getElementById('generateQrBtn');
-        const downloadBtn = document.getElementById('downloadQrBtn');
-        const printBtn = document.getElementById('printQrBtn');
+        document.getElementById('generateQrBtn')?.addEventListener('click', () => {
+            if (typeof generateQR === 'function') {
+                generateQR('qrmvp2026', 'qrTestResult');
+            } else {
+                console.error('[QR] generateQR function not available');
+                alert('QR Generator belum siap. Silakan reload halaman.');
+            }
+        });
         
-        if (generateBtn) {
-            generateBtn.addEventListener('click', () => {
-                if (typeof generateQR === 'function') {
-                    generateQR('qrmvp2026', 'qrTestResult');
-                } else {
-                    console.error('[QR] generateQR function not available');
-                    alert('QR Generator belum siap. Silakan reload halaman.');
-                }
-            });
-        }
+        document.getElementById('downloadQrBtn')?.addEventListener('click', () => {
+            if (typeof downloadQR === 'function') {
+                downloadQR();
+            } else {
+                alert('Download QR tidak tersedia.');
+            }
+        });
         
-        if (downloadBtn) {
-            downloadBtn.addEventListener('click', () => {
-                if (typeof downloadQR === 'function') {
-                    downloadQR();
-                } else {
-                    alert('Download QR tidak tersedia.');
-                }
-            });
-        }
-        
-        if (printBtn) {
-            printBtn.addEventListener('click', () => {
-                if (typeof printQR === 'function') {
-                    printQR();
-                } else {
-                    alert('Print QR tidak tersedia.');
-                }
-            });
-        }
+        document.getElementById('printQrBtn')?.addEventListener('click', () => {
+            if (typeof printQR === 'function') {
+                printQR();
+            } else {
+                alert('Print QR tidak tersedia.');
+            }
+        });
         
         // ===== STEP 9: Scan QR Button =====
-        const scanBtn = document.getElementById('scanQrBtn');
-        if (scanBtn) {
-            scanBtn.addEventListener('click', () => {
-                openScanner();
-            });
-        }
+        document.getElementById('scanQrBtn')?.addEventListener('click', () => {
+            openScanner();
+        });
     }
 }
 
@@ -276,14 +265,18 @@ function isQrLibraryAvailable() {
 
 // Set status QR
 function setQrStatus(type, message) {
-    qrStatus.textContent = message;
-    qrStatus.className = type;
+    if (qrStatus) {
+        qrStatus.textContent = message;
+        qrStatus.className = type;
+    }
     console.log('[QR] Status:', type, message);
 }
 
 function clearQrStatus() {
-    qrStatus.textContent = '';
-    qrStatus.className = '';
+    if (qrStatus) {
+        qrStatus.textContent = '';
+        qrStatus.className = '';
+    }
 }
 
 // ============================================
@@ -307,7 +300,7 @@ async function openScanner() {
     
     // Reset status
     clearQrStatus();
-    qrScannerInstruction.textContent = '⏳ Menyiapkan kamera...';
+    if (qrScannerInstruction) qrScannerInstruction.textContent = '⏳ Menyiapkan kamera...';
     isScannerRunning = false;
     isProcessingAttendance = false;
     
@@ -317,7 +310,7 @@ async function openScanner() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.error('[QR] Camera API not supported');
         setQrStatus('error', '❌ Kamera tidak tersedia atau tidak didukung.');
-        qrScannerInstruction.textContent = 'Kamera tidak didukung';
+        if (qrScannerInstruction) qrScannerInstruction.textContent = 'Kamera tidak didukung';
         return;
     }
     
@@ -353,7 +346,6 @@ async function openScanner() {
         console.log('[QR] Html5Qrcode instance created');
         
         // ===== SIMPLIFIED CONFIGURATION =====
-        // Gunakan konfigurasi sederhana yang kompatibel dengan banyak device
         const config = {
             fps: 15,
             qrbox: { width: 280, height: 280 },
@@ -391,7 +383,7 @@ async function openScanner() {
         // ===== START SCANNER =====
         console.log('[QR] Starting scanner with facingMode: environment');
         setQrStatus('loading', '📷 Membuka kamera...');
-        qrScannerInstruction.textContent = '📷 Mengakses kamera...';
+        if (qrScannerInstruction) qrScannerInstruction.textContent = '📷 Mengakses kamera...';
         
         await html5QrCode.start(
             config.videoConstraints,
@@ -403,7 +395,7 @@ async function openScanner() {
         console.log('[QR] Scanner started successfully!');
         isScannerRunning = true;
         setQrStatus('success', '📷 Kamera aktif. Arahkan QR ke kotak scan.');
-        qrScannerInstruction.textContent = '🔍 Arahkan QR ke kotak scan';
+        if (qrScannerInstruction) qrScannerInstruction.textContent = '🔍 Arahkan QR ke kotak scan';
         
     } catch (error) {
         console.error('[QR] ❌ Error starting scanner:', error);
@@ -418,17 +410,17 @@ async function openScanner() {
             error.name === 'PermissionDeniedError' ||
             (error.message && error.message.toLowerCase().includes('permission'))) {
             setQrStatus('error', '❌ Izin kamera ditolak. Izinkan akses kamera di browser.');
-            qrScannerInstruction.textContent = 'Izin kamera ditolak';
+            if (qrScannerInstruction) qrScannerInstruction.textContent = 'Izin kamera ditolak';
         } else if (error.name === 'NotFoundError' || 
                    (error.message && error.message.toLowerCase().includes('not found'))) {
             setQrStatus('error', '❌ Kamera tidak ditemukan. Pastikan HP Anda memiliki kamera.');
-            qrScannerInstruction.textContent = 'Kamera tidak ditemukan';
+            if (qrScannerInstruction) qrScannerInstruction.textContent = 'Kamera tidak ditemukan';
         } else if (error.message && error.message.includes('SecurityError')) {
             setQrStatus('error', '❌ Akses kamera ditolak. Pastikan menggunakan HTTPS.');
-            qrScannerInstruction.textContent = 'HTTPS diperlukan';
+            if (qrScannerInstruction) qrScannerInstruction.textContent = 'HTTPS diperlukan';
         } else {
             setQrStatus('error', '❌ Gagal membuka kamera: ' + (error.message || 'Unknown error'));
-            qrScannerInstruction.textContent = 'Error: ' + (error.message || 'Unknown');
+            if (qrScannerInstruction) qrScannerInstruction.textContent = 'Error: ' + (error.message || 'Unknown');
         }
     }
 }
@@ -475,7 +467,7 @@ async function closeScanner() {
     
     await stopScannerInternal();
     clearQrStatus();
-    qrScannerInstruction.textContent = 'Scanner ditutup';
+    if (qrScannerInstruction) qrScannerInstruction.textContent = 'Scanner ditutup';
     
     if (auth.currentUser) {
         try {
@@ -514,7 +506,7 @@ async function processAttendanceWithQR(qrData) {
     isProcessingAttendance = true;
     
     setQrStatus('loading', '⏳ Memproses absensi...');
-    qrScannerInstruction.textContent = '⏳ Menghubungi server...';
+    if (qrScannerInstruction) qrScannerInstruction.textContent = '⏳ Menghubungi server...';
     
     try {
         const functions = getFunctions();

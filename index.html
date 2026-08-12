@@ -77,6 +77,20 @@
                 <button id="scanAgainBtn">Scan Lagi</button>
             </div>
         </div>
+
+        <!-- ===== STEP 9A: QR GENERATOR SECTION ===== -->
+        <div id="qrGeneratorSection" style="display:none;">
+            <h2>🧪 QR Generator</h2>
+            <p>Generate QR Code untuk testing absensi</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                <button id="generateQrBtn" style="background:#28a745;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">Generate QR</button>
+                <button id="downloadQrBtn" style="background:#007bff;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">Download PNG</button>
+                <button id="printQrBtn" style="background:#6c757d;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">Print QR</button>
+            </div>
+            <div id="qrTestResult" style="margin-top:16px;display:flex;justify-content:center;min-height:50px;"></div>
+            <div id="qrTokenDisplay" style="margin-top:8px;font-size:14px;color:#666;"></div>
+            <div id="qrStatusMessage" style="margin-top:12px;padding:12px;border-radius:4px;display:none;"></div>
+        </div>
     </div>
 
     <!-- ===== FOUNDATION: FIREBASE MODULAR SDK ===== -->

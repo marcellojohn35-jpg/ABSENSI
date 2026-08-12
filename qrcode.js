@@ -49,8 +49,8 @@ function generateQR(token, containerId) {
         // Generate QR Code
         const qr = new QRCode(container, {
             text: currentToken,
-            width: 350,
-            height: 350,
+            width: 300,
+            height: 300,
             colorDark: '#000000',
             colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.M
@@ -76,12 +76,6 @@ function generateQR(token, containerId) {
             tokenDisplay.textContent = '📋 Token: ' + currentToken;
             tokenDisplay.style.color = '#28a745';
         }
-        
-        // Aktifkan tombol Download & Print
-        const downloadBtn = document.getElementById('downloadQrBtn');
-        const printBtn = document.getElementById('printQrBtn');
-        if (downloadBtn) downloadBtn.disabled = false;
-        if (printBtn) printBtn.disabled = false;
         
         // Update status
         const statusMsg = document.getElementById('qrStatusMessage');
@@ -118,14 +112,12 @@ function downloadQR() {
     let imageData = null;
     
     if (canvas) {
-        // Jika QR berupa canvas, konversi ke PNG
         imageData = canvas.toDataURL('image/png');
         console.log('[QR-GENERATOR] QR converted from canvas to PNG');
     } else if (img) {
-        // Jika QR berupa img, gambar ulang ke canvas untuk mendapatkan PNG
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = img.naturalWidth || 350;
-        tempCanvas.height = img.naturalHeight || 350;
+        tempCanvas.width = img.naturalWidth || 300;
+        tempCanvas.height = img.naturalHeight || 300;
         const ctx = tempCanvas.getContext('2d');
         ctx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
         imageData = tempCanvas.toDataURL('image/png');
@@ -160,7 +152,6 @@ function printQR() {
         return;
     }
     
-    // Ambil QR element (canvas atau img)
     const canvas = currentQrContainer.querySelector('canvas');
     const img = currentQrContainer.querySelector('img');
     let qrElement = canvas || img;
@@ -170,26 +161,22 @@ function printQR() {
         return;
     }
     
-    // Buat print window
     const printWindow = window.open('', '_blank', 'width=500,height=600');
     if (!printWindow) {
         alert('Popup diblokir. Izinkan popup untuk print.');
         return;
     }
     
-    // Dapatkan image data
     let imageSrc = '';
     if (canvas) {
         imageSrc = canvas.toDataURL('image/png');
     } else if (img) {
-        // Untuk img, gunakan src jika ada, atau konversi
         if (img.src && img.src.startsWith('data:')) {
             imageSrc = img.src;
         } else {
-            // Render img ke canvas
             const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = img.naturalWidth || 350;
-            tempCanvas.height = img.naturalHeight || 350;
+            tempCanvas.width = img.naturalWidth || 300;
+            tempCanvas.height = img.naturalHeight || 300;
             const ctx = tempCanvas.getContext('2d');
             ctx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
             imageSrc = tempCanvas.toDataURL('image/png');
@@ -202,7 +189,6 @@ function printQR() {
         return;
     }
     
-    // Buat konten print
     printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -232,8 +218,8 @@ function printQR() {
                     font-size: 24px;
                 }
                 .qr-container img {
-                    max-width: 350px;
-                    max-height: 350px;
+                    max-width: 300px;
+                    max-height: 300px;
                     display: block;
                     margin: 20px auto;
                 }
@@ -254,14 +240,8 @@ function printQR() {
                     padding-top: 12px;
                 }
                 @media print {
-                    body {
-                        padding: 0;
-                        margin: 0;
-                    }
-                    .qr-container {
-                        border: none;
-                        padding: 20px;
-                    }
+                    body { padding: 0; margin: 0; }
+                    .qr-container { border: none; padding: 20px; }
                 }
             </style>
         </head>
@@ -283,7 +263,6 @@ function printQR() {
     `);
     
     printWindow.document.close();
-    
     console.log('[QR-GENERATOR] Print dialog opened');
 }
 
