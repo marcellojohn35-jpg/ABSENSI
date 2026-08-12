@@ -1,4 +1,4 @@
-l// ===== EXISTING CODE =====
+// ===== EXISTING CODE =====
 console.log("Absensi Prototype aktif!");
 
 // ===== FOUNDATION: FIREBASE MODULAR IMPORT =====
@@ -255,7 +255,7 @@ function showProfileSetup(user) {
 }
 
 // ============================================
-// QR SCANNER — ROOT CAUSE FIX
+// QR SCANNER — FIXED
 // ============================================
 
 // Cek apakah library tersedia
@@ -282,7 +282,7 @@ function clearQrStatus() {
 }
 
 // ============================================
-// OPEN SCANNER — FIXED
+// OPEN SCANNER
 // ============================================
 async function openScanner() {
     console.log('[QR] ========================================');
@@ -402,8 +402,8 @@ async function openScanner() {
             }
         };
         
-        // ===== START SCANNER — FIXED API CALL =====
-        console.log('[QR] Starting scanner with correct API...');
+        // ===== START SCANNER =====
+        console.log('[QR] Starting scanner...');
         setQrStatus('loading', '📷 Membuka kamera...');
         if (qrScannerInstruction) qrScannerInstruction.textContent = '📷 Mengakses kamera...';
         
@@ -524,7 +524,7 @@ async function openScanner() {
 }
 
 // ============================================
-// STOP SCANNER — FIXED
+// STOP SCANNER
 // ============================================
 async function stopScannerInternal() {
     console.log('[QR] stopScannerInternal() called');
@@ -597,7 +597,7 @@ async function closeScanner() {
 }
 
 // ============================================
-// PROCESS ATTENDANCE (DIPERTAHANKAN)
+// PROCESS ATTENDANCE
 // ============================================
 async function processAttendanceWithQR(qrData) {
     console.log('[QR] processAttendanceWithQR() called with:', qrData);
