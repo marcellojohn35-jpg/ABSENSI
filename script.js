@@ -1,4 +1,4 @@
-l// ===== EXISTING CODE =====
+// ===== EXISTING CODE =====
 console.log("Absensi Prototype aktif!");
 
 // ===== FOUNDATION: FIREBASE MODULAR IMPORT =====
@@ -286,7 +286,9 @@ function clearQrStatus() {
     qrStatus.className = '';
 }
 
-// Buka scanner
+// ============================================
+// QR SCANNER — SURGICAL FIX
+// ============================================
 async function openScanner() {
     console.log('[QR] ========================================');
     console.log('[QR] openScanner() called');
@@ -366,7 +368,6 @@ async function openScanner() {
         const onScanSuccess = async (decodedText, decodedResult) => {
             console.log('[QR] ========================================');
             console.log('[QR] 🎯 DETECTED! Text:', decodedText);
-            console.log('[QR] Full result:', decodedResult);
             console.log('[QR] ========================================');
             
             if (isProcessingAttendance) {
