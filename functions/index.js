@@ -9,24 +9,32 @@ admin.initializeApp();
 // ============================================
 function getJakartaTime() {
     const now = new Date();
-    // Konversi ke WIB (UTC+7)
-    const wibOffset = 7 * 60 * 60 * 1000; // 7 jam dalam ms
-    const wibTime = new Date(now.getTime() + wibOffset);
-    return wibTime;
-}
-
-function formatTanggalWIB(date) {
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-function formatJamWIB(date) {
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
+    // Gunakan Intl.DateTimeFormat dengan timezone Asia/Jakarta
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+    
+    const parts = formatter.formatToParts(now);
+    const dateObj = {};
+    parts.forEach(part => {
+        if (part.type !== 'literal') {
+            dateObj[part.type] = part.value;
+        }
+    });
+    
+    // Format: YYYY-MM-DD
+    const tanggal = `${dateObj.year}-${dateObj.month}-${dateObj.day}`;
+    // Format: HH:MM:SS
+    const jam = `${dateObj.hour}:${dateObj.minute}:${dateObj.second}`;
+    
+    return { tanggal, jam, dateObj };
 }
 
 // ============================================
@@ -118,9 +126,7 @@ exports.processAttendance = onCall(async (request) => {
     }
     
     // 6. Waktu server Asia/Jakarta
-    const wibNow = getJakartaTime();
-    const tanggal = formatTanggalWIB(wibNow);
-    const jam = formatJamWIB(wibNow);
+    const { tanggal, jam } = getJakartaTime();
     
     console.log(`[processAttendance] Waktu WIB: ${tanggal} ${jam}`);
     

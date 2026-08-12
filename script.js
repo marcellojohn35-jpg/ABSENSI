@@ -57,37 +57,30 @@ function showSection(sectionId) {
     }
 }
 
-// ===== AUTH STATE LISTENER =====
-onAuthStateChanged(auth, async (user) => {
-    console.log('Auth state changed:', user ? user.uid : 'null');
-    
-    if (!user) {
-        // User belum login
-        showSection('login');
-        return;
-    }
-    
-    // User sudah login
+// ===== LOAD USER PROFILE =====
+async function loadUserProfile(user) {
     showSection('loading');
     
     try {
-        // Cek profil di Firestore
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
         
         if (!userDoc.exists()) {
-            // Profil belum ada → Profile akan dibuat otomatis oleh Cloud Function
-            // Tapi kita tampilkan loading sambil menunggu
+            // Profil belum ada → menunggu createUserProfile dari Cloud Function
             console.log('Profil belum ada, menunggu createUserProfile...');
             
             // Coba cek lagi setelah 2 detik (memberi waktu trigger)
             setTimeout(async () => {
-                const retryDoc = await getDoc(userDocRef);
-                if (retryDoc.exists()) {
-                    showDashboard(retryDoc.data());
-                } else {
-                    // Jika masih belum ada, minta user lengkapi profil manual
-                    // Tapi idealnya trigger sudah membuat profil
+                try {
+                    const retryDoc = await getDoc(userDocRef);
+                    if (retryDoc.exists()) {
+                        showDashboard(retryDoc.data());
+                    } else {
+                        // Jika masih belum ada, minta user lengkapi profil manual
+                        showProfileSetup(user);
+                    }
+                } catch (error) {
+                    console.error('Error retrying profile check:', error);
                     showProfileSetup(user);
                 }
             }, 2000);
@@ -99,11 +92,11 @@ onAuthStateChanged(auth, async (user) => {
         showDashboard(userDoc.data());
         
     } catch (error) {
-        console.error('Error checking user profile:', error);
+        console.error('Error loading user profile:', error);
         showSection('login');
         alert('Terjadi error saat memuat profil. Silakan coba lagi.');
     }
-});
+}
 
 // ===== DASHBOARD =====
 function showDashboard(userData) {
@@ -177,14 +170,29 @@ function showProfileSetup(user) {
             }, { merge: true });
             
             alert('Profil berhasil disimpan!');
-            // Refresh dashboard
-            onAuthStateChanged(auth); // trigger ulang
+            // Refresh dashboard menggunakan helper yang sama
+            await loadUserProfile(user);
         } catch (error) {
             console.error('Error saving profile:', error);
             alert('Gagal menyimpan profil. Silakan coba lagi.');
         }
     };
 }
+
+// ===== AUTH STATE LISTENER =====
+// Hanya SATU listener utama
+onAuthStateChanged(auth, async (user) => {
+    console.log('Auth state changed:', user ? user.uid : 'null');
+    
+    if (!user) {
+        // User belum login
+        showSection('login');
+        return;
+    }
+    
+    // User sudah login → load profile
+    await loadUserProfile(user);
+});
 
 // ===== LOGIN GOOGLE =====
 loginBtn?.addEventListener('click', async () => {
