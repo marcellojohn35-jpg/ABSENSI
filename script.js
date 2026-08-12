@@ -52,6 +52,12 @@ const attendanceResultTitle = document.getElementById('attendanceResultTitle');
 const attendanceResultData = document.getElementById('attendanceResultData');
 const scanAgainBtn = document.getElementById('scanAgainBtn');
 
+// ===== QR GENERATOR DOM REFERENCES =====
+const generateQrBtn = document.getElementById('generateQrBtn');
+const qrTestResult = document.getElementById('qrTestResult');
+const qrTokenDisplay = document.getElementById('qrTokenDisplay');
+const qrStatusMessage = document.getElementById('qrStatusMessage');
+
 // ===== STATE =====
 let isProcessingAttendance = false;
 let html5QrCode = null;
@@ -148,10 +154,23 @@ function showDashboard(userData) {
             <p><strong>NIS:</strong> ${userData.nis}</p>
             <p><strong>Kelas:</strong> ${userData.classId}</p>
             <p><strong>Role:</strong> ${userData.role}</p>
-            <button id="scanQrBtn">📷 Scan QR Absensi</button>
+            
+            <div style="margin-top:16px;padding:16px;background:#e8f5e9;border-radius:8px;border:1px solid #c8e6c9;">
+                <p><strong>🧪 QR Test</strong></p>
+                <p style="font-size:14px;color:#555;">Token: <code style="background:#f5f5f5;padding:2px 8px;border-radius:4px;">qrmvp2026</code></p>
+                <button id="generateQrBtn" style="background:#28a745;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;margin-top:8px;">Generate QR Test</button>
+                <div id="qrTestResult" style="margin-top:16px;display:flex;justify-content:center;min-height:50px;"></div>
+                <div id="qrTokenDisplay" style="margin-top:8px;font-size:14px;color:#666;"></div>
+            </div>
+            
+            <button id="scanQrBtn" style="margin-top:16px;background:#17a2b8;color:white;border:none;padding:12px 24px;border-radius:4px;cursor:pointer;font-size:16px;width:100%;">📷 Scan QR Absensi</button>
             <div id="qrStatusMessage" style="margin-top:12px;padding:12px;border-radius:4px;display:none;"></div>
         `;
         
+        // ===== QR GENERATOR: Pasang event listener =====
+        document.getElementById('generateQrBtn')?.addEventListener('click', generateTestQR);
+        
+        // ===== STEP 9: Scan QR Button =====
         document.getElementById('scanQrBtn')?.addEventListener('click', () => {
             openScanner();
         });
@@ -200,6 +219,68 @@ function showProfileSetup(user) {
     };
 }
 
+// ===== QR GENERATOR =====
+function generateTestQR() {
+    console.log('[QR-GENERATOR] generateTestQR() called');
+    
+    const container = document.getElementById('qrTestResult');
+    const tokenDisplay = document.getElementById('qrTokenDisplay');
+    
+    if (!container) {
+        console.error('[QR-GENERATOR] Container #qrTestResult not found');
+        return;
+    }
+    
+    // Cek apakah QRCode.js tersedia
+    if (typeof QRCode === 'undefined') {
+        console.error('[QR-GENERATOR] QRCode.js library not loaded');
+        container.innerHTML = '<p style="color:#dc3545;">❌ QRCode.js belum tersedia. Silakan reload halaman.</p>';
+        return;
+    }
+    
+    console.log('[QR-GENERATOR] QRCode.js library available');
+    
+    // Token test
+    const token = 'qrmvp2026';
+    console.log('[QR-GENERATOR] Token:', token);
+    
+    // Bersihkan container
+    container.innerHTML = '';
+    
+    // Tampilkan token di bawah QR
+    if (tokenDisplay) {
+        tokenDisplay.textContent = '📋 Token: ' + token;
+        tokenDisplay.style.color = '#28a745';
+    }
+    
+    try {
+        // Generate QR Code
+        const qr = new QRCode(container, {
+            text: token,
+            width: 300,
+            height: 300,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+        
+        console.log('[QR-GENERATOR] QR generated successfully!');
+        console.log('[QR-GENERATOR] QR contains:', token);
+        
+        // Tampilkan pesan sukses
+        const statusMsg = document.getElementById('qrStatusMessage');
+        if (statusMsg) {
+            statusMsg.style.display = 'block';
+            statusMsg.textContent = '✅ QR berhasil dibuat dengan token: ' + token;
+            statusMsg.className = 'success';
+        }
+        
+    } catch (error) {
+        console.error('[QR-GENERATOR] Error generating QR:', error);
+        container.innerHTML = '<p style="color:#dc3545;">❌ Gagal membuat QR: ' + (error.message || 'Unknown error') + '</p>';
+    }
+}
+
 // ===== STEP 9: QR SCANNER FUNCTIONS =====
 
 // Cek apakah library tersedia
@@ -219,20 +300,6 @@ function setQrStatus(type, message) {
 function clearQrStatus() {
     qrStatus.textContent = '';
     qrStatus.className = '';
-}
-
-// Cek apakah element video memiliki track aktif
-function hasActiveVideoTracks() {
-    try {
-        const video = document.querySelector('#qrReader video');
-        if (video && video.srcObject) {
-            const tracks = video.srcObject.getTracks();
-            return tracks.some(t => t.readyState === 'live');
-        }
-        return false;
-    } catch (e) {
-        return false;
-    }
 }
 
 // Buka scanner
@@ -722,3 +789,4 @@ logoutBtn?.addEventListener('click', async () => {
 
 console.log('✅ Firebase Foundation siap!');
 console.log('[QR] Script loaded. Html5Qrcode available:', typeof Html5Qrcode !== 'undefined');
+console.log('[QR] QRCode.js available:', typeof QRCode !== 'undefined');
