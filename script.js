@@ -204,133 +204,184 @@ function showProfileSetup(user) {
 
 // Cek apakah library tersedia
 function isQrLibraryAvailable() {
-    return typeof Html5Qrcode !== 'undefined';
+    const available = typeof Html5Qrcode !== 'undefined';
+    console.log('[QR DEBUG] Library available:', available);
+    return available;
 }
 
 // Buka scanner
 async function openScanner() {
+    console.log('[QR DEBUG] openScanner() called');
+    
     // Cek apakah user masih login
     if (!auth.currentUser) {
+        console.log('[QR DEBUG] User not logged in');
         alert('Silakan login terlebih dahulu.');
         return;
     }
     
     // Cek apakah library tersedia
     if (!isQrLibraryAvailable()) {
-        console.error('Html5Qrcode library not loaded');
-        alert('Scanner tidak tersedia. Silakan reload halaman.');
+        console.error('[QR DEBUG] Html5Qrcode library not loaded');
+        setQrStatus('error', '❌ QR Scanner gagal dimuat. Silakan reload halaman.');
         return;
     }
     
     // Reset status
-    qrStatus.textContent = '';
-    qrStatus.className = '';
-    qrScannerInstruction.textContent = 'Arahkan kamera ke QR absensi';
+    clearQrStatus();
+    qrScannerInstruction.textContent = '⏳ Menyiapkan kamera...';
+    isScannerRunning = false;
+    isProcessingAttendance = false;
     
     showSection('qrScanner');
     
     // Cek dukungan kamera
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        qrStatus.textContent = '❌ Kamera tidak tersedia atau tidak didukung.';
-        qrStatus.className = 'error';
+        console.error('[QR DEBUG] Camera not supported');
+        setQrStatus('error', '❌ Kamera tidak tersedia atau tidak didukung.');
+        qrScannerInstruction.textContent = 'Kamera tidak didukung';
         return;
     }
     
+    // Beri waktu untuk DOM render
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Pastikan container terlihat
+    const container = document.getElementById('qrReader');
+    if (!container) {
+        console.error('[QR DEBUG] Container #qrReader not found');
+        setQrStatus('error', '❌ Terjadi kesalahan internal. Silakan reload halaman.');
+        return;
+    }
+    
+    console.log('[QR DEBUG] Container found, initializing scanner...');
+    setQrStatus('loading', '⏳ Meminta izin kamera...');
+    
     try {
-        // Inisialisasi html5-qrcode
-        html5QrCode = new Html5Qrcode("qrReader");
+        // Bersihkan instance sebelumnya jika ada
+        if (html5QrCode) {
+            console.log('[QR DEBUG] Cleaning up previous instance');
+            try {
+                await html5QrCode.stop();
+            } catch (e) { /* ignore */ }
+            try {
+                await html5QrCode.clear();
+            } catch (e) { /* ignore */ }
+            html5QrCode = null;
+        }
         
-        // Konfigurasi kamera
+        // Inisialisasi html5-qrcode
+        console.log('[QR DEBUG] Creating Html5Qrcode instance...');
+        html5QrCode = new Html5Qrcode("qrReader");
+        console.log('[QR DEBUG] Html5Qrcode instance created');
+        
+        // Konfigurasi kamera yang lebih sederhana
         const config = {
             fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
+            qrbox: { width: 200, height: 200 },
             videoConstraints: {
-                facingMode: "environment",
-                width: { ideal: 640 },
-                height: { ideal: 480 }
+                facingMode: "environment"
             }
         };
         
+        console.log('[QR DEBUG] Config:', JSON.stringify(config, null, 2));
+        
         // Handler untuk QR terdeteksi
         const onScanSuccess = async (decodedText, decodedResult) => {
-            console.log('QR detected:', decodedText);
+            console.log('[QR DEBUG] QR detected:', decodedText);
             
-            // Cegah duplicate request
             if (isProcessingAttendance) {
-                console.log('Already processing, ignoring duplicate scan');
+                console.log('[QR DEBUG] Already processing, ignoring duplicate');
                 return;
             }
             
-            // Hentikan scanner segera
-            await stopScanner();
+            // Hentikan scanner
+            console.log('[QR DEBUG] Stopping scanner after detection');
+            await stopScannerInternal();
             
             // Proses absensi
             await processAttendanceWithQR(decodedText);
         };
         
         const onScanFailure = (error) => {
-            // Tidak perlu log setiap error, hanya untuk debugging
-            // console.debug('QR scan failure:', error);
+            // Hanya log untuk debugging
+            if (error && error.length > 0) {
+                // console.debug('[QR DEBUG] Scan failure:', error);
+            }
         };
         
         // Mulai scanner
+        console.log('[QR DEBUG] Starting scanner...');
+        setQrStatus('loading', '📷 Membuka kamera...');
+        qrScannerInstruction.textContent = '📷 Mengakses kamera...';
+        
         await html5QrCode.start(
             config.videoConstraints,
             onScanSuccess,
             onScanFailure
         );
         
+        console.log('[QR DEBUG] Scanner started successfully');
         isScannerRunning = true;
+        setQrStatus('success', '📷 Kamera aktif. Arahkan kamera ke QR.');
         qrScannerInstruction.textContent = '🔍 Arahkan kamera ke QR absensi';
         
     } catch (error) {
-        console.error('Error starting scanner:', error);
+        console.error('[QR DEBUG] Error starting scanner:', error);
+        console.error('[QR DEBUG] Error name:', error.name);
+        console.error('[QR DEBUG] Error message:', error.message);
+        console.error('[QR DEBUG] Error stack:', error.stack);
         
         // Cleanup jika error
-        await stopScanner();
+        await stopScannerInternal();
         
         // Tangani error permission
         if (error.name === 'NotAllowedError' || 
             error.name === 'PermissionDeniedError' ||
-            error.message.includes('permission')) {
-            qrStatus.textContent = '❌ Izin kamera diperlukan untuk scan QR. Silakan izinkan kamera di pengaturan browser.';
-            qrStatus.className = 'error';
+            (error.message && error.message.toLowerCase().includes('permission'))) {
+            setQrStatus('error', '❌ Izin kamera ditolak. Izinkan akses kamera di browser.');
+            qrScannerInstruction.textContent = 'Izin kamera ditolak';
         } else if (error.name === 'NotFoundError' || 
-                   error.message.includes('not found') ||
-                   error.message.includes('no camera')) {
-            qrStatus.textContent = '❌ Kamera tidak ditemukan. Pastikan HP Anda memiliki kamera.';
-            qrStatus.className = 'error';
-        } else if (error.message.includes('No video stream')) {
-            qrStatus.textContent = '❌ Gagal mengakses kamera. Silakan coba lagi.';
-            qrStatus.className = 'error';
+                   (error.message && error.message.toLowerCase().includes('not found')) ||
+                   (error.message && error.message.toLowerCase().includes('no camera'))) {
+            setQrStatus('error', '❌ Kamera tidak ditemukan. Pastikan HP Anda memiliki kamera.');
+            qrScannerInstruction.textContent = 'Kamera tidak ditemukan';
+        } else if (error.message && error.message.toLowerCase().includes('no video stream')) {
+            setQrStatus('error', '❌ Gagal mengakses kamera. Silakan coba lagi.');
+            qrScannerInstruction.textContent = 'Gagal akses kamera';
+        } else if (error.message && error.message.includes('SecurityError')) {
+            setQrStatus('error', '❌ Akses kamera ditolak oleh browser. Pastikan menggunakan HTTPS.');
+            qrScannerInstruction.textContent = 'HTTPS diperlukan';
         } else {
-            qrStatus.textContent = '❌ Gagal membuka kamera: ' + (error.message || 'Unknown error');
-            qrStatus.className = 'error';
+            setQrStatus('error', '❌ Gagal membuka kamera: ' + (error.message || 'Unknown error'));
+            qrScannerInstruction.textContent = 'Error: ' + (error.message || 'Unknown');
         }
     }
 }
 
-// Stop scanner
-async function stopScanner() {
+// Stop scanner internal
+async function stopScannerInternal() {
+    console.log('[QR DEBUG] stopScannerInternal() called');
+    
     try {
         if (html5QrCode) {
             try {
                 await html5QrCode.stop();
+                console.log('[QR DEBUG] Scanner stopped');
             } catch (stopError) {
-                console.warn('Error stopping scanner (ignored):', stopError);
+                console.warn('[QR DEBUG] Error stopping scanner:', stopError);
             }
             try {
                 await html5QrCode.clear();
+                console.log('[QR DEBUG] Scanner cleared');
             } catch (clearError) {
-                console.warn('Error clearing scanner (ignored):', clearError);
+                console.warn('[QR DEBUG] Error clearing scanner:', clearError);
             }
         }
     } catch (error) {
-        console.warn('Error in stopScanner:', error);
+        console.warn('[QR DEBUG] Error in stopScannerInternal:', error);
     }
     
-    // Reset state
     isScannerRunning = false;
     
     // Hentikan semua track kamera secara manual (fallback)
@@ -338,21 +389,24 @@ async function stopScanner() {
         const videoElement = document.querySelector('#qrReader video');
         if (videoElement && videoElement.srcObject) {
             const tracks = videoElement.srcObject.getTracks();
+            console.log('[QR DEBUG] Stopping', tracks.length, 'video tracks');
             tracks.forEach(track => track.stop());
             videoElement.srcObject = null;
         }
     } catch (error) {
-        console.warn('Error stopping video tracks:', error);
+        console.warn('[QR DEBUG] Error stopping video tracks:', error);
     }
-    
-    qrScannerInstruction.textContent = 'Scanner ditutup';
 }
 
 // Tutup scanner
 async function closeScanner() {
-    await stopScanner();
+    console.log('[QR DEBUG] closeScanner() called');
+    
+    await stopScannerInternal();
     html5QrCode = null;
     isScannerRunning = false;
+    clearQrStatus();
+    qrScannerInstruction.textContent = 'Scanner ditutup';
     
     // Kembali ke dashboard
     if (auth.currentUser) {
@@ -365,12 +419,25 @@ async function closeScanner() {
                 showSection('login');
             }
         } catch (error) {
-            console.error('Error returning to dashboard:', error);
+            console.error('[QR DEBUG] Error returning to dashboard:', error);
             showSection('login');
         }
     } else {
         showSection('login');
     }
+}
+
+// ===== STEP 9: QR STATUS HELPER =====
+
+function setQrStatus(type, message) {
+    qrStatus.textContent = message;
+    qrStatus.className = type;
+    console.log('[QR STATUS]', type + ':', message);
+}
+
+function clearQrStatus() {
+    qrStatus.textContent = '';
+    qrStatus.className = '';
 }
 
 // ===== STEP 9: PROCESS ATTENDANCE =====
@@ -389,8 +456,7 @@ async function processAttendanceWithQR(qrData) {
     isProcessingAttendance = true;
     
     // Tampilkan loading di status
-    qrStatus.textContent = '⏳ Memproses absensi...';
-    qrStatus.className = 'loading';
+    setQrStatus('loading', '⏳ Memproses absensi...');
     qrScannerInstruction.textContent = '⏳ Menghubungi server...';
     
     try {
@@ -398,23 +464,25 @@ async function processAttendanceWithQR(qrData) {
         const functions = getFunctions();
         const processAttendance = httpsCallable(functions, 'processAttendance');
         
+        console.log('[QR DEBUG] Calling processAttendance with qrToken:', qrData.trim());
+        
         const result = await processAttendance({
             qrToken: qrData.trim()
         });
         
         const data = result.data;
+        console.log('[QR DEBUG] Attendance result:', data);
         
         // Tampilkan hasil sukses
         showAttendanceResult(true, data);
         
     } catch (error) {
-        console.error('Attendance error:', error);
+        console.error('[QR DEBUG] Attendance error:', error);
         
         // Parse error dari Firebase
         let errorMessage = '❌ Gagal melakukan absensi. Silakan coba lagi.';
         let errorType = 'error';
         
-        // Cek apakah error dari backend
         if (error.code === 'already-exists' || 
             error.message?.includes('sudah absen') ||
             error.message?.includes('DUPLICATE')) {
@@ -450,7 +518,6 @@ async function processAttendanceWithQR(qrData) {
             errorType = 'error';
         }
         
-        // Tampilkan hasil error
         showAttendanceResult(false, { error: errorMessage, type: errorType });
         
     } finally {
@@ -486,10 +553,21 @@ function showAttendanceResult(success, data) {
 // ===== STEP 9: SCAN AGAIN =====
 
 scanAgainBtn?.addEventListener('click', async () => {
+    console.log('[QR DEBUG] Scan Again clicked');
+    
     // Reset state scanner
     isProcessingAttendance = false;
     isScannerRunning = false;
-    html5QrCode = null;
+    
+    if (html5QrCode) {
+        try {
+            await html5QrCode.stop();
+        } catch (e) { /* ignore */ }
+        try {
+            await html5QrCode.clear();
+        } catch (e) { /* ignore */ }
+        html5QrCode = null;
+    }
     
     // Kembali ke dashboard dulu
     if (auth.currentUser) {
@@ -506,7 +584,7 @@ scanAgainBtn?.addEventListener('click', async () => {
                 showSection('login');
             }
         } catch (error) {
-            console.error('Error returning to dashboard:', error);
+            console.error('[QR DEBUG] Error returning to dashboard:', error);
             showSection('login');
         }
     } else {
@@ -517,6 +595,7 @@ scanAgainBtn?.addEventListener('click', async () => {
 // ===== STEP 9: CLOSE SCANNER =====
 
 closeScannerBtn?.addEventListener('click', async () => {
+    console.log('[QR DEBUG] Close Scanner button clicked');
     await closeScanner();
 });
 
@@ -527,8 +606,8 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     
     if (!user) {
-        // Pastikan scanner mati saat logout
-        await stopScanner();
+        console.log('[QR DEBUG] User logged out, stopping scanner');
+        await stopScannerInternal();
         html5QrCode = null;
         isScannerRunning = false;
         isProcessingAttendance = false;
@@ -553,9 +632,9 @@ loginBtn?.addEventListener('click', async () => {
 
 // ===== LOGOUT =====
 logoutBtn?.addEventListener('click', async () => {
+    console.log('[QR DEBUG] Logout clicked, stopping scanner');
     try {
-        // Pastikan scanner mati saat logout
-        await stopScanner();
+        await stopScannerInternal();
         html5QrCode = null;
         isScannerRunning = false;
         isProcessingAttendance = false;
@@ -568,3 +647,4 @@ logoutBtn?.addEventListener('click', async () => {
 });
 
 console.log('✅ Firebase Foundation siap!');
+console.log('[QR DEBUG] Script loaded. Html5Qrcode available:', typeof Html5Qrcode !== 'undefined');
