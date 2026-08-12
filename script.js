@@ -168,12 +168,18 @@ function showDashboard(userData) {
         `;
         
         // ===== QR GENERATOR: Pasang event listener =====
-        document.getElementById('generateQrBtn')?.addEventListener('click', generateTestQR);
+        const generateBtn = document.getElementById('generateQrBtn');
+        if (generateBtn) {
+            generateBtn.addEventListener('click', generateTestQR);
+        }
         
         // ===== STEP 9: Scan QR Button =====
-        document.getElementById('scanQrBtn')?.addEventListener('click', () => {
-            openScanner();
-        });
+        const scanBtn = document.getElementById('scanQrBtn');
+        if (scanBtn) {
+            scanBtn.addEventListener('click', () => {
+                openScanner();
+            });
+        }
     }
 }
 
@@ -789,4 +795,4 @@ logoutBtn?.addEventListener('click', async () => {
 
 console.log('✅ Firebase Foundation siap!');
 console.log('[QR] Script loaded. Html5Qrcode available:', typeof Html5Qrcode !== 'undefined');
-console.log('[QR] QRCode.js available:', typeof QRCode !== 'undefined');
+console.log('[QR-GENERATOR] QRCode.js available:', typeof QRCode !== 'undefined');
