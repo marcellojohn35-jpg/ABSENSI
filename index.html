@@ -55,6 +55,28 @@
                 <button type="submit">Simpan Profil</button>
             </form>
         </div>
+
+        <!-- ===== STEP 9: QR SCANNER SECTION ===== -->
+        <div id="qrScannerSection" style="display:none;">
+            <div id="qrScannerHeader">
+                <h2>📷 Scan QR Absensi</h2>
+                <button id="closeScannerBtn">✕ Tutup Scanner</button>
+            </div>
+            <p id="qrScannerInstruction">Arahkan kamera ke QR absensi</p>
+            <div id="qrScannerContainer">
+                <div id="qrReader"></div>
+            </div>
+            <div id="qrStatus"></div>
+        </div>
+
+        <!-- ===== STEP 9: ATTENDANCE RESULT SECTION ===== -->
+        <div id="attendanceResultSection" style="display:none;">
+            <div id="attendanceResultContent">
+                <h2 id="attendanceResultTitle"></h2>
+                <div id="attendanceResultData"></div>
+                <button id="scanAgainBtn">Scan Lagi</button>
+            </div>
+        </div>
     </div>
 
     <!-- ===== FOUNDATION: FIREBASE MODULAR SDK ===== -->
@@ -63,10 +85,14 @@
             "imports": {
                 "firebase-app": "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js",
                 "firebase-auth": "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js",
-                "firebase-firestore": "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js"
+                "firebase-firestore": "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js",
+                "firebase-functions": "https://www.gstatic.com/firebasejs/12.17.1/firebase-functions.js"
             }
         }
     </script>
+
+    <!-- ===== STEP 9: QR SCANNER LIBRARY (html5-qrcode) ===== -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <!-- ===== EXISTING SCRIPT (dipertahankan) ===== -->
     <script type="module" src="script.js"></script>
