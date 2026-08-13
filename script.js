@@ -2,20 +2,20 @@
 console.log("Absensi Prototype aktif!");
 
 // ===== FOUNDATION: FIREBASE MODULAR IMPORT =====
-import { 
-    auth, 
-    db, 
-    provider, 
-    signInWithPopup, 
-    onAuthStateChanged, 
-    signOut 
+import {
+    auth,
+    db,
+    provider,
+    signInWithPopup,
+    onAuthStateChanged,
+    signOut
 } from './firebase-config.js';
 
-import { 
-    doc, 
-    getDoc, 
-    setDoc, 
-    serverTimestamp 
+import {
+    doc,
+    getDoc,
+    setDoc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 // ===== STEP 9: IMPORT FUNCTIONS =====
@@ -88,7 +88,7 @@ function showSection(sectionId) {
     attendanceResultSection.style.display = 'none';
     qrGeneratorSection.style.display = 'none';
     absenSection.style.display = 'none'; // [BARU PHASE 1]
-    
+
     if (sectionId === 'loading') {
         loadingState.style.display = 'block';
     } else if (sectionId === 'login') {
@@ -108,29 +108,82 @@ function showSection(sectionId) {
     }
 }
 
+// ===== [BARU PHASE 3] FIRESTORE STRUCTURE: INISIALISASI SESSION =====
+async function initializeTodaySession() {
+    try {
+        // Format tanggal YYYY-MM-DD berdasarkan timezone Asia/Jakarta (WIB)
+        const now = new Date();
+        // Konversi ke waktu Jakarta (UTC+7)
+        const jakartaOffset = 7 * 60 * 60 * 1000; // 7 jam dalam milidetik
+        const jakartaTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60 * 1000) + jakartaOffset);
+
+        // Ekstrak YYYY, MM, DD secara deterministik
+        const year = jakartaTime.getUTCFullYear();
+        const month = String(jakartaTime.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(jakartaTime.getUTCDate()).padStart(2, '0');
+
+        const dateStr = `${year}-${month}-${day}`; // Contoh: 2026-08-13
+
+        const sessionRef = doc(db, 'attendanceSessions', dateStr);
+        const sessionSnap = await getDoc(sessionRef);
+
+        // Jika sesi hari ini belum ada, buat dengan default
+        if (!sessionSnap.exists()) {
+            console.log(`[PHASE 3] Membuat sesi absensi untuk tanggal ${dateStr}`);
+            await setDoc(sessionRef, {
+                date: dateStr,
+                startTime: "07:00", // Jam mulai sekolah
+                lateAfter: "07:30", // Batas waktu terlambat
+                endTime: "14:00",   // Jam pulang
+                createdAt: serverTimestamp()
+            });
+            return { success: true, message: "Sesi baru dibuat", sessionId: dateStr };
+        }
+
+        console.log(`[PHASE 3] Sesi absensi ${dateStr} sudah ada.`);
+        return { success: true, message: "Sesi sudah ada", sessionId: dateStr, data: sessionSnap.data() };
+
+    } catch (error) {
+        console.error("[PHASE 3] Gagal inisialisasi session:", error);
+        return { success: false, message: error.message };
+    }
+}
+
 // ===== [BARU PHASE 1] HANDLER UNTUK ROUTE /ABSEN =====
 async function handleAbsenRoute(user) {
     showSection('absen');
     absenProfileInfo.style.display = 'none';
 
     if (!user) {
-        // Jika belum login
         absenStatus.textContent = 'Silakan login terlebih dahulu untuk melakukan absensi.';
         absenContent.innerHTML = `
             <button id="absenLoginBtn" class="login-btn" style="background:#4285f4;color:white;border:none;padding:12px 24px;font-size:16px;border-radius:4px;cursor:pointer;margin-top:10px;">
                 Login dengan Google
             </button>
         `;
-        // Event listener untuk tombol login di halaman absen
         document.getElementById('absenLoginBtn')?.addEventListener('click', () => {
             loginBtn.click(); // Memicu fungsi login existing
         });
     } else {
-        // Jika sudah login
+        // Jika sudah login, cek dan inisialisasi sesi hari ini (PHASE 3)
+        absenStatus.textContent = 'Anda sudah login. Memverifikasi sesi absensi...';
+        absenContent.innerHTML = `<p style="color:#17a2b8;">⏳ Sedang mempersiapkan data...</p>`;
+
+        const sessionResult = await initializeTodaySession();
+
+        // [FIXED PHASE 3] Penanganan jika gagal membuat sesi
+        if (!sessionResult.success) {
+            absenStatus.textContent = 'Terjadi kesalahan pada server.';
+            absenContent.innerHTML = `
+                <p style="color:#dc3545; font-weight:bold;">❌ Gagal memuat sesi absensi: ${sessionResult.message}</p>
+            `;
+            return; // Menghentikan eksekusi, tidak menampilkan data profil
+        }
+
+        // Jika berhasil, lanjutkan UI normal
         absenStatus.textContent = 'Anda sudah login. Sistem siap melakukan absensi.';
-        absenContent.innerHTML = `<p style="color:#28a745;">✅ Akun terverifikasi.</p>`;
-        
-        // Tampilkan data profil jika tersedia (TANPA membuat attendance)
+        absenContent.innerHTML = `<p style="color:#28a745;">✅ Akun terverifikasi. Sesi hari ini aktif.</p>`;
+
         try {
             const userDocRef = doc(db, 'users', user.uid);
             const userDoc = await getDoc(userDocRef);
@@ -161,14 +214,14 @@ async function loadUserProfile(user) {
     }
 
     showSection('loading');
-    
+
     try {
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
-        
+
         if (!userDoc.exists()) {
             console.log('Profil belum ada, menunggu createUserProfile...');
-            
+
             setTimeout(async () => {
                 try {
                     const retryDoc = await getDoc(userDocRef);
@@ -182,12 +235,12 @@ async function loadUserProfile(user) {
                     showProfileSetup(user);
                 }
             }, 2000);
-            
+
             return;
         }
-        
+
         showDashboard(userDoc.data());
-        
+
     } catch (error) {
         console.error('Error loading user profile:', error);
         showSection('login');
@@ -201,16 +254,16 @@ function showDashboard(userData) {
     userName.textContent = userData.nama || 'User';
     userRole.textContent = userData.role || 'student';
     roleDisplay.textContent = userData.role || 'student';
-    
+
     showSection('dashboard');
-    
+
     // Cek apakah profil lengkap (classId & nis ada)
     if (!userData.classId || !userData.nis) {
         document.getElementById('dashboardContent').innerHTML = `
             <p>⚠️ Profil Anda belum lengkap. Silakan lengkapi data diri.</p>
             <button id="lengkapiProfilBtn">Lengkapi Profil</button>
         `;
-        
+
         document.getElementById('lengkapiProfilBtn')?.addEventListener('click', () => {
             showProfileSetup(auth.currentUser);
         });
@@ -222,25 +275,25 @@ function showDashboard(userData) {
             <p><strong>NIS:</strong> ${userData.nis}</p>
             <p><strong>Kelas:</strong> ${userData.classId}</p>
             <p><strong>Role:</strong> ${userData.role}</p>
-            
+
             <div style="margin-top:16px;padding:16px;background:#e8f5e9;border-radius:8px;border:1px solid #c8e6c9;">
                 <p><strong>🧪 QR Test</strong></p>
                 <p style="font-size:14px;color:#555;">Token: <code style="background:#f5f5f5;padding:2px 8px;border-radius:4px;">qrmvp2026</code></p>
-                
+
                 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
                     <button id="generateQrBtn" style="background:#28a745;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">Generate QR</button>
                     <button id="downloadQrBtn" style="background:#007bff;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">Download PNG</button>
                     <button id="printQrBtn" style="background:#6c757d;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">Print QR</button>
                 </div>
-                
+
                 <div id="qrTestResult" style="margin-top:16px;display:flex;justify-content:center;min-height:50px;"></div>
                 <div id="qrTokenDisplay" style="margin-top:8px;font-size:14px;color:#666;"></div>
             </div>
-            
+
             <button id="scanQrBtn" style="margin-top:16px;background:#17a2b8;color:white;border:none;padding:12px 24px;border-radius:4px;cursor:pointer;font-size:16px;width:100%;">📷 Scan QR Absensi</button>
             <div id="qrStatusMessage" style="margin-top:12px;padding:12px;border-radius:4px;display:none;"></div>
         `;
-        
+
         // ===== QR GENERATOR: Event Listeners =====
         document.getElementById('generateQrBtn')?.addEventListener('click', () => {
             if (typeof generateQR === 'function') {
@@ -250,7 +303,7 @@ function showDashboard(userData) {
                 alert('QR Generator belum siap. Silakan reload halaman.');
             }
         });
-        
+
         document.getElementById('downloadQrBtn')?.addEventListener('click', () => {
             if (typeof downloadQR === 'function') {
                 downloadQR();
@@ -258,7 +311,7 @@ function showDashboard(userData) {
                 alert('Download QR tidak tersedia.');
             }
         });
-        
+
         document.getElementById('printQrBtn')?.addEventListener('click', () => {
             if (typeof printQR === 'function') {
                 printQR();
@@ -266,7 +319,7 @@ function showDashboard(userData) {
                 alert('Print QR tidak tersedia.');
             }
         });
-        
+
         // ===== STEP 9: Scan QR Button =====
         document.getElementById('scanQrBtn')?.addEventListener('click', () => {
             openScanner();
@@ -277,23 +330,23 @@ function showDashboard(userData) {
 // ===== PROFILE SETUP =====
 function showProfileSetup(user) {
     showSection('profileSetup');
-    
+
     if (user.displayName) {
         profileNama.value = user.displayName;
     }
-    
+
     profileForm.onsubmit = async (e) => {
         e.preventDefault();
-        
+
         const nama = profileNama.value.trim();
         const nis = profileNis.value.trim() || null;
         const classId = profileKelas.value.trim() || null;
-        
+
         if (!nama) {
             alert('Nama wajib diisi');
             return;
         }
-        
+
         try {
             const userDocRef = doc(db, 'users', user.uid);
             await setDoc(userDocRef, {
@@ -306,9 +359,9 @@ function showProfileSetup(user) {
                 waliKelasId: null,
                 updatedAt: serverTimestamp()
             }, { merge: true });
-            
+
             alert('Profil berhasil disimpan!');
-            
+
             // [BARU PHASE 1] Kembali ke /absen jika pathnya /absen, bukan dashboard
             if (window.location.pathname === '/absen') {
                 await handleAbsenRoute(user);
@@ -355,34 +408,34 @@ function clearQrStatus() {
 async function openScanner() {
     console.log('[QR] ========================================');
     console.log('[QR] openScanner() called');
-    
+
     if (!auth.currentUser) {
         console.log('[QR] User not logged in');
         alert('Silakan login terlebih dahulu.');
         return;
     }
-    
+
     if (!isQrLibraryAvailable()) {
         console.error('[QR] Html5Qrcode library not loaded');
         setQrStatus('error', '❌ QR Scanner gagal dimuat. Silakan reload halaman.');
         return;
     }
-    
+
     // Reset status
     clearQrStatus();
     if (qrScannerInstruction) qrScannerInstruction.textContent = '📷 Menyiapkan kamera...';
     isScannerRunning = false;
     isProcessingAttendance = false;
-    
+
     showSection('qrScanner');
-    
+
     // DEBUG: Cek lingkungan
     console.log('[QR DEBUG] protocol:', location.protocol);
     console.log('[QR DEBUG] hostname:', location.hostname);
     console.log('[QR DEBUG] mediaDevices:', !!navigator.mediaDevices);
     console.log('[QR DEBUG] getUserMedia:', !!navigator.mediaDevices?.getUserMedia);
     console.log('[QR DEBUG] qrReader:', document.getElementById('qrReader'));
-    
+
     // Cek dukungan kamera
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.error('[QR] Camera API not supported');
@@ -390,20 +443,20 @@ async function openScanner() {
         if (qrScannerInstruction) qrScannerInstruction.textContent = 'Kamera tidak didukung';
         return;
     }
-    
+
     // Beri waktu DOM render
     await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     const container = document.getElementById('qrReader');
     if (!container) {
         console.error('[QR] Container #qrReader not found');
         setQrStatus('error', '❌ Terjadi kesalahan internal. Silakan reload halaman.');
         return;
     }
-    
+
     console.log('[QR] Container found, initializing scanner...');
     setQrStatus('loading', '📷 Meminta izin kamera...');
-    
+
     try {
         // Bersihkan instance sebelumnya
         if (html5QrCode) {
@@ -412,55 +465,55 @@ async function openScanner() {
             try { await html5QrCode.clear(); } catch (e) { /* ignore */ }
             html5QrCode = null;
         }
-        
+
         // Inisialisasi html5-qrcode
         console.log('[QR] Creating Html5Qrcode instance...');
         html5QrCode = new Html5Qrcode("qrReader");
         console.log('[QR] Html5Qrcode instance created');
-        
+
         // ===== CAMERA CONFIG =====
         const cameraConfig = {
             facingMode: "environment"
         };
-        
+
         // ===== SCAN CONFIG =====
         const scanConfig = {
             fps: 15,
             qrbox: { width: 280, height: 280 },
             aspectRatio: 1.0
         };
-        
+
         console.log('[QR] Camera config:', JSON.stringify(cameraConfig, null, 2));
         console.log('[QR] Scan config:', JSON.stringify(scanConfig, null, 2));
-        
+
         // ===== HANDLER QR DETEKSI =====
         const onScanSuccess = async (decodedText, decodedResult) => {
             console.log('[QR] ========================================');
             console.log('[QR] 🎯 QR DETECTED!');
             console.log('[QR] TEXT:', decodedText);
             console.log('[QR] ========================================');
-            
+
             if (isProcessingAttendance) {
                 console.log('[QR] Already processing, ignoring duplicate');
                 return;
             }
-            
+
             isProcessingAttendance = true;
-            
+
             setQrStatus('success', '✅ QR TERDETEKSI: ' + decodedText);
             if (qrScannerInstruction) {
                 qrScannerInstruction.textContent = '✅ QR berhasil dibaca. Memproses absensi...';
             }
-            
+
             try {
                 await stopScannerInternal();
             } catch (error) {
                 console.warn('[QR] Stop scanner warning:', error);
             }
-            
+
             await processAttendanceWithQR(decodedText);
         };
-        
+
         let lastScanFailure = 0;
         const onScanFailure = (errorMessage) => {
             const now = Date.now();
@@ -469,76 +522,76 @@ async function openScanner() {
                 lastScanFailure = now;
             }
         };
-        
+
         // ===== START SCANNER =====
         console.log('[QR] Starting scanner...');
         setQrStatus('loading', '📷 Membuka kamera...');
         if (qrScannerInstruction) qrScannerInstruction.textContent = '📷 Mengakses kamera...';
-        
+
         await html5QrCode.start(
             cameraConfig,
             scanConfig,
             onScanSuccess,
             onScanFailure
         );
-        
+
         console.log('[QR DEBUG] ✅ CAMERA STARTED SUCCESSFULLY');
         isScannerRunning = true;
         setQrStatus('success', '📷 Kamera aktif. Arahkan QR ke kotak scan.');
         if (qrScannerInstruction) qrScannerInstruction.textContent = '🔍 Arahkan QR ke kotak scan';
-        
+
     } catch (error) {
         console.error('[QR] ❌ START ERROR');
         console.error('[QR] name:', error?.name);
         console.error('[QR] message:', error?.message);
         console.error('[QR] full error:', error);
-        
+
         // Cleanup
         await stopScannerInternal();
-        
+
         // Tangani error
-        if (error.name === 'NotAllowedError' || 
+        if (error.name === 'NotAllowedError' ||
             error.name === 'PermissionDeniedError' ||
             (error.message && error.message.toLowerCase().includes('permission'))) {
             setQrStatus('error', '❌ Izin kamera ditolak. Izinkan akses kamera di browser.');
             if (qrScannerInstruction) qrScannerInstruction.textContent = 'Izin kamera ditolak';
-        } else if (error.name === 'NotFoundError' || 
+        } else if (error.name === 'NotFoundError' ||
                    (error.message && error.message.toLowerCase().includes('not found'))) {
             setQrStatus('error', '❌ Kamera tidak ditemukan. Pastikan HP Anda memiliki kamera.');
             if (qrScannerInstruction) qrScannerInstruction.textContent = 'Kamera tidak ditemukan';
-        } else if (error.name === 'NotReadableError' || 
+        } else if (error.name === 'NotReadableError' ||
                    (error.message && error.message.toLowerCase().includes('readable'))) {
             setQrStatus('error', '❌ Kamera sedang digunakan aplikasi lain. Tutup aplikasi kamera.');
             if (qrScannerInstruction) qrScannerInstruction.textContent = 'Kamera sibuk';
-        } else if (error.name === 'OverconstrainedError' || 
+        } else if (error.name === 'OverconstrainedError' ||
                    (error.message && error.message.toLowerCase().includes('overconstrained'))) {
             // Fallback ke kamera pertama yang tersedia
             console.log('[QR] Overconstrained, trying fallback to first camera...');
             setQrStatus('loading', '⚠️ Mencoba kamera lain...');
-            
+
             try {
                 const cameras = await Html5Qrcode.getCameras();
                 console.log('[QR] Available cameras:', cameras);
-                
+
                 if (cameras && cameras.length > 0) {
                     const fallbackCameraId = cameras[0].id;
                     console.log('[QR] Fallback camera ID:', fallbackCameraId);
-                    
+
                     // Buat instance baru
                     if (html5QrCode) {
                         try { await html5QrCode.stop(); } catch (e) { /* ignore */ }
                         try { await html5QrCode.clear(); } catch (e) { /* ignore */ }
                         html5QrCode = null;
                     }
-                    
+
                     html5QrCode = new Html5Qrcode("qrReader");
-                    
+
                     const fallbackScanConfig = {
                         fps: 15,
                         qrbox: { width: 280, height: 280 },
                         aspectRatio: 1.0
                     };
-                    
+
                     const fallbackSuccess = async (decodedText, decodedResult) => {
                         console.log('[QR] 🎯 QR DETECTED (fallback)!');
                         console.log('[QR] TEXT:', decodedText);
@@ -551,7 +604,7 @@ async function openScanner() {
                         try { await stopScannerInternal(); } catch (e) { /* ignore */ }
                         await processAttendanceWithQR(decodedText);
                     };
-                    
+
                     let lastFallbackFailure = 0;
                     const fallbackFailure = (errorMessage) => {
                         const now = Date.now();
@@ -560,14 +613,14 @@ async function openScanner() {
                             lastFallbackFailure = now;
                         }
                     };
-                    
+
                     await html5QrCode.start(
                         { deviceId: { exact: fallbackCameraId } },
                         fallbackScanConfig,
                         fallbackSuccess,
                         fallbackFailure
                     );
-                    
+
                     console.log('[QR DEBUG] ✅ FALLBACK CAMERA STARTED');
                     isScannerRunning = true;
                     setQrStatus('success', '📷 Kamera aktif (fallback). Arahkan QR ke kotak scan.');
@@ -596,13 +649,13 @@ async function openScanner() {
 // ============================================
 async function stopScannerInternal() {
     console.log('[QR] stopScannerInternal() called');
-    
+
     if (!html5QrCode) {
         isScannerRunning = false;
         console.log('[QR] No scanner instance to stop');
         return;
     }
-    
+
     try {
         if (isScannerRunning) {
             await html5QrCode.stop();
@@ -611,17 +664,17 @@ async function stopScannerInternal() {
     } catch (error) {
         console.warn('[QR] stop warning:', error);
     }
-    
+
     try {
         await html5QrCode.clear();
         console.log('[QR] Scanner cleared');
     } catch (error) {
         console.warn('[QR] clear warning:', error);
     }
-    
+
     html5QrCode = null;
     isScannerRunning = false;
-    
+
     // Hentikan semua track kamera (fallback)
     try {
         const videoElement = document.querySelector('#qrReader video');
@@ -641,11 +694,11 @@ async function stopScannerInternal() {
 // ============================================
 async function closeScanner() {
     console.log('[QR] closeScanner() called');
-    
+
     await stopScannerInternal();
     clearQrStatus();
     if (qrScannerInstruction) qrScannerInstruction.textContent = 'Scanner ditutup';
-    
+
     if (auth.currentUser) {
         try {
             const userDocRef = doc(db, 'users', auth.currentUser.uid);
@@ -669,71 +722,71 @@ async function closeScanner() {
 // ============================================
 async function processAttendanceWithQR(qrData) {
     console.log('[QR] processAttendanceWithQR() called with:', qrData);
-    
+
     if (isProcessingAttendance) {
         console.log('[QR] Already processing, ignoring');
         return;
     }
-    
+
     if (!qrData || typeof qrData !== 'string' || qrData.trim() === '') {
         console.log('[QR] Empty QR data');
         showAttendanceResult(false, { error: '❌ QR absensi tidak valid (kosong).' });
         return;
     }
-    
+
     isProcessingAttendance = true;
-    
+
     setQrStatus('loading', '⏳ Memproses absensi...');
     if (qrScannerInstruction) qrScannerInstruction.textContent = '⏳ Menghubungi server...';
-    
+
     try {
         const functions = getFunctions();
         const processAttendance = httpsCallable(functions, 'processAttendance');
-        
+
         const trimmedToken = qrData.trim();
         console.log('[QR] Calling processAttendance with qrToken:', trimmedToken);
-        
+
         const result = await processAttendance({
             qrToken: trimmedToken
         });
-        
+
         const data = result.data;
         console.log('[QR] Attendance result:', data);
-        
+
         showAttendanceResult(true, data);
-        
+
     } catch (error) {
         console.error('[QR] Attendance error:', error);
-        
+
         let errorMessage = '❌ Gagal melakukan absensi. Silakan coba lagi.';
         let errorType = 'error';
-        
-        if (error.code === 'already-exists' || 
+
+        if (error.code === 'already-exists' ||
             error.message?.includes('sudah absen') ||
             error.message?.includes('DUPLICATE')) {
             errorMessage = 'ℹ️ Anda sudah melakukan absensi hari ini.';
             errorType = 'info';
-        } else if (error.message?.includes('INVALID_QR') || 
+        } else if (error.message?.includes('INVALID_QR') ||
                    error.message?.includes('QR Token tidak valid')) {
             errorMessage = '❌ QR absensi tidak valid.';
             errorType = 'error';
-        } else if (error.message?.includes('PERMISSION_DENIED') || 
+        } else if (error.message?.includes('PERMISSION_DENIED') ||
                    error.message?.includes('Hanya student')) {
             errorMessage = '❌ Anda tidak memiliki izin untuk melakukan absensi.';
             errorType = 'error';
-        } else if (error.message?.includes('PROFILE_INCOMPLETE') || 
+        } else if (error.message?.includes('PROFILE_INCOMPLETE') ||
                    error.message?.includes('Profil belum lengkap')) {
             errorMessage = '⚠️ Profil belum lengkap. Silakan lengkapi data diri Anda.';
             errorType = 'info';
-        } else if (error.message?.includes('USER_NOT_FOUND') || 
+        } else if (error.message?.includes('USER_NOT_FOUND') ||
                    error.message?.includes('User tidak ditemukan')) {
             errorMessage = '❌ Data pengguna tidak ditemukan.';
             errorType = 'error';
-        } else if (error.message?.includes('UNAUTHENTICATED') || 
+        } else if (error.message?.includes('UNAUTHENTICATED') ||
                    error.message?.includes('Silakan login')) {
             errorMessage = '⚠️ Silakan login terlebih dahulu.';
             errorType = 'info';
-        } else if (error.message?.includes('Network') || 
+        } else if (error.message?.includes('Network') ||
                    error.message?.includes('network') ||
                    error.message?.includes('Failed to fetch')) {
             errorMessage = '❌ Gagal terhubung ke server. Periksa koneksi internet.';
@@ -742,9 +795,9 @@ async function processAttendanceWithQR(qrData) {
             errorMessage = '❌ Anda tidak memiliki izin untuk melakukan ini.';
             errorType = 'error';
         }
-        
+
         showAttendanceResult(false, { error: errorMessage, type: errorType });
-        
+
     } finally {
         isProcessingAttendance = false;
     }
@@ -753,11 +806,11 @@ async function processAttendanceWithQR(qrData) {
 // ===== STEP 9: SHOW ATTENDANCE RESULT =====
 function showAttendanceResult(success, data) {
     showSection('attendanceResult');
-    
+
     if (success) {
         attendanceResultTitle.textContent = '✅ ABSENSI BERHASIL';
         attendanceResultTitle.className = 'success';
-        
+
         attendanceResultData.innerHTML = `
             <p><strong>Status:</strong> ${data.status || 'HADIR'}</p>
             <p><strong>Tanggal:</strong> ${data.tanggal || '-'}</p>
@@ -767,7 +820,7 @@ function showAttendanceResult(success, data) {
         const errorType = data.type || 'error';
         attendanceResultTitle.textContent = data.error || '❌ Gagal Absensi';
         attendanceResultTitle.className = errorType;
-        
+
         attendanceResultData.innerHTML = `
             <p>${data.error || 'Terjadi kesalahan. Silakan coba lagi.'}</p>
         `;
@@ -777,16 +830,16 @@ function showAttendanceResult(success, data) {
 // ===== STEP 9: SCAN AGAIN =====
 scanAgainBtn?.addEventListener('click', async () => {
     console.log('[QR] Scan Again clicked');
-    
+
     isProcessingAttendance = false;
     isScannerRunning = false;
-    
+
     if (html5QrCode) {
         try { await html5QrCode.stop(); } catch (e) { /* ignore */ }
         try { await html5QrCode.clear(); } catch (e) { /* ignore */ }
         html5QrCode = null;
     }
-    
+
     if (auth.currentUser) {
         try {
             const userDocRef = doc(db, 'users', auth.currentUser.uid);
@@ -815,9 +868,9 @@ closeScannerBtn?.addEventListener('click', async () => {
 // ===== AUTH STATE LISTENER =====
 onAuthStateChanged(auth, async (user) => {
     console.log('Auth state changed:', user ? user.uid : 'null');
-    
+
     currentUser = user;
-    
+
     // [BARU PHASE 1] Logika khusus untuk route /absen
     if (window.location.pathname === '/absen') {
         // Jangan panggil loadUserProfile (yang membuka dashboard).
@@ -834,7 +887,7 @@ onAuthStateChanged(auth, async (user) => {
         showSection('login');
         return;
     }
-    
+
     await loadUserProfile(user);
 });
 
