@@ -1,5 +1,4 @@
 const { onCall } = require("firebase-functions/v2/https");
-const { onCreate } = require("firebase-functions/v2/identity");
 const admin = require("firebase-admin");
 admin.initializeApp();
 
@@ -13,14 +12,7 @@ function getJakartaTime() {
     return { date: `${d.year}-${d.month}-${d.day}`, time: `${d.hour}:${d.minute}` };
 }
 
-// Create Profile
-exports.createUserProfile = onCreate(async (user) => {
-    const data = { nama: user.displayName || null, nis: null, email: user.email || null, photoURL: user.photoURL || null, role: "student", classId: null, createdAt: admin.firestore.FieldValue.serverTimestamp() };
-    try { await admin.firestore().collection('users').doc(user.uid).set(data); return { success: true }; } 
-    catch (e) { throw e; }
-});
-
-// Process Attendance (PURE URL-BASED)
+// Process Attendance (PURE URL-BASED) - Logic TIDAK BERUBAH
 exports.processAttendance = onCall(async (req) => {
     if (!req.auth) throw new Error('UNAUTHENTICATED');
     const uid = req.auth.uid;

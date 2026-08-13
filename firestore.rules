@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // USERS COLLECTION
+    // ============================================
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      
+      // CREATE: Hanya saat pertama kali dibuat. Tidak ada resource.data lama.
+      allow create: if request.auth != null 
+        && request.auth.uid == uid
+        // Role wajib 'student' saat awal dibuat
+        && request.resource.data.role == 'student';
+        
+      // UPDATE: Saat dokumen sudah ada.
+      allow update: if request.auth != null 
+        && request.auth.uid == uid
+        // Role tidak boleh diubah (tetap sama dengan yang tersimpan di DB)
+        && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role);
+        
+      allow delete: if false;
+    }
+
+    // ============================================
+    // ATTENDANCE SESSIONS COLLECTION
+    // ============================================
+    match /attendanceSessions/{sessionId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if false;
+    }
+
+    // ============================================
+    // ATTENDANCE COLLECTION
+    // ============================================
+    match /attendance/{docId} {
+      // Validasi waktu menggunakan Timestamp (bukan string)
+      function isValidSessionTime() {
+        let session = get(/databases/$(database)/documents/attendanceSessions/$(request.resource.data.sessionId)).data;
+        return session != null 
+          && request.time >= session.startTime 
+          && request.time <= session.endTime;
+      }
+
+      function getCorrectStatus() {
+        let session = get(/databases/$(database)/documents/attendanceSessions/$(request.resource.data.sessionId)).data;
+        return request.time <= session.lateAfter ? 'HADIR' : 'TERLAMBAT';
+      }
+
+      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
+      
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.uid
+        && docId.matches('^' + request.auth.uid + '_.*')
+        && !exists(/databases/$(database)/documents/attendance/$(docId))
+        && isValidSessionTime()
+        && request.resource.data.status == getCorrectStatus()
+        // [FIX BUG 2] classId boleh string ATAU null
+        && request.resource.data.keys().hasAll(['uid', 'tanggal', 'jam', 'status', 'classId', 'method', 'sessionId'])
+        && request.resource.data.uid is string
+        && request.resource.data.tanggal is string
+        && request.resource.data.jam is string
+        && request.resource.data.status is string
+        && (request.resource.data.classId is string || request.resource.data.classId == null)
+        && request.resource.data.method is string
+        && request.resource.data.sessionId is string;
+
+      allow update, delete: if false;
+    }
+
+  }
+}

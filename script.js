@@ -1,10 +1,9 @@
-console.log("Sistem Absensi URL-Based aktif.");
+console.log("Sistem Absensi URL-Based aktif (Firestore Rules).");
 
 import {
     auth, db, provider, signInWithPopup, onAuthStateChanged, signOut
 } from './firebase-config.js';
-import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
-import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-functions.js";
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 // DOM Refs
 const $ = (id) => document.getElementById(id);
@@ -47,12 +46,20 @@ function showSection(id) {
     if (id) id.style.display = 'block';
 }
 
-// ===== WIB Helper =====
+// ===== WIB Helpers =====
 function getJakartaDateStr() {
     const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
     const obj = {};
     parts.forEach(p => { if (p.type !== 'literal') obj[p.type] = p.value; });
     return `${obj.year}-${obj.month}-${obj.day}`;
+}
+
+// Helper untuk mendapatkan jam:menit dalam string WIB untuk tampilan UI
+function getJakartaTimeStr() {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
+    const obj = {};
+    parts.forEach(p => { if (p.type !== 'literal') obj[p.type] = p.value; });
+    return `${obj.hour}:${obj.minute}`;
 }
 
 // ===== Logic Halaman Absen =====
@@ -82,11 +89,21 @@ async function processAbsenPage(user) {
     }
 
     const data = sessionSnap.data();
+    
+    // [FIX BUG 3] Konversi Timestamp ke Date untuk mengambil jam:menit tampilan
+    const startDate = data.startTime.toDate();
+    const lateDate = data.lateAfter.toDate();
+    const endDate = data.endTime.toDate();
+    
+    const startTimeStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).format(startDate);
+    const lateTimeStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).format(lateDate);
+    const endTimeStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).format(endDate);
+
     sessionInfoDisplay.style.display = 'block';
     sessionInfoDisplay.innerHTML = `
         <div style="font-size:14px;">
             <p><strong>Tanggal:</strong> ${data.date}</p>
-            <p><strong>Mulai:</strong> ${data.startTime} | <strong>Batas Terlambat:</strong> ${data.lateAfter} | <strong>Tutup:</strong> ${data.endTime}</p>
+            <p><strong>Mulai:</strong> ${startTimeStr} | <strong>Batas Terlambat:</strong> ${lateTimeStr} | <strong>Tutup:</strong> ${endTimeStr}</p>
         </div>
     `;
 
@@ -116,7 +133,7 @@ async function processAbsenPage(user) {
     }
 }
 
-// ===== Tombol "Absen Sekarang" =====
+// ===== Tombol "Absen Sekarang" (Direct Firestore Write) =====
 absenNowBtn.onclick = async () => {
     if (isProcessing) return;
     isProcessing = true;
@@ -124,14 +141,58 @@ absenNowBtn.onclick = async () => {
     absenNowBtn.textContent = "⏳ Memproses...";
 
     try {
-        const functions = getFunctions();
-        const processAttendance = httpsCallable(functions, 'processAttendance');
-        // Kirim sessionId, BUKAN tanggal
-        const result = await processAttendance({ qrToken: currentSessionId });
-        showAttendanceResult(true, result.data);
+        if (!currentUser) throw new Error('UNAUTHENTICATED');
+        
+        const uid = currentUser.uid;
+        const userDoc = await getDoc(doc(db, 'users', uid));
+        if (!userDoc.exists()) throw new Error('USER_NOT_FOUND');
+        const userData = userDoc.data();
+        if (userData.role !== 'student') throw new Error('PERMISSION_DENIED');
+
+        // Ambil data session lagi untuk validasi client-side (UX)
+        const sessionRef = doc(db, 'attendanceSessions', currentSessionId);
+        const sessionSnap = await getDoc(sessionRef);
+        if (!sessionSnap.exists()) throw new Error('SESSION_NOT_FOUND');
+        const s = sessionSnap.data();
+
+        // Waktu server yang akan dikirim
+        const dateStr = getJakartaDateStr();
+        const now = new Date();
+        const timeStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).format(now);
+        
+        // [FIX BUG 3] Perbandingan menggunakan objek Date asli (dari Timestamp)
+        const startTime = s.startTime.toDate();
+        const lateTime = s.lateAfter.toDate();
+        const endTime = s.endTime.toDate();
+
+        // Validasi Pra-Kirim
+        if (now < startTime) throw new Error('SESSION_NOT_STARTED');
+        if (now > endTime) throw new Error('SESSION_CLOSED');
+
+        const status = (now <= lateTime) ? 'HADIR' : 'TERLAMBAT';
+
+        // Tulis langsung ke Firestore (Rules akan validasi ulang)
+        const docId = `${uid}_${dateStr}`;
+        await setDoc(doc(db, 'attendance', docId), {
+            uid: uid,
+            tanggal: dateStr,
+            jam: timeStr,
+            status: status,
+            classId: userData.classId,
+            sessionId: currentSessionId,
+            method: 'qr',
+            createdAt: serverTimestamp()
+        });
+
+        showAttendanceResult(true, { status, tanggal: dateStr, jam: timeStr });
+
     } catch (error) {
         console.error(error);
-        showAttendanceResult(false, { error: error.message });
+        let errorMessage = error.message;
+        if (error.code === 'permission-denied') {
+            errorMessage = 'Permintaan ditolak oleh sistem. Pastikan session valid, waktu tepat, dan Anda belum absen.';
+        }
+        showAttendanceResult(false, { error: errorMessage });
     } finally {
         isProcessing = false;
         absenNowBtn.disabled = false;
@@ -143,13 +204,11 @@ absenNowBtn.onclick = async () => {
 onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     
-    // Jika di halaman absen, jalankan logic absen
     if (window.location.pathname === '/absen') {
         await processAbsenPage(user);
         return;
     }
 
-    // Logic halaman lain (/, Dashboard)
     if (user) {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (!userDoc.exists()) {
@@ -191,7 +250,7 @@ function setupProfileForm(user) {
                 nama, nis, classId, role: 'student', updatedAt: serverTimestamp()
             }, { merge: true });
             alert('Profil tersimpan!');
-            window.location.reload(); // Refresh untuk memuat dashboard
+            window.location.reload();
         } catch (e) { alert('Gagal menyimpan.'); }
     };
 }
@@ -213,6 +272,7 @@ function showAttendanceResult(success, data) {
         else if (data.error?.includes('SESSION_CLOSED')) msg = '⏰ Sesi sudah ditutup.';
         else if (data.error?.includes('SESSION_NOT_STARTED')) msg = '⏰ Sesi belum dimulai.';
         else if (data.error?.includes('DUPLICATE')) msg = 'ℹ️ Anda sudah absen hari ini.';
+        else if (data.error?.includes('permission-denied')) msg = 'Akses ditolak oleh sistem.';
         attendanceResultTitle.textContent = msg;
         attendanceResultTitle.className = 'error';
         attendanceResultData.innerHTML = `<p>${data.error || ''}</p>`;
@@ -230,4 +290,4 @@ logoutBtn.onclick = async () => {
     try { await signOut(auth); } catch (e) { alert('Logout gagal.'); }
 };
 
-console.log("✅ Foundation URL-Based siap.");
+console.log("✅ Foundation URL-Based siap (Rules only).");
