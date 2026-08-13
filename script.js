@@ -30,6 +30,12 @@ const qrScannerSection = document.getElementById('qrScannerSection');
 const attendanceResultSection = document.getElementById('attendanceResultSection');
 const qrGeneratorSection = document.getElementById('qrGeneratorSection');
 
+// [BARU PHASE 1] Referensi Absen Section
+const absenSection = document.getElementById('absenSection');
+const absenContent = document.getElementById('absenContent');
+const absenStatus = document.getElementById('absenStatus');
+const absenProfileInfo = document.getElementById('absenProfileInfo');
+
 const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 
@@ -67,6 +73,9 @@ let html5QrCode = null;
 let isScannerRunning = false;
 let currentUser = null;
 
+// ===== [BARU PHASE 1] DETEKSI ROUTE SAAT LOAD =====
+const currentPath = window.location.pathname;
+
 // ===== HELPER FUNCTIONS =====
 
 // Tampilkan section tertentu, sembunyikan yang lain
@@ -78,6 +87,7 @@ function showSection(sectionId) {
     qrScannerSection.style.display = 'none';
     attendanceResultSection.style.display = 'none';
     qrGeneratorSection.style.display = 'none';
+    absenSection.style.display = 'none'; // [BARU PHASE 1]
     
     if (sectionId === 'loading') {
         loadingState.style.display = 'block';
@@ -93,11 +103,63 @@ function showSection(sectionId) {
         attendanceResultSection.style.display = 'block';
     } else if (sectionId === 'qrGenerator') {
         qrGeneratorSection.style.display = 'block';
+    } else if (sectionId === 'absen') { // [BARU PHASE 1]
+        absenSection.style.display = 'block';
+    }
+}
+
+// ===== [BARU PHASE 1] HANDLER UNTUK ROUTE /ABSEN =====
+async function handleAbsenRoute(user) {
+    showSection('absen');
+    absenProfileInfo.style.display = 'none';
+
+    if (!user) {
+        // Jika belum login
+        absenStatus.textContent = 'Silakan login terlebih dahulu untuk melakukan absensi.';
+        absenContent.innerHTML = `
+            <button id="absenLoginBtn" class="login-btn" style="background:#4285f4;color:white;border:none;padding:12px 24px;font-size:16px;border-radius:4px;cursor:pointer;margin-top:10px;">
+                Login dengan Google
+            </button>
+        `;
+        // Event listener untuk tombol login di halaman absen
+        document.getElementById('absenLoginBtn')?.addEventListener('click', () => {
+            loginBtn.click(); // Memicu fungsi login existing
+        });
+    } else {
+        // Jika sudah login
+        absenStatus.textContent = 'Anda sudah login. Sistem siap melakukan absensi.';
+        absenContent.innerHTML = `<p style="color:#28a745;">✅ Akun terverifikasi.</p>`;
+        
+        // Tampilkan data profil jika tersedia (TANPA membuat attendance)
+        try {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                absenProfileInfo.style.display = 'block';
+                absenProfileInfo.innerHTML = `
+                    <p><strong>Nama:</strong> ${data.nama || 'Belum diisi'}</p>
+                    <p><strong>Kelas:</strong> ${data.classId || 'Belum diisi'}</p>
+                    <p><strong>NIS:</strong> ${data.nis || '-'}</p>
+                `;
+            } else {
+                absenProfileInfo.style.display = 'block';
+                absenProfileInfo.innerHTML = `<p style="color:#856404;">⚠️ Profil belum lengkap. Silakan lengkapi di Dashboard.</p>`;
+            }
+        } catch (error) {
+            console.error('Error fetching user profile:', error);
+            absenProfileInfo.innerHTML = `<p style="color:#dc3545;">❌ Gagal memuat data profil.</p>`;
+        }
     }
 }
 
 // ===== LOAD USER PROFILE =====
 async function loadUserProfile(user) {
+    // [BARU PHASE 1] Jika user berada di /absen, jangan buka dashboard
+    if (window.location.pathname === '/absen') {
+        return handleAbsenRoute(user);
+    }
+
     showSection('loading');
     
     try {
@@ -246,7 +308,13 @@ function showProfileSetup(user) {
             }, { merge: true });
             
             alert('Profil berhasil disimpan!');
-            await loadUserProfile(user);
+            
+            // [BARU PHASE 1] Kembali ke /absen jika pathnya /absen, bukan dashboard
+            if (window.location.pathname === '/absen') {
+                await handleAbsenRoute(user);
+            } else {
+                await loadUserProfile(user);
+            }
         } catch (error) {
             console.error('Error saving profile:', error);
             alert('Gagal menyimpan profil. Silakan coba lagi.');
@@ -750,6 +818,15 @@ onAuthStateChanged(auth, async (user) => {
     
     currentUser = user;
     
+    // [BARU PHASE 1] Logika khusus untuk route /absen
+    if (window.location.pathname === '/absen') {
+        // Jangan panggil loadUserProfile (yang membuka dashboard).
+        // Langsung handle UI absen.
+        await handleAbsenRoute(user);
+        return;
+    }
+
+    // --- LOGIKA EXISTING UNTUK ROUTE LAIN (/) ---
     if (!user) {
         console.log('[QR] User logged out, stopping scanner');
         await stopScannerInternal();
@@ -780,7 +857,8 @@ logoutBtn?.addEventListener('click', async () => {
         await stopScannerInternal();
         isProcessingAttendance = false;
         await signOut(auth);
-        showSection('login');
+        // Setelah logout, user akan tetap di halaman yang sama
+        // onAuthStateChanged akan menangani perubahan UI
     } catch (error) {
         console.error('Logout error:', error);
         alert('Gagal logout: ' + error.message);
