@@ -9,9 +9,9 @@
 
 <body>
     <!-- ===== EXISTING CODE ===== -->
-<!-- ===== EXISTING CODE ===== -->
-<h1>ABSENSI FINAL — PHASE 1 DEPLOYED</h1>
-<p>Auto Deploy OK 🚀</p>
+    <!-- DEPLOYMENT MARKER UNTUK PHASE 1 -->
+    <h1>ABSENSI FINAL — PHASE 1 DEPLOYED</h1>
+    <p>Auto Deploy OK 🚀</p>
     
     <!-- ===== FOUNDATION: SPA CONTAINER ===== -->
     <div id="app">
@@ -27,15 +27,16 @@
             <button id="loginBtn">Login dengan Google</button>
         </div>
 
-        <!-- ===== [BARU] PHASE 1: ABSEN SECTION ===== -->
-        <div id="absenSection" style="display:none;">
-            <h2>📋 ABSENSI SEKOLAH</h2>
+        <!-- ===== BARU: ABSEN SECTION (PHASE 1) ===== -->
+        <section id="absenSection" style="display:none;">
+            <h2>📋 Absensi Sekolah</h2>
             <div id="absenContent">
-                <!-- Konten akan diisi oleh JavaScript -->
-                <p id="absenStatusText">Memuat halaman absensi...</p>
+                <p id="absenStatus">Memuat halaman absensi...</p>
             </div>
-            <button id="backToHomeBtn" style="margin-top:20px; background:#6c757d; color:white; border:none; padding:8px 16px; border-radius:4px; cursor:pointer;">Kembali ke Home</button>
-        </div>
+            <div id="absenProfileInfo" style="margin-top:15px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;">
+                <!-- Profile info akan diisi JS -->
+            </div>
+        </section>
 
         <!-- Dashboard Section -->
         <div id="dashboardSection" style="display:none;">
