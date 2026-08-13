@@ -21,23 +21,20 @@
             <button id="loginBtn">Login dengan Google</button>
         </div>
 
-        <!-- Halaman Absen (/absen) -->
+        <!-- Halaman Absen (Siswa) -->
         <div id="absenSection" style="display:none;">
             <h2>📋 Absensi Sekolah</h2>
             <div id="absenContent">
                 <p id="absenStatus">Memvalidasi QR...</p>
             </div>
-            <!-- Info Session -->
             <div id="sessionInfoDisplay" style="margin-top:15px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;"></div>
-            <!-- Action Area -->
             <div id="absenActionArea" style="margin-top:15px; display:none;">
                 <button id="absenNowBtn" class="btn-primary">✅ Absen Sekarang</button>
             </div>
-            <!-- Profile -->
             <div id="absenProfileInfo" style="margin-top:15px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;"></div>
         </div>
 
-        <!-- Dashboard (Hanya untuk Maintenance/Admin) -->
+        <!-- Dashboard (Admin/Guru) -->
         <div id="dashboardSection" style="display:none;">
             <div id="userInfo">
                 <img id="userPhoto" src="" alt="Foto" width="50">
@@ -47,7 +44,7 @@
             </div>
             <hr>
             <div id="dashboardContent">
-                <p>🔧 Dashboard Admin/Guru (Pengembangan selanjutnya).</p>
+                <!-- Konten dashboard akan diisi oleh JS berdasarkan role -->
             </div>
         </div>
 
