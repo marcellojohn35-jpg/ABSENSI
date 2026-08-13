@@ -1,187 +1,67 @@
 const { onCall } = require("firebase-functions/v2/https");
 const { onCreate } = require("firebase-functions/v2/identity");
 const admin = require("firebase-admin");
-
 admin.initializeApp();
 
-// ============================================
-// HELPER: WAKTU ASIA/JAKARTA (WIB)
-// ============================================
+// WIB Helper
 function getJakartaTime() {
     const now = new Date();
-    // Gunakan Intl.DateTimeFormat dengan timezone Asia/Jakarta
-    const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Jakarta',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-    });
-    
-    const parts = formatter.formatToParts(now);
-    const dateObj = {};
-    parts.forEach(part => {
-        if (part.type !== 'literal') {
-            dateObj[part.type] = part.value;
-        }
-    });
-    
-    // Format: YYYY-MM-DD
-    const tanggal = `${dateObj.year}-${dateObj.month}-${dateObj.day}`;
-    // Format: HH:MM:SS
-    const jam = `${dateObj.hour}:${dateObj.minute}:${dateObj.second}`;
-    
-    return { tanggal, jam, dateObj };
+    const f = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+    const parts = f.formatToParts(now);
+    const d = {};
+    parts.forEach(p => { if (p.type !== 'literal') d[p.type] = p.value; });
+    return { date: `${d.year}-${d.month}-${d.day}`, time: `${d.hour}:${d.minute}` };
 }
 
-// ============================================
-// HELPERS: DETERMINE STATUS
-// ============================================
-function determineStatus(jamWIB, schoolStartTime, lateThreshold) {
-    // schoolStartTime: "07:00", lateThreshold: 5
-    const [startHour, startMinute] = schoolStartTime.split(':').map(Number);
-    const [jamHour, jamMinute] = jamWIB.split(':').map(Number);
-    
-    const startTotalMinutes = startHour * 60 + startMinute;
-    const jamTotalMinutes = jamHour * 60 + jamMinute;
-    
-    // Batas toleransi: start + lateThreshold
-    const thresholdTotalMinutes = startTotalMinutes + lateThreshold;
-    
-    if (jamTotalMinutes <= thresholdTotalMinutes) {
-        return 'HADIR';
-    } else {
-        return 'TERLAMBAT';
-    }
-}
-
-// ============================================
-// 1. createUserProfile (Auth Trigger)
-// ============================================
+// Create Profile
 exports.createUserProfile = onCreate(async (user) => {
-    const { uid, email, displayName, photoURL } = user;
-    
-    console.log(`[createUserProfile] Membuat profil untuk UID: ${uid}`);
-    
-    const userData = {
-        nama: displayName || null,
-        nis: null,
-        email: email || null,
-        photoURL: photoURL || null,
-        role: "student",
-        classId: null,
-        waliKelasId: null,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    };
-    
-    try {
-        await admin.firestore().collection('users').doc(uid).set(userData);
-        console.log(`[createUserProfile] Profil berhasil dibuat untuk ${uid}`);
-        return { success: true };
-    } catch (error) {
-        console.error(`[createUserProfile] Error: ${error.message}`);
-        throw error;
-    }
+    const data = { nama: user.displayName || null, nis: null, email: user.email || null, photoURL: user.photoURL || null, role: "student", classId: null, createdAt: admin.firestore.FieldValue.serverTimestamp() };
+    try { await admin.firestore().collection('users').doc(user.uid).set(data); return { success: true }; } 
+    catch (e) { throw e; }
 });
 
-// ============================================
-// 2. processAttendance (Callable)
-// ============================================
-exports.processAttendance = onCall(async (request) => {
-    // 1. Validasi authentication
-    if (!request.auth) {
-        throw new Error('UNAUTHENTICATED: Silakan login terlebih dahulu.');
-    }
-    
-    const uid = request.auth.uid;
-    console.log(`[processAttendance] Proses absensi untuk UID: ${uid}`);
-    
-    // 2. QR Token validation (MVP static)
-    const { qrToken } = request.data;
-    if (qrToken !== 'qrmvp2026') {
-        throw new Error('INVALID_QR: QR Token tidak valid.');
-    }
-    
-    // 3. Ambil user data dari Firestore
+// Process Attendance (PURE URL-BASED)
+exports.processAttendance = onCall(async (req) => {
+    if (!req.auth) throw new Error('UNAUTHENTICATED');
+    const uid = req.auth.uid;
+    const { qrToken } = req.data; // qrToken = sessionId
+
+    // 1. Ambil User
     const userDoc = await admin.firestore().collection('users').doc(uid).get();
-    if (!userDoc.exists) {
-        throw new Error('USER_NOT_FOUND: User tidak ditemukan.');
-    }
-    
-    const userData = userDoc.data();
-    
-    // 4. Validasi role = student
-    if (userData.role !== 'student') {
-        throw new Error('PERMISSION_DENIED: Hanya student yang bisa absen.');
-    }
-    
-    // 5. Ambil classId dari database (BUKAN dari client)
-    const classId = userData.classId;
-    if (!classId) {
-        throw new Error('PROFILE_INCOMPLETE: Profil belum lengkap. Silakan isi data diri dulu.');
-    }
-    
-    // 6. Waktu server Asia/Jakarta
-    const { tanggal, jam } = getJakartaTime();
-    
-    console.log(`[processAttendance] Waktu WIB: ${tanggal} ${jam}`);
-    
-    // 7. Baca settings
-    let schoolStartTime = '07:00';
-    let lateThreshold = 5;
-    
-    try {
-        const settingsDoc = await admin.firestore().collection('settings').doc('app').get();
-        if (settingsDoc.exists) {
-            const settings = settingsDoc.data();
-            schoolStartTime = settings.schoolStartTime || '07:00';
-            lateThreshold = settings.lateThreshold ?? 5;
-        }
-    } catch (error) {
-        console.warn('[processAttendance] Gagal baca settings, pakai fallback');
-    }
-    
-    // 8. Tentukan status
-    const status = determineStatus(jam, schoolStartTime, lateThreshold);
-    console.log(`[processAttendance] Status: ${status}`);
-    
-    // 9. Document ID: uid_tanggal
-    const docId = `${uid}_${tanggal}`;
-    const docRef = admin.firestore().collection('attendance').doc(docId);
-    
-    // 10. Transaction untuk mencegah double attendance
-    await admin.firestore().runTransaction(async (transaction) => {
-        const doc = await transaction.get(docRef);
-        if (doc.exists) {
-            throw new Error('DUPLICATE: Anda sudah absen hari ini.');
-        }
-        
-        // 11. Buat attendance
-        const attendanceData = {
-            uid: uid,
-            tanggal: tanggal,
-            jam: jam,
-            status: status,
-            statusReason: null,
-            classId: classId,
-            method: 'qr',
-            createdBy: uid,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        };
-        
-        transaction.set(docRef, attendanceData);
-        console.log(`[processAttendance] Attendance berhasil dibuat: ${docId}`);
+    if (!userDoc.exists) throw new Error('USER_NOT_FOUND');
+    const user = userDoc.data();
+    if (user.role !== 'student') throw new Error('PERMISSION_DENIED');
+
+    // 2. Validasi Session (SOURCE OF TRUTH)
+    const sessionRef = admin.firestore().collection('attendanceSessions').doc(qrToken);
+    const sessionDoc = await sessionRef.get();
+    if (!sessionDoc.exists) throw new Error('SESSION_NOT_FOUND');
+    const s = sessionDoc.data();
+
+    // 3. Waktu Server (WIB)
+    const { date, time } = getJakartaTime();
+    const parse = (t) => { const [h,m]=t.split(':').map(Number); return h*60+m; };
+    const now = parse(time);
+    const start = parse(s.startTime);
+    const late = parse(s.lateAfter);
+    const end = parse(s.endTime);
+
+    // 4. Validasi Waktu
+    if (now < start) throw new Error('SESSION_NOT_STARTED');
+    if (now > end) throw new Error('SESSION_CLOSED');
+
+    // 5. Duplicate Check
+    const attRef = admin.firestore().collection('attendance').doc(`${uid}_${date}`);
+    const attDoc = await attRef.get();
+    if (attDoc.exists) throw new Error('DUPLICATE');
+
+    // 6. Tentukan Status
+    const status = (now <= late) ? 'HADIR' : 'TERLAMBAT';
+
+    // 7. Write
+    await attRef.set({
+        uid, tanggal: date, jam: time, status, classId: user.classId, method: 'qr', createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
-    
-    return {
-        success: true,
-        status: status,
-        tanggal: tanggal,
-        jam: jam
-    };
+
+    return { success: true, status, tanggal: date, jam: time };
 });

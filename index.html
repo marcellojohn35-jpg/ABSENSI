@@ -3,109 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absensi Prototype</title>
+    <title>Absensi Sekolah</title>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-    <!-- ===== EXISTING CODE ===== -->
-    <!-- DEPLOYMENT MARKER UNTUK PHASE 1 -->
-    <h1>ABSENSI FINAL — PHASE 1 DEPLOYED</h1>
-    <p>Auto Deploy OK 🚀</p>
-    
-    <!-- ===== FOUNDATION: SPA CONTAINER ===== -->
     <div id="app">
-        <!-- Loading State -->
-        <div id="loadingState" style="display:none;">
-            <p>⏳ Memuat...</p>
-        </div>
+        <h1>SISTEM ABSENSI SEKOLAH</h1>
+        <p>URL-Based QR Attendance</p>
 
-        <!-- Login Section -->
+        <!-- Loading -->
+        <div id="loadingState" style="display:none;"><p>⏳ Memuat...</p></div>
+
+        <!-- Login -->
         <div id="loginSection" style="display:none;">
             <h2>Login</h2>
             <p>Silakan login dengan akun Google</p>
             <button id="loginBtn">Login dengan Google</button>
         </div>
 
-        <!-- ===== BARU: ABSEN SECTION (PHASE 1) ===== -->
-        <section id="absenSection" style="display:none;">
+        <!-- Halaman Absen (/absen) -->
+        <div id="absenSection" style="display:none;">
             <h2>📋 Absensi Sekolah</h2>
             <div id="absenContent">
-                <p id="absenStatus">Memuat halaman absensi...</p>
+                <p id="absenStatus">Memvalidasi QR...</p>
             </div>
-            <div id="absenProfileInfo" style="margin-top:15px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;">
-                <!-- Profile info akan diisi JS -->
+            <!-- Info Session -->
+            <div id="sessionInfoDisplay" style="margin-top:15px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;"></div>
+            <!-- Action Area -->
+            <div id="absenActionArea" style="margin-top:15px; display:none;">
+                <button id="absenNowBtn" class="btn-primary">✅ Absen Sekarang</button>
             </div>
-        </section>
+            <!-- Profile -->
+            <div id="absenProfileInfo" style="margin-top:15px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;"></div>
+        </div>
 
-        <!-- Dashboard Section -->
+        <!-- Dashboard (Hanya untuk Maintenance/Admin) -->
         <div id="dashboardSection" style="display:none;">
             <div id="userInfo">
-                <img id="userPhoto" src="" alt="Foto Profil" width="50">
+                <img id="userPhoto" src="" alt="Foto" width="50">
                 <span id="userName"></span>
                 <span id="userRole"></span>
                 <button id="logoutBtn">Logout</button>
             </div>
             <hr>
             <div id="dashboardContent">
-                <p>Dashboard akan muncul di sini.</p>
-                <p>Role: <span id="roleDisplay"></span></p>
+                <p>🔧 Dashboard Admin/Guru (Pengembangan selanjutnya).</p>
             </div>
         </div>
 
-        <!-- Profile Setup Section (jika belum lengkap) -->
+        <!-- Profile Setup -->
         <div id="profileSetupSection" style="display:none;">
             <h2>Lengkapi Profil</h2>
-            <p>Mohon lengkapi data diri Anda sebelum melanjutkan.</p>
             <form id="profileForm">
-                <label>Nama:</label>
-                <input type="text" id="profileNama" required><br>
-                <label>NIS:</label>
-                <input type="text" id="profileNis"><br>
-                <label>Kelas:</label>
-                <input type="text" id="profileKelas"><br>
-                <button type="submit">Simpan Profil</button>
+                <label>Nama:</label><input type="text" id="profileNama" required><br>
+                <label>NIS:</label><input type="text" id="profileNis"><br>
+                <label>Kelas:</label><input type="text" id="profileKelas"><br>
+                <button type="submit">Simpan</button>
             </form>
         </div>
 
-        <!-- ===== STEP 9: QR SCANNER SECTION ===== -->
-        <div id="qrScannerSection" style="display:none;">
-            <div id="qrScannerHeader">
-                <h2>📷 Scan QR Absensi</h2>
-                <button id="closeScannerBtn">✕ Tutup Scanner</button>
-            </div>
-            <p id="qrScannerInstruction">Arahkan kamera ke QR absensi</p>
-            <div id="qrScannerContainer">
-                <div id="qrReader"></div>
-            </div>
-            <div id="qrStatus"></div>
-        </div>
-
-        <!-- ===== STEP 9: ATTENDANCE RESULT SECTION ===== -->
+        <!-- Hasil Absensi -->
         <div id="attendanceResultSection" style="display:none;">
-            <div id="attendanceResultContent">
-                <h2 id="attendanceResultTitle"></h2>
-                <div id="attendanceResultData"></div>
-                <button id="scanAgainBtn">Scan Lagi</button>
-            </div>
-        </div>
-
-        <!-- ===== STEP 9A: QR GENERATOR SECTION ===== -->
-        <div id="qrGeneratorSection" style="display:none;">
-            <h2>🧪 QR Generator</h2>
-            <p>Generate QR Code untuk testing absensi</p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                <button id="generateQrBtn" style="background:#28a745;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">Generate QR</button>
-                <button id="downloadQrBtn" style="background:#007bff;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">Download PNG</button>
-                <button id="printQrBtn" style="background:#6c757d;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">Print QR</button>
-            </div>
-            <div id="qrTestResult" style="margin-top:16px;display:flex;justify-content:center;min-height:50px;"></div>
-            <div id="qrTokenDisplay" style="margin-top:8px;font-size:14px;color:#666;"></div>
-            <div id="qrStatusMessage" style="margin-top:12px;padding:12px;border-radius:4px;display:none;"></div>
+            <h2 id="attendanceResultTitle"></h2>
+            <div id="attendanceResultData"></div>
+            <button id="goToAbsenBtn">↩ Kembali</button>
         </div>
     </div>
 
-    <!-- ===== FOUNDATION: FIREBASE MODULAR SDK ===== -->
     <script type="importmap">
         {
             "imports": {
@@ -116,17 +80,6 @@
             }
         }
     </script>
-
-    <!-- ===== STEP 9: QR SCANNER LIBRARY (html5-qrcode) ===== -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
-    <!-- ===== QR GENERATOR: QRCode.js ===== -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-    <!-- ===== QR GENERATOR: qrcode.js ===== -->
-    <script src="qrcode.js"></script>
-
-    <!-- ===== EXISTING SCRIPT ===== -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
