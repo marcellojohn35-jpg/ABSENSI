@@ -168,28 +168,29 @@ absenNowBtn.onclick = async () => {
         if (now > endTime) throw new Error('SESSION_CLOSED');
 
         const status = (now <= lateTime) ? 'HADIR' : 'TERLAMBAT';
-        console.log('[ABSEN DEBUG]', {
-    uid,
-    role: userData.role,
-    classId: userData.classId,
-    currentSessionId,
-    docId,
-    now: now.toISOString(),
-    startTime: startTime.toISOString(),
-    lateTime: lateTime.toISOString(),
-    endTime: endTime.toISOString(),
-    status
-});
 
-await setDoc(doc(db, 'attendance', docId), {
-    uid: uid,
-    tanggal: currentSessionId,
-    status: status,
-    classId: userData.classId,
-    sessionId: currentSessionId,
-    method: 'qr',
-    createdAt: serverTimestamp()
-});
+        console.log('[ABSEN DEBUG FULL]', JSON.stringify({
+            uid,
+            role: userData.role,
+            classId: userData.classId,
+            currentSessionId,
+            docId,
+            now: now.toISOString(),
+            startTime: startTime.toISOString(),
+            lateTime: lateTime.toISOString(),
+            endTime: endTime.toISOString(),
+            status
+        }, null, 2));
+
+        await setDoc(doc(db, 'attendance', docId), {
+            uid: uid,
+            tanggal: currentSessionId,
+            status: status,
+            classId: userData.classId,
+            sessionId: currentSessionId,
+            method: 'qr',
+            createdAt: serverTimestamp()
+        });
 
         await setDoc(doc(db, 'attendance', docId), {
             uid: uid,
