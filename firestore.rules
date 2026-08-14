@@ -133,7 +133,7 @@ service cloud.firestore {
         && request.resource.data.sessionId is string
         && request.resource.data.createdAt is timestamp
         && request.resource.data.classId == getCurrentUserClassId()
-        && request.resource.data.tanggal == sessionId
+        && request.resource.data.tanggal == request.resource.data.sessionId
         && request.resource.data.method == 'qr';
 
       allow update, delete: if false;
