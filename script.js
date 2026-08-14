@@ -1,4 +1,4 @@
-console.log("Sistem Absensi URL-Based aktif (Phase 7).");
+lconsole.log("Sistem Absensi URL-Based aktif (Phase 7).");
 
 import {
     auth, db, provider, signInWithPopup, onAuthStateChanged, signOut
@@ -144,6 +144,8 @@ absenNowBtn.onclick = async () => {
 
     try {
         if (!currentUser) throw new Error('UNAUTHENTICATED');
+        if (!currentSessionId) throw new Error('SESSION_ID_MISSING');
+
         const uid = currentUser.uid;
         const userDoc = await getDoc(doc(db, 'users', uid));
         if (!userDoc.exists()) throw new Error('USER_NOT_FOUND');
@@ -155,7 +157,8 @@ absenNowBtn.onclick = async () => {
         if (!sessionSnap.exists()) throw new Error('SESSION_NOT_FOUND');
         const s = sessionSnap.data();
 
-        const dateStr = getJakartaDateStr();
+        // Gunakan currentSessionId sebagai tanggal (sesuai dengan aturan tanggal == sessionId)
+        const docId = `${uid}_${currentSessionId}`;
         const now = new Date();
         
         const startTime = s.startTime.toDate();
@@ -167,10 +170,9 @@ absenNowBtn.onclick = async () => {
 
         const status = (now <= lateTime) ? 'HADIR' : 'TERLAMBAT';
 
-        const docId = `${uid}_${dateStr}`;
         await setDoc(doc(db, 'attendance', docId), {
             uid: uid,
-            tanggal: dateStr,
+            tanggal: currentSessionId,
             status: status,
             classId: userData.classId,
             sessionId: currentSessionId,
@@ -178,7 +180,7 @@ absenNowBtn.onclick = async () => {
             createdAt: serverTimestamp()
         });
 
-        showAttendanceResult(true, { status, tanggal: dateStr });
+        showAttendanceResult(true, { status, tanggal: currentSessionId });
 
     } catch (error) {
         console.error(error);
@@ -874,6 +876,7 @@ function setupProfileForm(user) {
                 nama, nis, classId, role: 'student', updatedAt: serverTimestamp()
             }, { merge: true });
             alert('Profil tersimpan!');
+            // Reload untuk memicu onAuthStateChanged dan melanjutkan ke absen
             window.location.reload();
         } catch (e) { alert('Gagal menyimpan.'); }
     };
