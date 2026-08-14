@@ -69,7 +69,18 @@ async function processAbsenPage(user) {
     showSection(absenSection);
     absenActionArea.style.display = 'none';
     sessionInfoDisplay.style.display = 'none';
+    absenContent.innerHTML = '';
+    absenProfileInfo.style.display = 'none';
 
+    // ✅ AUTHENTICATION GATE: jika belum login, tampilkan login dan STOP session lookup
+    if (!user) {
+        absenStatus.textContent = 'Silakan login untuk melanjutkan.';
+        absenContent.innerHTML = `<button id="absenLoginBtn" class="btn-primary" style="width:auto;">Login</button>`;
+        document.getElementById('absenLoginBtn').onclick = () => loginBtn.click();
+        return;
+    }
+
+    // Di sini user sudah login, lanjutkan pengecekan session
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('session') || getJakartaDateStr();
     currentSessionId = sessionId;
@@ -100,13 +111,7 @@ async function processAbsenPage(user) {
         </div>
     `;
 
-    if (!user) {
-        absenStatus.textContent = 'Silakan login untuk melanjutkan.';
-        absenContent.innerHTML = `<button id="absenLoginBtn" class="btn-primary" style="width:auto;">Login</button>`;
-        document.getElementById('absenLoginBtn').onclick = () => loginBtn.click();
-        return;
-    }
-
+    // User sudah pasti ada, tampilkan area absen
     absenStatus.textContent = '✅ Session valid.';
     absenContent.innerHTML = '';
     absenActionArea.style.display = 'block';
