@@ -307,6 +307,33 @@ async function renderDashboard(userData) {
         `;
     }
 
+    // ===== TEACHER MANUAL ATTENDANCE PANEL =====
+    let teacherManualHTML = '';
+    if (userData.role === 'teacher') {
+        teacherManualHTML = `
+            <div id="teacherManualPanel" style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #eee; margin-bottom:20px;">
+                <h4>📝 Manual Attendance (Teacher)</h4>
+                <p style="font-size:14px; color:#666; margin-bottom:10px;">
+                    Tetapkan status IZIN/SAKIT/ALFA untuk siswa.
+                </p>
+                <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+                    <select id="manualStudentSelect" style="flex:2; min-width:150px; padding:10px; border-radius:4px; border:1px solid #ccc; font-size:16px;">
+                        <option value="">Pilih Siswa...</option>
+                    </select>
+                    <select id="manualStatusSelect" style="flex:1; min-width:120px; padding:10px; border-radius:4px; border:1px solid #ccc; font-size:16px;">
+                        <option value="">Pilih Status...</option>
+                        <option value="IZIN">IZIN</option>
+                        <option value="SAKIT">SAKIT</option>
+                        <option value="ALFA">ALFA</option>
+                    </select>
+                    <button id="manualSetStatusBtn" class="btn-primary" style="flex:0 0 auto; padding:10px 24px; font-size:16px; width:auto;">Set Status</button>
+                </div>
+                <div id="manualStatusMessage" style="margin-top:10px; padding:10px; border-radius:4px; display:none;"></div>
+            </div>
+        `;
+    }
+    // ===== END TEACHER MANUAL ATTENDANCE PANEL =====
+
     // 2. Filter Area
     const filterHTML = `
         <div class="filter-container">
@@ -391,6 +418,7 @@ async function renderDashboard(userData) {
         <div style="text-align:left;">
             <h3>📋 Dashboard ${roleHeader}</h3>
             ${userManagementBtnHTML}
+            ${teacherManualHTML}
             ${adminPanelHTML}
             ${filterHTML}
             ${summaryHTML}
@@ -413,8 +441,114 @@ async function renderDashboard(userData) {
     document.getElementById('applyFilterBtn').onclick = () => loadAttendanceData();
     document.getElementById('exportBtn').onclick = exportToExcel;
 
+    // Teacher manual attendance listeners
+    if (userData.role === 'teacher') {
+        document.getElementById('manualSetStatusBtn').onclick = () => handleManualStatus(userData);
+        // Populate student dropdown setelah data dimuat
+        setTimeout(() => populateManualStudentDropdown(userData), 500);
+    }
+
     await loadClassOptions();
     await loadAttendanceData();
+}
+
+// ===== POPULATE MANUAL STUDENT DROPDOWN =====
+async function populateManualStudentDropdown(userData) {
+    const select = document.getElementById('manualStudentSelect');
+    if (!select) return;
+
+    try {
+        const snapshot = await getDocs(collection(db, 'users'));
+        const students = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.role === 'student') {
+                students.push({ uid: doc.id, ...data });
+            }
+        });
+
+        // Sort by nama
+        students.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
+
+        select.innerHTML = '<option value="">Pilih Siswa...</option>';
+        students.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.uid;
+            opt.textContent = `${s.nama || 'Unknown'} (${s.classId || '-'})`;
+            select.appendChild(opt);
+        });
+    } catch (error) {
+        console.error('Error loading students for manual attendance:', error);
+    }
+}
+
+// ===== HANDLE MANUAL STATUS (TEACHER ONLY) =====
+async function handleManualStatus(userData) {
+    const uidSelect = document.getElementById('manualStudentSelect');
+    const statusSelect = document.getElementById('manualStatusSelect');
+    const msgEl = document.getElementById('manualStatusMessage');
+
+    const targetUid = uidSelect.value;
+    const status = statusSelect.value;
+
+    if (!targetUid) {
+        msgEl.style.display = 'block';
+        msgEl.style.background = '#f8d7da';
+        msgEl.style.color = '#721c24';
+        msgEl.textContent = 'Pilih siswa terlebih dahulu.';
+        return;
+    }
+
+    if (!status) {
+        msgEl.style.display = 'block';
+        msgEl.style.background = '#f8d7da';
+        msgEl.style.color = '#721c24';
+        msgEl.textContent = 'Pilih status terlebih dahulu.';
+        return;
+    }
+
+    msgEl.style.display = 'block';
+    msgEl.style.background = '#fff3cd';
+    msgEl.style.color = '#856404';
+    msgEl.textContent = '⏳ Memproses...';
+
+    try {
+        const date = document.getElementById('filterDate').value || getJakartaDateStr();
+        const docId = `${targetUid}_${date}`;
+
+        const targetDoc = await getDoc(doc(db, 'users', targetUid));
+        if (!targetDoc.exists()) {
+            throw new Error('Target user not found');
+        }
+        const targetData = targetDoc.data();
+
+        await setDoc(doc(db, 'attendance', docId), {
+            uid: targetUid,
+            tanggal: date,
+            status: status,
+            classId: targetData.classId || '-',
+            sessionId: date,
+            method: 'manual',
+            createdAt: serverTimestamp()
+        });
+
+        msgEl.style.background = '#d4edda';
+        msgEl.style.color = '#155724';
+        msgEl.textContent = `✅ Status ${status} berhasil ditetapkan untuk ${targetData.nama || targetUid}.`;
+
+        await loadAttendanceData();
+        await populateManualStudentDropdown(userData);
+
+    } catch (error) {
+        console.error('Manual status error:', error);
+        msgEl.style.background = '#f8d7da';
+        msgEl.style.color = '#721c24';
+        if (error.code === 'permission-denied') {
+            msgEl.textContent = '❌ Anda tidak memiliki izin untuk menetapkan status ini.';
+        } else {
+            msgEl.textContent = `❌ Gagal menetapkan status: ${error.message}`;
+        }
+    }
 }
 
 // ===== Load Class Options =====

@@ -99,42 +99,104 @@ service cloud.firestore {
         return user.classId;
       }
 
+      function getCurrentUserRole() {
+        let user = get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data;
+        return user.role;
+      }
+
+      // ===== TEACHER MANUAL ATTENDANCE HELPERS =====
+      function isValidManualStatus(status) {
+        return status == 'IZIN' || status == 'SAKIT' || status == 'ALFA';
+      }
+
+      // SOURCE OF TRUTH: validasi target dari Firestore
+      // Memastikan:
+      // 1. Target user exists
+      // 2. Target role == student
+      // 3. Target classId == clientClassId (classId dari database, bukan dari client)
+      function isValidTeacherManualTarget(targetUid, clientClassId) {
+        let targetUser = get(
+          /databases/$(database)/documents/users/$(targetUid)
+        ).data;
+        return targetUser != null
+          && targetUser.role == 'student'
+          && targetUser.classId == clientClassId;
+      }
+
       // Student: hanya attendance miliknya.
       // Teacher/Admin: bisa membaca seluruh attendance untuk dashboard.
       allow read: if request.auth != null && (
         request.auth.uid == resource.data.uid ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        getCurrentUserRole() == 'teacher' ||
+        getCurrentUserRole() == 'admin'
       );
 
       // Student hanya boleh membuat attendance untuk dirinya sendiri.
+      // Teacher manual attendance untuk semua student (tanpa batasan classId teacher).
       allow create: if request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student'
-        && request.auth.uid == request.resource.data.uid
-        && docId.matches('^' + request.auth.uid + '_.*')
-        && !exists(/databases/$(database)/documents/attendance/$(docId))
-        && isValidSessionTime()
-        && request.resource.data.status == getCorrectStatus()
-        && request.resource.data.keys().hasAll([
-          'uid',
-          'tanggal',
-          'status',
-          'classId',
-          'method',
-          'sessionId',
-          'createdAt'
-        ])
-        && request.resource.data.keys().size() == 7
-        && request.resource.data.uid is string
-        && request.resource.data.tanggal is string
-        && request.resource.data.status is string
-        && request.resource.data.classId is string
-        && request.resource.data.method is string
-        && request.resource.data.sessionId is string
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.classId == getCurrentUserClassId()
-        && request.resource.data.tanggal == request.resource.data.sessionId
-        && request.resource.data.method == 'qr';
+        && (
+          // ===== STUDENT QR =====
+          (getCurrentUserRole() == 'student'
+            && request.auth.uid == request.resource.data.uid
+            && docId.matches('^' + request.auth.uid + '_.*')
+            && !exists(/databases/$(database)/documents/attendance/$(docId))
+            && isValidSessionTime()
+            && request.resource.data.status == getCorrectStatus()
+            && request.resource.data.keys().hasAll([
+              'uid',
+              'tanggal',
+              'status',
+              'classId',
+              'method',
+              'sessionId',
+              'createdAt'
+            ])
+            && request.resource.data.keys().size() == 7
+            && request.resource.data.uid is string
+            && request.resource.data.tanggal is string
+            && request.resource.data.status is string
+            && request.resource.data.classId is string
+            && request.resource.data.method is string
+            && request.resource.data.sessionId is string
+            && request.resource.data.createdAt is timestamp
+            && request.resource.data.classId == getCurrentUserClassId()
+            && request.resource.data.tanggal == request.resource.data.sessionId
+            && request.resource.data.method == 'qr'
+          )
+          ||
+          // ===== TEACHER MANUAL =====
+          (getCurrentUserRole() == 'teacher'
+            && isValidManualStatus(request.resource.data.status)
+            && request.resource.data.uid != request.auth.uid
+            // SOURCE OF TRUTH: validasi target dari database
+            && isValidTeacherManualTarget(
+                 request.resource.data.uid,
+                 request.resource.data.classId
+               )
+            && request.resource.data.tanggal == request.resource.data.sessionId
+            && request.resource.data.keys().hasAll([
+              'uid',
+              'tanggal',
+              'status',
+              'classId',
+              'method',
+              'sessionId',
+              'createdAt'
+            ])
+            && request.resource.data.keys().size() == 7
+            && request.resource.data.uid is string
+            && request.resource.data.tanggal is string
+            && request.resource.data.status is string
+            && request.resource.data.classId is string
+            && request.resource.data.method is string
+            && request.resource.data.sessionId is string
+            && request.resource.data.createdAt is timestamp
+            && !exists(/databases/$(database)/documents/attendance/$(docId))
+            && request.resource.data.method == 'manual'
+          )
+        );
 
       allow update, delete: if false;
     }
