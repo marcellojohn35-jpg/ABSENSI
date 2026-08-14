@@ -71,20 +71,15 @@ async function processAbsenPage(user) {
     sessionInfoDisplay.style.display = 'none';
 
     const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get('session');
-
-    if (!sessionId) {
-        absenStatus.textContent = '❌ QR tidak valid: Session ID tidak ditemukan.';
-        return;
-    }
+    const sessionId = params.get('session') || getJakartaDateStr();
     currentSessionId = sessionId;
 
-    absenStatus.textContent = '⏳ Memvalidasi QR...';
+    absenStatus.textContent = '⏳ Memeriksa sesi absensi...';
     const sessionRef = doc(db, 'attendanceSessions', sessionId);
     const sessionSnap = await getDoc(sessionRef);
 
     if (!sessionSnap.exists()) {
-        absenStatus.textContent = '❌ Session tidak ditemukan. QR mungkin sudah kadaluarsa.';
+        absenStatus.textContent = '❌ Belum ada sesi absensi untuk hari ini.';
         return;
     }
 
@@ -518,7 +513,7 @@ async function handleCreateSession() {
 
 // ===== Admin: Generate QR (Menggunakan qrcode.js) =====
 function generateAdminQR(sessionId) {
-    const url = `https://absensi-yadika4.vercel.app/absen?session=${sessionId}`;
+    const url = 'https://absensi-yadika4.vercel.app/absen';
     
     let qrContainer = document.getElementById('qrContainer');
     if (!qrContainer) {
