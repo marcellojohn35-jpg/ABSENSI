@@ -1,9 +1,9 @@
-console.log("Sistem Absensi URL-Based aktif (Phase 6).");
+console.log("Sistem Absensi URL-Based aktif (Phase 7).");
 
 import {
     auth, db, provider, signInWithPopup, onAuthStateChanged, signOut
 } from './firebase-config.js';
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 // DOM Refs
 const $ = (id) => document.getElementById(id);
@@ -13,6 +13,7 @@ const dashboardSection = $('dashboardSection');
 const profileSetupSection = $('profileSetupSection');
 const attendanceResultSection = $('attendanceResultSection');
 const absenSection = $('absenSection');
+const userManagementContainer = $('userManagementContainer');
 
 const absenContent = $('absenContent');
 const absenStatus = $('absenStatus');
@@ -40,9 +41,11 @@ const goToAbsenBtn = $('goToAbsenBtn');
 let currentUser = null;
 let isProcessing = false;
 let currentSessionId = null;
+let umData = [];
+let umFilteredData = [];
 
 function showSection(id) {
-    [loadingState, loginSection, dashboardSection, profileSetupSection, attendanceResultSection, absenSection].forEach(el => el.style.display = 'none');
+    [loadingState, loginSection, dashboardSection, profileSetupSection, attendanceResultSection, absenSection, userManagementContainer].forEach(el => el.style.display = 'none');
     if (id) id.style.display = 'block';
 }
 
@@ -61,7 +64,7 @@ function getJakartaTimeStr() {
     return `${obj.hour}:${obj.minute}`;
 }
 
-// ===== Logic Halaman Absen (Siswa) - FULLY RESTORED FROM PHASE 4 =====
+// ===== Logic Halaman Absen (Siswa) - Phase 4 =====
 async function processAbsenPage(user) {
     showSection(absenSection);
     absenActionArea.style.display = 'none';
@@ -172,9 +175,9 @@ absenNowBtn.onclick = async () => {
 
         showAttendanceResult(true, { status, tanggal: dateStr, jam: timeStr });
 
-} catch (error) {
-    console.error(error);
-    let errorMessage = `${error.code || 'NO_CODE'} | ${error.message || error}`;
+    } catch (error) {
+        console.error(error);
+        let errorMessage = error.message;
         if (error.code === 'permission-denied') {
             errorMessage = 'Permintaan ditolak oleh sistem. Pastikan session valid, waktu tepat, dan Anda belum absen.';
         }
@@ -207,6 +210,7 @@ async function renderDashboard(userData) {
     
     // 1. Admin Panel untuk Buat Session (Jika role = admin)
     let adminPanelHTML = '';
+    let userManagementBtnHTML = '';
     if (userData.role === 'admin') {
         adminPanelHTML = `
             <div id="sessionAdminPanel" style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #eee; margin-bottom:20px;">
@@ -217,6 +221,9 @@ async function renderDashboard(userData) {
                 <button id="createSessionBtn" class="btn-primary">Buat / Perbarui Sesi Hari Ini</button>
                 <div id="sessionStatusMessage" style="margin-top:10px; padding:10px; border-radius:4px; display:none;"></div>
             </div>
+        `;
+        userManagementBtnHTML = `
+            <button id="userManagementBtn" class="btn-secondary" style="width:100%; margin-bottom:10px;">👥 Manajemen User</button>
         `;
     }
 
@@ -259,11 +266,11 @@ async function renderDashboard(userData) {
         </div>
     `;
 
-    // [PHASE 6] Ubah header dashboard sesuai role
     const roleHeader = userData.role === 'admin' ? 'Admin' : 'Guru';
     dashboardContent.innerHTML = `
         <div style="text-align:left;">
             <h3>📋 Dashboard ${roleHeader}</h3>
+            ${userManagementBtnHTML}
             ${adminPanelHTML}
             ${filterHTML}
             ${summaryHTML}
@@ -274,6 +281,10 @@ async function renderDashboard(userData) {
     // Attach Listeners
     if (userData.role === 'admin') {
         document.getElementById('createSessionBtn').onclick = handleCreateSession;
+        document.getElementById('userManagementBtn').onclick = () => {
+            showSection(userManagementContainer);
+            loadUserManagementData();
+        };
         checkTodaySession();
     }
 
@@ -305,7 +316,7 @@ async function loadClassOptions() {
     }
 }
 
-// ===== Load Attendance Data (Dengan Fitur BELUM ABSEN) =====
+// ===== Load Attendance Data =====
 async function loadAttendanceData() {
     const date = document.getElementById('filterDate').value;
     const cls = document.getElementById('filterClass').value;
@@ -316,17 +327,13 @@ async function loadAttendanceData() {
     container.innerHTML = `<p style="color:#666;">⏳ Memuat data...</p>`;
 
     try {
-        // 1. Ambil semua user (untuk data siswa dan filter kelas/nama)
         const usersSnapshot = await getDocs(collection(db, 'users'));
-        const userMap = {};
         const userList = [];
         usersSnapshot.forEach(d => {
             const data = d.data();
-            userMap[d.id] = data.nama || 'Unknown';
             userList.push({ uid: d.id, nama: data.nama || 'Unknown', classId: data.classId || '-' });
         });
 
-        // 2. Ambil attendance untuk tanggal yang dipilih
         let q = collection(db, 'attendance');
         let constraints = [where('tanggal', '==', date)];
         if (cls) constraints.push(where('classId', '==', cls));
@@ -335,10 +342,6 @@ async function loadAttendanceData() {
         const snapshot = await getDocs(query(q, ...constraints));
         let attendanceData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        // 3. Buat daftar siswa yang sudah absen
-        const attendedUids = new Set(attendanceData.map(d => d.uid));
-
-        // 4. Buat daftar lengkap (gabung user + attendance)
         let fullData = userList.map(user => {
             const att = attendanceData.find(d => d.uid === user.uid);
             return {
@@ -354,22 +357,10 @@ async function loadAttendanceData() {
             };
         });
 
-        // 5. Filter berdasarkan kelas (jika dipilih)
-        if (cls) {
-            fullData = fullData.filter(d => d.classId === cls);
-        }
+        if (cls) fullData = fullData.filter(d => d.classId === cls);
+        if (nama) fullData = fullData.filter(d => d.nama.toLowerCase().includes(nama));
+        if (status) fullData = fullData.filter(d => d.status === status);
 
-        // 6. Filter berdasarkan nama (client-side)
-        if (nama) {
-            fullData = fullData.filter(d => d.nama.toLowerCase().includes(nama));
-        }
-
-        // 7. Filter berdasarkan status (jika dipilih)
-        if (status) {
-            fullData = fullData.filter(d => d.status === status);
-        }
-
-        // 8. Tampilkan hasil
         if (fullData.length === 0) {
             container.innerHTML = `<p style="color:#666;">Tidak ada data absensi untuk filter ini.</p>`;
             updateSummary([]);
@@ -415,7 +406,6 @@ function updateSummary(data) {
     document.getElementById('sumIzin').textContent = izin;
     document.getElementById('sumSakit').textContent = sakit;
     document.getElementById('sumAlfa').textContent = alfa;
-    // [PHASE 6] Tambahkan summary Belum Absen
     document.getElementById('sumBelum').textContent = belum;
 }
 
@@ -530,7 +520,6 @@ async function handleCreateSession() {
 function generateAdminQR(sessionId) {
     const url = `https://absensi-yadika4.vercel.app/absen?session=${sessionId}`;
     
-    // Pastikan container QR tersedia
     let qrContainer = document.getElementById('qrContainer');
     if (!qrContainer) {
         qrContainer = document.createElement('div');
@@ -539,13 +528,202 @@ function generateAdminQR(sessionId) {
         document.getElementById('sessionAdminPanel').appendChild(qrContainer);
     }
     
-    // Panggil API yang benar-benar diekspos oleh qrcode.js
     if (typeof generateQR === 'function') {
         generateQR(url, 'qrContainer');
     } else {
-        console.error("generateQR tidak tersedia. Pastikan qrcode.js telah dimuat.");
+        console.error("generateQR tidak tersedia.");
         qrContainer.innerHTML = '<p style="color:#dc3545;">❌ QR Generator tidak tersedia.</p>';
     }
+}
+
+// ============================================
+// USER MANAGEMENT (PHASE 7)
+// ============================================
+
+// Hardcoded class list sesuai request (digunakan juga di Profile Setup)
+const CLASS_LIST = [
+    'x.1', 'x.2', 'x.3', 'x.4',
+    'xi.1', 'xi.2', 'xi.3', 'xi.4',
+    'xii.1', 'xii.2', 'xii.3', 'xii.4', 'xii.5'
+];
+
+// Load user management data
+async function loadUserManagementData() {
+    const content = document.getElementById('umContent');
+    content.innerHTML = `<p style="color:#666;">⏳ Memuat data user...</p>`;
+
+    try {
+        const snapshot = await getDocs(collection(db, 'users'));
+        umData = snapshot.docs.map(d => ({
+            uid: d.id,
+            ...d.data()
+        }));
+        
+        // Filter out any users without nama (just in case)
+        umData = umData.filter(u => u.nama);
+        
+        renderUserManagement();
+    } catch (error) {
+        console.error("Error loading user management data:", error);
+        content.innerHTML = `<p style="color:#dc3545;">❌ Gagal memuat data user.</p>`;
+    }
+}
+
+// Render user management UI
+function renderUserManagement() {
+    const container = document.getElementById('umContent');
+    
+    // Apply filters
+    const namaFilter = document.getElementById('umFilterNama')?.value?.toLowerCase() || '';
+    const kelasFilter = document.getElementById('umFilterKelas')?.value || '';
+    const roleFilter = document.getElementById('umFilterRole')?.value || '';
+    
+    umFilteredData = umData.filter(u => {
+        const matchNama = u.nama.toLowerCase().includes(namaFilter);
+        const matchKelas = !kelasFilter || u.classId === kelasFilter;
+        const matchRole = !roleFilter || u.role === roleFilter;
+        return matchNama && matchKelas && matchRole;
+    });
+
+    // Build filter UI
+    const filterUI = `
+        <div class="filter-container">
+            <input type="text" id="umFilterNama" placeholder="Cari nama..." value="${namaFilter}">
+            <select id="umFilterKelas">
+                <option value="">Semua Kelas</option>
+                ${CLASS_LIST.map(c => `<option value="${c}" ${c === kelasFilter ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+            <select id="umFilterRole">
+                <option value="">Semua Role</option>
+                <option value="student" ${roleFilter === 'student' ? 'selected' : ''}>Student</option>
+                <option value="teacher" ${roleFilter === 'teacher' ? 'selected' : ''}>Teacher</option>
+                <option value="admin" ${roleFilter === 'admin' ? 'selected' : ''}>Admin</option>
+            </select>
+            <button id="umApplyFilterBtn" class="btn-primary" style="padding:8px 16px; width:auto;">Filter</button>
+            <button id="umResetFilterBtn" class="btn-secondary" style="padding:8px 16px; width:auto;">Reset</button>
+        </div>
+    `;
+
+    // Build table
+    let tableHTML = `<table class="um-table">
+        <thead><tr><th>No</th><th>Nama</th><th>Kelas</th><th>Role</th><th>NIS</th><th>Aksi</th></tr></thead><tbody>`;
+    
+    if (umFilteredData.length === 0) {
+        tableHTML += `<tr><td colspan="6" style="text-align:center; color:#666;">Tidak ada user ditemukan.</td></tr>`;
+    } else {
+        umFilteredData.forEach((u, i) => {
+            tableHTML += `<tr>
+                <td>${i+1}</td>
+                <td>${u.nama || '-'}</td>
+                <td>${u.classId || '-'}</td>
+                <td>${u.role || '-'}</td>
+                <td>${u.nis || '-'}</td>
+                <td><button class="btn-edit" data-uid="${u.uid}">✏️ Edit</button></td>
+            </tr>`;
+        });
+    }
+    tableHTML += `</tbody></table>`;
+
+    container.innerHTML = `
+        <h3>👥 Manajemen User</h3>
+        ${filterUI}
+        ${tableHTML}
+    `;
+
+    // Attach listeners
+    document.getElementById('umApplyFilterBtn').onclick = renderUserManagement;
+    document.getElementById('umResetFilterBtn').onclick = () => {
+        document.getElementById('umFilterNama').value = '';
+        document.getElementById('umFilterKelas').value = '';
+        document.getElementById('umFilterRole').value = '';
+        renderUserManagement();
+    };
+    
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.onclick = () => openEditModal(btn.dataset.uid);
+    });
+}
+
+// Open edit modal
+function openEditModal(uid) {
+    const user = umData.find(u => u.uid === uid);
+    if (!user) return;
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'editUserModal';
+    
+    const roleOptions = ['student', 'teacher', 'admin'].map(r => 
+        `<option value="${r}" ${user.role === r ? 'selected' : ''}>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`
+    ).join('');
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>✏️ Edit User</h3>
+            <form id="editUserForm">
+                <label>Nama:</label>
+                <input type="text" id="editNama" value="${user.nama || ''}" required>
+                
+                <label>Kelas:</label>
+                <select id="editKelas">
+                    <option value="">-- Pilih Kelas --</option>
+                    ${CLASS_LIST.map(c => `<option value="${c}" ${user.classId === c ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+                
+                <label>NIS (Opsional):</label>
+                <input type="text" id="editNis" value="${user.nis || ''}">
+                
+                <label>Role:</label>
+                <select id="editRole">
+                    ${roleOptions}
+                </select>
+                
+                <div class="modal-actions">
+                    <button type="button" id="cancelEditBtn" class="btn-secondary">Batal</button>
+                    <button type="submit" id="saveEditBtn" class="btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Attach listeners
+    document.getElementById('cancelEditBtn').onclick = () => modal.remove();
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
+
+    document.getElementById('editUserForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const nama = document.getElementById('editNama').value.trim();
+        const classId = document.getElementById('editKelas').value || null;
+        const nis = document.getElementById('editNis').value.trim() || null;
+        const role = document.getElementById('editRole').value;
+
+        if (!nama) {
+            alert('Nama wajib diisi.');
+            return;
+        }
+
+        try {
+            await setDoc(doc(db, 'users', uid), {
+                nama,
+                classId,
+                nis,
+                role,
+                updatedAt: serverTimestamp()
+            }, { merge: true });
+            
+            modal.remove();
+            alert('✅ User berhasil diperbarui!');
+            loadUserManagementData();
+        } catch (error) {
+            console.error("Error updating user:", error);
+            alert('❌ Gagal memperbarui user. Pastikan Anda memiliki izin Admin.');
+        }
+    };
 }
 
 // ===== Auth Listener =====
@@ -571,14 +749,44 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// ===== Profile Setup =====
+// ===== Profile Setup (dengan CLASS_LIST) =====
 function setupProfileForm(user) {
     if (user.displayName) profileNama.value = user.displayName;
+    
+    // Ganti input text kelas menjadi dropdown
+    const kelasInput = document.getElementById('profileKelas');
+    if (kelasInput) {
+        const parent = kelasInput.parentNode;
+        const label = parent.querySelector('label');
+        
+        // Buat elemen dropdown
+        const select = document.createElement('select');
+        select.id = 'profileKelas';
+        select.style.cssText = 'width:100%; padding:8px; margin-top:4px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box;';
+        
+        // Tambahkan opsi default
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = '-- Pilih Kelas --';
+        select.appendChild(defaultOpt);
+        
+        // Tambahkan 13 kelas
+        CLASS_LIST.forEach(cls => {
+            const opt = document.createElement('option');
+            opt.value = cls;
+            opt.textContent = cls;
+            select.appendChild(opt);
+        });
+        
+        // Ganti input dengan dropdown
+        parent.replaceChild(select, kelasInput);
+    }
+
     profileForm.onsubmit = async (e) => {
         e.preventDefault();
         const nama = profileNama.value.trim();
         const nis = profileNis.value.trim() || null;
-        const classId = profileKelas.value.trim() || null;
+        const classId = document.getElementById('profileKelas').value || null;
         if (!nama) return alert('Nama wajib diisi');
         try {
             await setDoc(doc(db, 'users', user.uid), {
@@ -625,4 +833,4 @@ logoutBtn.onclick = async () => {
     try { await signOut(auth); } catch (e) { alert('Logout gagal.'); }
 };
 
-console.log("✅ Foundation URL-Based siap (Phase 6).");
+console.log("✅ Foundation URL-Based siap (Phase 7).");
