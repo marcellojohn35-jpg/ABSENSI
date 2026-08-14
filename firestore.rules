@@ -92,6 +92,13 @@ service cloud.firestore {
           : 'TERLAMBAT';
       }
 
+      function getCurrentUserClassId() {
+        let user = get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data;
+        return user.classId;
+      }
+
       // Student: hanya attendance miliknya.
       // Teacher/Admin: bisa membaca seluruh attendance untuk dashboard.
       allow read: if request.auth != null && (
@@ -111,22 +118,23 @@ service cloud.firestore {
         && request.resource.data.keys().hasAll([
           'uid',
           'tanggal',
-          'jam',
           'status',
           'classId',
           'method',
-          'sessionId'
+          'sessionId',
+          'createdAt'
         ])
+        && request.resource.data.keys().size() == 7
         && request.resource.data.uid is string
         && request.resource.data.tanggal is string
-        && request.resource.data.jam is string
         && request.resource.data.status is string
-        && (
-          request.resource.data.classId is string ||
-          request.resource.data.classId == null
-        )
+        && request.resource.data.classId is string
         && request.resource.data.method is string
-        && request.resource.data.sessionId is string;
+        && request.resource.data.sessionId is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.classId == getCurrentUserClassId()
+        && request.resource.data.tanggal == sessionId
+        && request.resource.data.method == 'qr';
 
       allow update, delete: if false;
     }

@@ -58,11 +58,10 @@ function getJakartaDateStr() {
     return `${obj.year}-${obj.month}-${obj.day}`;
 }
 
-function getJakartaTimeStr() {
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
-    const obj = {};
-    parts.forEach(p => { if (p.type !== 'literal') obj[p.type] = p.value; });
-    return `${obj.hour}:${obj.minute}`;
+function formatTimestampToWIBTime(timestamp) {
+    if (!timestamp) return '-';
+    const date = timestamp.toDate();
+    return new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
 }
 
 // ===== Logic Halaman Absen (Siswa) - Phase 4 =====
@@ -146,7 +145,6 @@ absenNowBtn.onclick = async () => {
 
         const dateStr = getJakartaDateStr();
         const now = new Date();
-        const timeStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).format(now);
         
         const startTime = s.startTime.toDate();
         const lateTime = s.lateAfter.toDate();
@@ -161,7 +159,6 @@ absenNowBtn.onclick = async () => {
         await setDoc(doc(db, 'attendance', docId), {
             uid: uid,
             tanggal: dateStr,
-            jam: timeStr,
             status: status,
             classId: userData.classId,
             sessionId: currentSessionId,
@@ -169,7 +166,7 @@ absenNowBtn.onclick = async () => {
             createdAt: serverTimestamp()
         });
 
-        showAttendanceResult(true, { status, tanggal: dateStr, jam: timeStr });
+        showAttendanceResult(true, { status, tanggal: dateStr });
 
     } catch (error) {
         console.error(error);
@@ -340,12 +337,16 @@ async function loadAttendanceData() {
 
         let fullData = userList.map(user => {
             const att = attendanceData.find(d => d.uid === user.uid);
+            let jam = '-';
+            if (att && att.createdAt) {
+                jam = formatTimestampToWIBTime(att.createdAt);
+            }
             return {
                 uid: user.uid,
                 nama: user.nama,
                 classId: user.classId,
                 tanggal: date,
-                jam: att ? att.jam : '-',
+                jam: jam,
                 status: att ? att.status : 'BELUM_ABSEN',
                 sessionId: att ? att.sessionId : '-',
                 method: att ? att.method : '-',
@@ -875,7 +876,6 @@ function showAttendanceResult(success, data) {
         attendanceResultData.innerHTML = `
             <p><strong>Status:</strong> ${data.status}</p>
             <p><strong>Tanggal:</strong> ${data.tanggal}</p>
-            <p><strong>Jam:</strong> ${data.jam}</p>
         `;
     } else {
         let msg = '❌ Gagal melakukan absensi.';
