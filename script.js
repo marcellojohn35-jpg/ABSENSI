@@ -837,8 +837,6 @@ logoutBtn.onclick = async () => {
 
 // ===== Back to Dashboard Button (User Management) =====
 document.getElementById('backToDashboardBtn').onclick = async () => {
-    alert('TEST: HANDLER TERPANGGIL');
-    alert('TEST: currentUser = ' + (currentUser ? currentUser.uid : 'NULL'));
     if (!currentUser) {
         showSection(loginSection);
         return;

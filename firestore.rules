@@ -21,13 +21,21 @@ service cloud.firestore {
         && request.auth.uid == uid
         && request.resource.data.role == 'student';
 
-      // Student tidak boleh mengubah role.
+      // Admin: boleh update user mana pun, termasuk role.
+      // Student: hanya boleh update dokumennya sendiri dan tidak boleh mengubah role.
       allow update: if request.auth != null
-        && request.auth.uid == uid
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student'
         && (
-          !('role' in request.resource.data) ||
-          request.resource.data.role == resource.data.role
+          // ADMIN
+          (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+          ||
+          // STUDENT
+          (request.auth.uid == uid
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student'
+            && (
+              !('role' in request.resource.data) ||
+              request.resource.data.role == resource.data.role
+            )
+          )
         );
 
       allow delete: if false;
