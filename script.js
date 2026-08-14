@@ -721,7 +721,8 @@ function openEditModal(uid) {
             loadUserManagementData();
         } catch (error) {
             console.error("Error updating user:", error);
-            alert('❌ Gagal memperbarui user. Pastikan Anda memiliki izin Admin.');
+            const errorDetails = `Kode: ${error.code || 'N/A'}, Pesan: ${error.message || error}`;
+            alert(`❌ Gagal memperbarui user.\n\nDetail Error:\n${errorDetails}`);
         }
     };
 }
