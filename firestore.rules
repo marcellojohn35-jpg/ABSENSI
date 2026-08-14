@@ -24,6 +24,7 @@ service cloud.firestore {
       // Student tidak boleh mengubah role.
       allow update: if request.auth != null
         && request.auth.uid == uid
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student'
         && (
           !('role' in request.resource.data) ||
           request.resource.data.role == resource.data.role
