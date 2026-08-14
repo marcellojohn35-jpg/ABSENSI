@@ -43,6 +43,7 @@ let isProcessing = false;
 let currentSessionId = null;
 let umData = [];
 let umFilteredData = [];
+let attendanceFilteredData = [];
 
 function showSection(id) {
     [loadingState, loginSection, dashboardSection, profileSetupSection, attendanceResultSection, absenSection, userManagementContainer].forEach(el => el.style.display = 'none');
@@ -237,7 +238,7 @@ async function renderDashboard(userData) {
             </select>
             <input type="text" id="filterNama" placeholder="Cari nama...">
             <button id="applyFilterBtn" class="btn-primary" style="padding:8px 16px; width:auto;">Filter</button>
-            <button id="exportBtn" style="background:#28a745; color:white; padding:8px 16px; border-radius:4px;">📥 Export CSV</button>
+            <button id="exportBtn" style="background:#28a745; color:white; padding:8px 16px; border-radius:4px;">📥 Export Excel</button>
         </div>
     `;
 
@@ -284,7 +285,7 @@ async function renderDashboard(userData) {
     }
 
     document.getElementById('applyFilterBtn').onclick = () => loadAttendanceData();
-    document.getElementById('exportBtn').onclick = exportToCSV;
+    document.getElementById('exportBtn').onclick = exportToExcel;
 
     await loadClassOptions();
     await loadAttendanceData();
@@ -356,6 +357,8 @@ async function loadAttendanceData() {
         if (nama) fullData = fullData.filter(d => d.nama.toLowerCase().includes(nama));
         if (status) fullData = fullData.filter(d => d.status === status);
 
+        attendanceFilteredData = fullData;
+
         if (fullData.length === 0) {
             container.innerHTML = `<p style="color:#666;">Tidak ada data absensi untuk filter ini.</p>`;
             updateSummary([]);
@@ -404,25 +407,92 @@ function updateSummary(data) {
     document.getElementById('sumBelum').textContent = belum;
 }
 
-// ===== Export to CSV =====
-function exportToCSV() {
-    const table = document.querySelector('.attendance-table');
-    if (!table) { alert('Tidak ada data untuk diekspor.'); return; }
+// ===== Export to Excel (XLSX) =====
+async function exportToExcel() {
+    if (!attendanceFilteredData || attendanceFilteredData.length === 0) {
+        alert('Tidak ada data untuk diekspor.');
+        return;
+    }
 
-    let csv = [];
-    const rows = table.querySelectorAll('tr');
-    rows.forEach(row => {
-        const cols = row.querySelectorAll('td, th');
-        const rowData = [];
-        cols.forEach(col => rowData.push('"' + col.innerText.replace(/"/g, '""') + '"'));
-        csv.push(rowData.join(','));
+    if (typeof ExcelJS === 'undefined') {
+        alert('Library Excel belum termuat. Coba refresh halaman.');
+        return;
+    }
+
+    const statusColors = {
+        HADIR: 'FFD4EDDA',
+        TERLAMBAT: 'FFFFF3CD',
+        IZIN: 'FFD1ECF1',
+        SAKIT: 'FFF8D7DA',
+        ALFA: 'FFE2E3E5',
+        BELUM_ABSEN: 'FFE2E3E5'
+    };
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Absensi');
+
+    sheet.columns = [
+        { header: 'No', key: 'no', width: 6 },
+        { header: 'Nama', key: 'nama', width: 30 },
+        { header: 'Kelas', key: 'classId', width: 12 },
+        { header: 'Tanggal', key: 'tanggal', width: 14 },
+        { header: 'Jam', key: 'jam', width: 10 },
+        { header: 'Status', key: 'status', width: 16 }
+    ];
+
+    attendanceFilteredData.forEach((d, i) => {
+        sheet.addRow({
+            no: i + 1,
+            nama: d.nama,
+            classId: d.classId,
+            tanggal: d.tanggal,
+            jam: d.jam,
+            status: d.status === 'BELUM_ABSEN' ? 'BELUM ABSEN' : d.status
+        });
     });
 
-    const csvContent = '\uFEFF' + csv.join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Header styling
+    const headerRow = sheet.getRow(1);
+    headerRow.height = 22;
+    headerRow.eachCell(cell => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4285F4' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = {
+            top: { style: 'thin' }, left: { style: 'thin' },
+            bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+    });
+
+    // Data styling
+    const alignMap = { no: 'center', nama: 'left', classId: 'center', tanggal: 'center', jam: 'center', status: 'center' };
+    sheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        row.eachCell((cell, colNumber) => {
+            const key = sheet.columns[colNumber - 1].key;
+            cell.alignment = { horizontal: alignMap[key] || 'center', vertical: 'middle' };
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+                left: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+                bottom: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+                right: { style: 'thin', color: { argb: 'FFDDDDDD' } }
+            };
+        });
+        const originalStatus = attendanceFilteredData[rowNumber - 2]?.status;
+        const color = statusColors[originalStatus];
+        if (color) {
+            row.getCell('status').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+        }
+    });
+
+    sheet.views = [{ state: 'frozen', ySplit: 1 }];
+    sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: 6 } };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `absensi_${getJakartaDateStr()}.csv`;
+    link.download = `absensi_${getJakartaDateStr()}.xlsx`;
     link.click();
 }
 
