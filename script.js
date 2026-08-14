@@ -543,7 +543,6 @@ async function checkTodaySession() {
         statusMsg.style.background = '#d1ecf1';
         statusMsg.style.color = '#0c5460';
         statusMsg.innerHTML = `Sesi hari ini sudah ada: ${startStr} - ${lateStr} - ${endStr}. Klik tombol di atas untuk menimpa.`;
-        generateAdminQR(today);
     } else {
         statusMsg.style.display = 'none';
     }
@@ -600,33 +599,12 @@ async function handleCreateSession() {
         statusMsg.style.background = '#d4edda';
         statusMsg.style.color = '#155724';
         statusMsg.textContent = '✅ Sesi berhasil dibuat/diperbarui!';
-        generateAdminQR(today);
     } catch (error) {
         console.error(error);
         statusMsg.style.display = 'block';
         statusMsg.style.background = '#f8d7da';
         statusMsg.style.color = '#721c24';
         statusMsg.textContent = 'Gagal membuat sesi. Periksa Firestore Rules.';
-    }
-}
-
-// ===== Admin: Generate QR (Menggunakan qrcode.js) =====
-function generateAdminQR(sessionId) {
-    const url = 'https://absensi-yadika4.vercel.app/absen';
-    
-    let qrContainer = document.getElementById('qrContainer');
-    if (!qrContainer) {
-        qrContainer = document.createElement('div');
-        qrContainer.id = 'qrContainer';
-        qrContainer.style.cssText = 'display:flex; justify-content:center; padding:20px;';
-        document.getElementById('sessionAdminPanel').appendChild(qrContainer);
-    }
-    
-    if (typeof generateQR === 'function') {
-        generateQR(url, 'qrContainer');
-    } else {
-        console.error("generateQR tidak tersedia.");
-        qrContainer.innerHTML = '<p style="color:#dc3545;">❌ QR Generator tidak tersedia.</p>';
     }
 }
 
