@@ -34,7 +34,7 @@
             <div id="absenProfileInfo" style="margin-top:15px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;"></div>
         </div>
 
-        <!-- Dashboard (Admin/Guru) -->
+        <!-- Dashboard -->
         <div id="dashboardSection" style="display:none;">
             <div id="userInfo">
                 <img id="userPhoto" src="" alt="Foto" width="50">
@@ -44,7 +44,18 @@
             </div>
             <hr>
             <div id="dashboardContent">
-                <!-- Konten dashboard akan diisi oleh JS berdasarkan role -->
+                <!-- Konten dashboard diisi oleh JS -->
+            </div>
+        </div>
+
+        <!-- User Management (Admin Only) -->
+        <div id="userManagementContainer" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2>👥 Manajemen User</h2>
+                <button id="backToDashboardBtn" class="btn-secondary" style="padding:8px 16px;">↩ Kembali</button>
+            </div>
+            <div id="umContent">
+                <!-- Konten user management diisi oleh JS -->
             </div>
         </div>
 
