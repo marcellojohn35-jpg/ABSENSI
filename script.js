@@ -466,7 +466,8 @@ async function loadAttendanceData() {
             userList.push({
                 uid: d.id,
                 nama: data.nama || 'Unknown',
-                classId: data.classId || '-'
+                classId: data.classId || '-',
+                role: data.role || 'student'
             });
         });
 
@@ -506,7 +507,8 @@ async function loadAttendanceData() {
                 status: att ? att.status : 'BELUM_ABSEN',
                 sessionId: att ? att.sessionId : '-',
                 method: att ? att.method : '-',
-                createdAt: att ? att.createdAt : null
+                createdAt: att ? att.createdAt : null,
+                role: user.role
             };
         });
 
@@ -522,9 +524,10 @@ async function loadAttendanceData() {
             fullData = fullData.filter(d => d.status === status);
         }
 
-        attendanceFilteredData = fullData;
+        // FILTER: HANYA user dengan role 'student' yang boleh masuk laporan
+        attendanceFilteredData = fullData.filter(d => d.role === 'student');
 
-        if (fullData.length === 0) {
+        if (attendanceFilteredData.length === 0) {
             container.innerHTML = `<p style="color:#666;">Tidak ada data absensi untuk filter ini.</p>`;
             updateSummary([]);
             return;
@@ -545,7 +548,7 @@ async function loadAttendanceData() {
                 <tbody>
         `;
 
-        fullData.forEach((d, i) => {
+        attendanceFilteredData.forEach((d, i) => {
             const statusClass = `status-${d.status}`;
 
             html += `
@@ -567,7 +570,7 @@ async function loadAttendanceData() {
         html += `</tbody></table>`;
         container.innerHTML = html;
 
-        updateSummary(fullData);
+        updateSummary(attendanceFilteredData);
 
     } catch (error) {
         console.error("Error loading attendance:", error);
