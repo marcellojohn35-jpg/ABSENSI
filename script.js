@@ -66,21 +66,31 @@ function formatTimestampToWIBTime(timestamp) {
 
 // ===== Logic Halaman Absen (Siswa) - Phase 4 =====
 async function processAbsenPage(user) {
-    showSection(absenSection);
+    // Reset UI absen terlebih dahulu
     absenActionArea.style.display = 'none';
     sessionInfoDisplay.style.display = 'none';
     absenContent.innerHTML = '';
     absenProfileInfo.style.display = 'none';
+    absenStatus.textContent = '';
 
-    // ✅ AUTHENTICATION GATE: jika belum login, tampilkan login dan STOP session lookup
+    // STEP 1: AUTHENTICATION GATE
     if (!user) {
-        absenStatus.textContent = 'Silakan login untuk melanjutkan.';
-        absenContent.innerHTML = `<button id="absenLoginBtn" class="btn-primary" style="width:auto;">Login</button>`;
-        document.getElementById('absenLoginBtn').onclick = () => loginBtn.click();
+        showSection(loginSection);
         return;
     }
 
-    // Di sini user sudah login, lanjutkan pengecekan session
+    // STEP 2: CEK PROFILE USER
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    if (!userDoc.exists()) {
+        // Profile belum ada → tampilkan form pendaftaran
+        showSection(profileSetupSection);
+        setupProfileForm(user);
+        return;
+    }
+
+    // STEP 3: PROFILE ADA → LANJUTKAN KE ABSEN
+    showSection(absenSection);
+
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('session') || getJakartaDateStr();
     currentSessionId = sessionId;
@@ -111,21 +121,18 @@ async function processAbsenPage(user) {
         </div>
     `;
 
-    // User sudah pasti ada, tampilkan area absen
     absenStatus.textContent = '✅ Session valid.';
     absenContent.innerHTML = '';
     absenActionArea.style.display = 'block';
 
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    if (userDoc.exists()) {
-        const uData = userDoc.data();
-        absenProfileInfo.style.display = 'block';
-        absenProfileInfo.innerHTML = `
-            <p><strong>Nama:</strong> ${uData.nama || 'Belum diisi'}</p>
-            <p><strong>Kelas:</strong> ${uData.classId || 'Belum diisi'}</p>
-            <p><strong>NIS:</strong> ${uData.nis || '-'}</p>
-        `;
-    }
+    // Tampilkan info user yang sedang absen
+    const uData = userDoc.data();
+    absenProfileInfo.style.display = 'block';
+    absenProfileInfo.innerHTML = `
+        <p><strong>Nama:</strong> ${uData.nama || 'Belum diisi'}</p>
+        <p><strong>Kelas:</strong> ${uData.classId || 'Belum diisi'}</p>
+        <p><strong>NIS:</strong> ${uData.nis || '-'}</p>
+    `;
 }
 
 // ===== Tombol "Absen Sekarang" (Siswa) =====
