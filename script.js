@@ -522,11 +522,19 @@ async function handleManualStatus(userData) {
         }
         const targetData = targetDoc.data();
 
+        // ===== VALIDASI CLASSID TARGET STUDENT =====
+        if (!targetData.classId) {
+            msgEl.style.background = '#f8d7da';
+            msgEl.style.color = '#721c24';
+            msgEl.textContent = '❌ Siswa ini belum memiliki kelas. Harap update profile siswa terlebih dahulu.';
+            return;
+        }
+
         await setDoc(doc(db, 'attendance', docId), {
             uid: targetUid,
             tanggal: date,
             status: status,
-            classId: targetData.classId || '-',
+            classId: targetData.classId,  // ← Langsung pakai, tanpa fallback
             sessionId: date,
             method: 'manual',
             createdAt: serverTimestamp()
