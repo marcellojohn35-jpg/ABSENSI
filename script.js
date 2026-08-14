@@ -1,4 +1,4 @@
-console.log("Sistem Absensi URL-Based aktif (Phase 5).");
+console.log("Sistem Absensi URL-Based aktif (Phase 6).");
 
 import {
     auth, db, provider, signInWithPopup, onAuthStateChanged, signOut
@@ -231,6 +231,7 @@ async function renderDashboard(userData) {
                 <option value="IZIN">IZIN</option>
                 <option value="SAKIT">SAKIT</option>
                 <option value="ALFA">ALFA</option>
+                <option value="BELUM_ABSEN">BELUM ABSEN</option>
             </select>
             <input type="text" id="filterNama" placeholder="Cari nama...">
             <button id="applyFilterBtn" class="btn-primary" style="padding:8px 16px; width:auto;">Filter</button>
@@ -247,6 +248,7 @@ async function renderDashboard(userData) {
             <div class="summary-card"><div class="num" id="sumIzin">-</div><div class="label">Izin</div></div>
             <div class="summary-card"><div class="num" id="sumSakit">-</div><div class="label">Sakit</div></div>
             <div class="summary-card"><div class="num" id="sumAlfa">-</div><div class="label">Alfa</div></div>
+            <div class="summary-card"><div class="num" id="sumBelum">-</div><div class="label">Belum Absen</div></div>
         </div>
     `;
 
@@ -257,9 +259,11 @@ async function renderDashboard(userData) {
         </div>
     `;
 
+    // [PHASE 6] Ubah header dashboard sesuai role
+    const roleHeader = userData.role === 'admin' ? 'Admin' : 'Guru';
     dashboardContent.innerHTML = `
         <div style="text-align:left;">
-            <h3>📋 Dashboard ${userData.role === 'admin' ? 'Admin' : 'Guru'}</h3>
+            <h3>📋 Dashboard ${roleHeader}</h3>
             ${adminPanelHTML}
             ${filterHTML}
             ${summaryHTML}
@@ -301,7 +305,7 @@ async function loadClassOptions() {
     }
 }
 
-// ===== Load Attendance Data =====
+// ===== Load Attendance Data (Dengan Fitur BELUM ABSEN) =====
 async function loadAttendanceData() {
     const date = document.getElementById('filterDate').value;
     const cls = document.getElementById('filterClass').value;
@@ -312,50 +316,83 @@ async function loadAttendanceData() {
     container.innerHTML = `<p style="color:#666;">⏳ Memuat data...</p>`;
 
     try {
+        // 1. Ambil semua user (untuk data siswa dan filter kelas/nama)
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const userMap = {};
+        const userList = [];
+        usersSnapshot.forEach(d => {
+            const data = d.data();
+            userMap[d.id] = data.nama || 'Unknown';
+            userList.push({ uid: d.id, nama: data.nama || 'Unknown', classId: data.classId || '-' });
+        });
+
+        // 2. Ambil attendance untuk tanggal yang dipilih
         let q = collection(db, 'attendance');
         let constraints = [where('tanggal', '==', date)];
         if (cls) constraints.push(where('classId', '==', cls));
-        if (status) constraints.push(where('status', '==', status));
+        if (status && status !== 'BELUM_ABSEN') constraints.push(where('status', '==', status));
 
         const snapshot = await getDocs(query(q, ...constraints));
-        let data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        let attendanceData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        if (nama) {
-            const usersSnapshot = await getDocs(collection(db, 'users'));
-            const userMap = {};
-            usersSnapshot.forEach(d => { userMap[d.id] = d.data().nama || ''; });
-            data = data.filter(d => (userMap[d.uid] || '').toLowerCase().includes(nama));
+        // 3. Buat daftar siswa yang sudah absen
+        const attendedUids = new Set(attendanceData.map(d => d.uid));
+
+        // 4. Buat daftar lengkap (gabung user + attendance)
+        let fullData = userList.map(user => {
+            const att = attendanceData.find(d => d.uid === user.uid);
+            return {
+                uid: user.uid,
+                nama: user.nama,
+                classId: user.classId,
+                tanggal: date,
+                jam: att ? att.jam : '-',
+                status: att ? att.status : 'BELUM_ABSEN',
+                sessionId: att ? att.sessionId : '-',
+                method: att ? att.method : '-',
+                createdAt: att ? att.createdAt : null
+            };
+        });
+
+        // 5. Filter berdasarkan kelas (jika dipilih)
+        if (cls) {
+            fullData = fullData.filter(d => d.classId === cls);
         }
 
-        if (data.length === 0) {
+        // 6. Filter berdasarkan nama (client-side)
+        if (nama) {
+            fullData = fullData.filter(d => d.nama.toLowerCase().includes(nama));
+        }
+
+        // 7. Filter berdasarkan status (jika dipilih)
+        if (status) {
+            fullData = fullData.filter(d => d.status === status);
+        }
+
+        // 8. Tampilkan hasil
+        if (fullData.length === 0) {
             container.innerHTML = `<p style="color:#666;">Tidak ada data absensi untuk filter ini.</p>`;
             updateSummary([]);
             return;
         }
 
-        const userDocs = await Promise.all(data.map(d => getDoc(doc(db, 'users', d.uid))));
-        const userMap = {};
-        userDocs.forEach(d => {
-            if (d.exists()) userMap[d.id] = d.data().nama || 'Unknown';
-        });
-
         let html = `<table class="attendance-table">
             <thead><tr><th>No</th><th>Nama</th><th>Kelas</th><th>Tanggal</th><th>Jam</th><th>Status</th></tr></thead><tbody>`;
-        data.forEach((d, i) => {
+        fullData.forEach((d, i) => {
             const statusClass = `status-${d.status}`;
             html += `<tr>
                 <td>${i+1}</td>
-                <td>${userMap[d.uid] || 'Unknown'}</td>
-                <td>${d.classId || '-'}</td>
+                <td>${d.nama}</td>
+                <td>${d.classId}</td>
                 <td>${d.tanggal}</td>
                 <td>${d.jam}</td>
-                <td><span class="status-label ${statusClass}">${d.status}</span></td>
+                <td><span class="status-label ${statusClass}">${d.status === 'BELUM_ABSEN' ? 'BELUM ABSEN' : d.status}</span></td>
             </tr>`;
         });
         html += `</tbody></table>`;
         container.innerHTML = html;
 
-        updateSummary(data);
+        updateSummary(fullData);
     } catch (error) {
         console.error("Error loading attendance:", error);
         container.innerHTML = `<p style="color:#dc3545;">❌ Gagal memuat data.</p>`;
@@ -370,6 +407,7 @@ function updateSummary(data) {
     const izin = data.filter(d => d.status === 'IZIN').length;
     const sakit = data.filter(d => d.status === 'SAKIT').length;
     const alfa = data.filter(d => d.status === 'ALFA').length;
+    const belum = data.filter(d => d.status === 'BELUM_ABSEN').length;
 
     document.getElementById('sumTotal').textContent = total;
     document.getElementById('sumHadir').textContent = hadir;
@@ -377,9 +415,11 @@ function updateSummary(data) {
     document.getElementById('sumIzin').textContent = izin;
     document.getElementById('sumSakit').textContent = sakit;
     document.getElementById('sumAlfa').textContent = alfa;
+    // [PHASE 6] Tambahkan summary Belum Absen
+    document.getElementById('sumBelum').textContent = belum;
 }
 
-// ===== Export to CSV (BUKAN Excel) =====
+// ===== Export to CSV =====
 function exportToCSV() {
     const table = document.querySelector('.attendance-table');
     if (!table) { alert('Tidak ada data untuk diekspor.'); return; }
@@ -585,4 +625,4 @@ logoutBtn.onclick = async () => {
     try { await signOut(auth); } catch (e) { alert('Logout gagal.'); }
 };
 
-console.log("✅ Foundation URL-Based siap (Phase 5).");
+console.log("✅ Foundation URL-Based siap (Phase 6).");

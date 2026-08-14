@@ -35,6 +35,8 @@ button { border: none; border-radius: 4px; cursor: pointer; font-size: 16px; pad
 .status-IZIN { background: #d1ecf1; color: #0c5460; }
 .status-SAKIT { background: #f8d7da; color: #721c24; }
 .status-ALFA { background: #e2e3e5; color: #383d41; }
+/* [BARU] BELUM ABSEN */
+.status-BELUM_ABSEN { background: #e2e3e5; color: #6c757d; font-style: italic; }
 
 /* Filter */
 .filter-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
