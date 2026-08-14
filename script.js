@@ -78,6 +78,7 @@ async function processAbsenPage(user) {
         showSection(loginSection);
         return;
     }
+
     // STEP 2: CEK PROFILE USER
     const userDoc = await getDoc(doc(db, 'users', user.uid));
     if (!userDoc.exists()) {
@@ -191,7 +192,6 @@ absenNowBtn.onclick = async () => {
             method: 'qr',
             createdAt: serverTimestamp()
         });
-
 
         showAttendanceResult(true, { status, tanggal: currentSessionId });
 
@@ -883,6 +883,13 @@ function setupProfileForm(user) {
         const nama = profileNama.value.trim();
         const nis = profileNis.value.trim() || null;
         const classId = document.getElementById('profileKelas').value || null;
+        
+        // Validasi kelas wajib dipilih
+        if (!classId) {
+            alert('Kelas wajib dipilih.');
+            return;
+        }
+        
         if (!nama) return alert('Nama wajib diisi');
         try {
             await setDoc(doc(db, 'users', user.uid), {
