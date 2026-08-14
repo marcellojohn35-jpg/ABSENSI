@@ -172,9 +172,9 @@ absenNowBtn.onclick = async () => {
 
         showAttendanceResult(true, { status, tanggal: dateStr, jam: timeStr });
 
-    } catch (error) {
-        console.error(error);
-        let errorMessage = error.message;
+} catch (error) {
+    console.error(error);
+    let errorMessage = `${error.code || 'NO_CODE'} | ${error.message || error}`;
         if (error.code === 'permission-denied') {
             errorMessage = 'Permintaan ditolak oleh sistem. Pastikan session valid, waktu tepat, dan Anda belum absen.';
         }
