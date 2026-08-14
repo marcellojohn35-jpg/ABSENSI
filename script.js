@@ -1,31 +1,3 @@
-PENJELASAN SINGKAT
-
-Root Cause:
-Terdapat typo pada baris pertama script.js:
-lconsole.log("Sistem Absensi URL-Based aktif (Phase 7).");
-Variabel lconsole tidak terdefinisi, sehingga terjadi ReferenceError dan seluruh script berhenti berjalan. Akibatnya, onAuthStateChanged tidak terdaftar atau tidak berfungsi dengan benar, sehingga setelah login Google, tidak ada proses lanjutan (tidak masuk ke flow /absen).
-
-Perbaikan:
-Ubah lconsole.log menjadi console.log. Dengan demikian script berjalan normal dan semua fungsi (termasuk onAuthStateChanged dan processAbsenPage) bekerja sesuai alur yang diinginkan:
-
-· Belum login → tampil login
-· Login berhasil → tetap di /absen → cek profile → tampil absensi atau form daftar
-· Setelah profile selesai → kembali ke absensi (via reload)
-· Tombol absen menggunakan currentSessionId dari URL
-
-Tidak ada perubahan lain pada logic atau security patch.
-
----
-
-FILE CHANGED
-
-· script.js
-
----
-
-FULL CODE script.js
-
-```javascript
 console.log("Sistem Absensi URL-Based aktif (Phase 7).");
 
 import {
@@ -969,15 +941,3 @@ document.getElementById('backToDashboardBtn').onclick = async () => {
 };
 
 console.log("✅ Foundation URL-Based siap (Phase 7).");
-```
-
----
-
-VERIFIKASI (ACCEPTANCE TEST)
-
-· ✅ TEST 1: /absen?session=2026-08-14, belum login → tampil login.
-· ✅ TEST 2: Login Google → onAuthStateChanged dengan user, pathname /absen → processAbsenPage(user) → tidak masuk dashboard.
-· ✅ TEST 3: User punya profile → tampil informasi profile & tombol "Absen Sekarang".
-· ✅ TEST 4: User belum punya profile → tampil form daftar → selesai → reload → tetap di /absen → tombol muncul.
-· ✅ TEST 5: Klik absen → menggunakan currentSessionId dari URL → payload sesuai security patch (tanggal == currentSessionId, createdAt: serverTimestamp(), tanpa jam).
-· ✅ TEST 6: Dashboard/admin/teacher flow tetap berjalan normal (karena perubahan hanya typo).
