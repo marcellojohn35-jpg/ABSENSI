@@ -721,6 +721,7 @@ function openEditModal(uid) {
             loadUserManagementData();
         } catch (error) {
             console.error("Error updating user:", error);
+            // Menampilkan error code dan message secara eksplisit untuk debugging
             const errorDetails = `Kode: ${error.code || 'N/A'}, Pesan: ${error.message || error}`;
             alert(`❌ Gagal memperbarui user.\n\nDetail Error:\n${errorDetails}`);
         }
@@ -832,6 +833,31 @@ loginBtn.onclick = async () => {
 };
 logoutBtn.onclick = async () => {
     try { await signOut(auth); } catch (e) { alert('Logout gagal.'); }
+};
+
+// ===== Back to Dashboard Button (User Management) =====
+document.getElementById('backToDashboardBtn').onclick = async () => {
+    alert('TEST: HANDLER TERPANGGIL');
+    if (!currentUser) {
+        showSection(loginSection);
+        return;
+    }
+
+    try {
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+            showSection(dashboardSection);
+            await renderDashboard(userDoc.data());
+        } else {
+            showSection(profileSetupSection);
+            setupProfileForm(currentUser);
+        }
+    } catch (error) {
+        console.error("Error returning to dashboard:", error);
+        alert('Gagal kembali ke dashboard.');
+    }
 };
 
 console.log("✅ Foundation URL-Based siap (Phase 7).");
