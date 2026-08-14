@@ -192,15 +192,6 @@ absenNowBtn.onclick = async () => {
             createdAt: serverTimestamp()
         });
 
-        await setDoc(doc(db, 'attendance', docId), {
-            uid: uid,
-            tanggal: currentSessionId,
-            status: status,
-            classId: userData.classId,
-            sessionId: currentSessionId,
-            method: 'qr',
-            createdAt: serverTimestamp()
-        });
 
         showAttendanceResult(true, { status, tanggal: currentSessionId });
 
