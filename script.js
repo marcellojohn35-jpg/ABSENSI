@@ -78,7 +78,6 @@ async function processAbsenPage(user) {
         showSection(loginSection);
         return;
     }
-
     // STEP 2: CEK PROFILE USER
     const userDoc = await getDoc(doc(db, 'users', user.uid));
     if (!userDoc.exists()) {
@@ -169,6 +168,28 @@ absenNowBtn.onclick = async () => {
         if (now > endTime) throw new Error('SESSION_CLOSED');
 
         const status = (now <= lateTime) ? 'HADIR' : 'TERLAMBAT';
+        console.log('[ABSEN DEBUG]', {
+    uid,
+    role: userData.role,
+    classId: userData.classId,
+    currentSessionId,
+    docId,
+    now: now.toISOString(),
+    startTime: startTime.toISOString(),
+    lateTime: lateTime.toISOString(),
+    endTime: endTime.toISOString(),
+    status
+});
+
+await setDoc(doc(db, 'attendance', docId), {
+    uid: uid,
+    tanggal: currentSessionId,
+    status: status,
+    classId: userData.classId,
+    sessionId: currentSessionId,
+    method: 'qr',
+    createdAt: serverTimestamp()
+});
 
         await setDoc(doc(db, 'attendance', docId), {
             uid: uid,
