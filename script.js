@@ -1,41 +1,11 @@
 console.log("Sistem Absensi URL-Based aktif (Phase 7).");
 
 import {
-    auth, db, provider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut
+    auth, db, provider, signInWithPopup, onAuthStateChanged, signOut
 } from './firebase-config.js';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
-// ===== Restore route setelah redirect login (jika ada) =====
-// Sinkron & dijalankan sedini mungkin (sebelum onAuthStateChanged pertama kali fire),
-// supaya window.location.pathname/search sudah benar SEBELUM auth-state handler
-// mengecek '/absen'. Ini kunci CASE B (QR): path + query session tidak boleh hilang
-// setelah bolak-balik ke halaman login Google.
-const REDIRECT_PATH_KEY = 'absensi_redirect_path';
-
-(function restoreRedirectPath() {
-    try {
-        const savedPath = sessionStorage.getItem(REDIRECT_PATH_KEY);
-        if (!savedPath) return; // page load biasa, bukan kembalian dari redirect login
-
-        sessionStorage.removeItem(REDIRECT_PATH_KEY);
-
-        const currentPath = window.location.pathname + window.location.search;
-        if (currentPath !== savedPath) {
-            history.replaceState(null, '', savedPath);
-        }
-    } catch (e) {
-        // sessionStorage bisa saja tidak tersedia (mis. mode privat ketat) — jangan blok load halaman
-        console.error('Gagal restore path setelah redirect login:', e);
-    }
-})();
-
-// Tangkap error dari signInWithRedirect (mis. akun ditolak, popup blocker khusus, dsb).
-// Auth state sesungguhnya tetap mengalir lewat onAuthStateChanged di bawah;
-// panggilan ini murni untuk memunculkan pesan error bila proses redirect gagal.
-getRedirectResult(auth).catch((error) => {
-    console.error('Redirect login error:', error);
-});
-
+// ===== Auth redirect handling disabled: using popup login =====
 // DOM Refs
 const $ = (id) => document.getElementById(id);
 const loadingState = $('loadingState');
@@ -108,9 +78,6 @@ async function processAbsenPage(user) {
     if (!user) {
         // Simpan full route (termasuk query parameter) ke sessionStorage
         // agar setelah login user bisa kembali ke /absen?session=...
-        const currentRoute = window.location.pathname + window.location.search;
-        sessionStorage.setItem(REDIRECT_PATH_KEY, currentRoute);
-        // Redirect ke halaman utama untuk login
         window.location.href = '/';
         return;
     }
@@ -1489,14 +1456,18 @@ function showAttendanceResult(success, data) {
 // ===== Auth Actions =====
 loginBtn.onclick = async () => {
     try {
-        // Hanya simpan path jika belum ada pending route dari QR (/absen)
-        if (!sessionStorage.getItem(REDIRECT_PATH_KEY)) {
-            sessionStorage.setItem(REDIRECT_PATH_KEY, window.location.pathname + window.location.search);
-        }
-        await signInWithRedirect(auth, provider);
+        loginBtn.disabled = true;
+        loginBtn.textContent = '⏳ Login...';
+
+        await signInWithPopup(auth, provider);
+
     } catch (e) {
-        sessionStorage.removeItem(REDIRECT_PATH_KEY);
-        alert('Login gagal: ' + e.message);
+        console.error('[AUTH LOGIN ERROR]', e);
+        alert('Login gagal: ' + (e.message || e));
+
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login dengan Google';
     }
 };
 
