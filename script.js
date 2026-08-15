@@ -67,6 +67,7 @@ function formatTimestampToWIBTime(timestamp) {
 
 // ===== Logic Halaman Absen (Siswa) - Phase 4 =====
 async function processAbsenPage(user) {
+    console.log('[ABSEN] processAbsenPage START', user?.uid);
     // Reset UI absen terlebih dahulu
     absenActionArea.style.display = 'none';
     sessionInfoDisplay.style.display = 'none';
@@ -83,7 +84,10 @@ async function processAbsenPage(user) {
     }
 
     // STEP 2: CEK PROFILE USER
+    console.log('[ABSEN] sebelum getDoc users');
     const userDoc = await getDoc(doc(db, 'users', user.uid));
+    console.log('[ABSEN] sesudah getDoc users', userDoc.exists(), userDoc.data());
+
 
     if (!userDoc.exists()) {
         // Profile belum ada → tampilkan form pendaftaran
@@ -103,7 +107,10 @@ async function processAbsenPage(user) {
     }
 
     // STEP 4: PROFILE ADA & ROLE student → LANJUTKAN KE ABSEN
+    console.log('[ABSEN] menampilkan absenSection');
     showSection(absenSection);
+    console.log('[ABSEN] absenSection berhasil ditampilkan');
+
 
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('session') || getJakartaDateStr();
@@ -112,7 +119,10 @@ async function processAbsenPage(user) {
     absenStatus.textContent = '⏳ Memeriksa sesi absensi...';
 
     const sessionRef = doc(db, 'attendanceSessions', sessionId);
+    console.log('[ABSEN] sebelum getDoc session', sessionId);
     const sessionSnap = await getDoc(sessionRef);
+    console.log('[ABSEN] sesudah getDoc session', sessionSnap.exists());
+
 
     if (!sessionSnap.exists()) {
         absenStatus.textContent = '❌ Belum ada sesi absensi untuk hari ini.';
@@ -178,7 +188,10 @@ absenNowBtn.onclick = async () => {
         }
 
         const sessionRef = doc(db, 'attendanceSessions', currentSessionId);
-        const sessionSnap = await getDoc(sessionRef);
+        console.log('[ABSEN] sebelum getDoc session', sessionId);
+    const sessionSnap = await getDoc(sessionRef);
+    console.log('[ABSEN] sesudah getDoc session', sessionSnap.exists());
+
 
         if (!sessionSnap.exists()) {
             throw new Error('SESSION_NOT_FOUND');
@@ -961,7 +974,10 @@ async function checkTodaySession() {
     const today = getJakartaDateStr();
 
     const sessionRef = doc(db, 'attendanceSessions', today);
+    console.log('[ABSEN] sebelum getDoc session', sessionId);
     const sessionSnap = await getDoc(sessionRef);
+    console.log('[ABSEN] sesudah getDoc session', sessionSnap.exists());
+
     const statusMsg = document.getElementById('sessionStatusMessage');
 
     if (sessionSnap.exists()) {
@@ -1322,7 +1338,10 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        console.log('[ABSEN] sebelum getDoc users');
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    console.log('[ABSEN] sesudah getDoc users', userDoc.exists(), userDoc.data());
+
 
         if (!userDoc.exists()) {
             showSection(profileSetupSection);
