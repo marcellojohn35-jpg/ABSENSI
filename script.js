@@ -119,7 +119,7 @@ async function processAbsenPage(user) {
     absenStatus.textContent = '⏳ Memeriksa sesi absensi...';
 
     const sessionRef = doc(db, 'attendanceSessions', sessionId);
-    console.log('[ABSEN] sebelum getDoc session', sessionId);
+    console.log('[ABSEN] sebelum getDoc session', currentSessionId);
     const sessionSnap = await getDoc(sessionRef);
     console.log('[ABSEN] sesudah getDoc session', sessionSnap.exists());
 
@@ -188,7 +188,7 @@ absenNowBtn.onclick = async () => {
         }
 
         const sessionRef = doc(db, 'attendanceSessions', currentSessionId);
-        console.log('[ABSEN] sebelum getDoc session', sessionId);
+        console.log('[ABSEN] sebelum getDoc session', currentSessionId);
     const sessionSnap = await getDoc(sessionRef);
     console.log('[ABSEN] sesudah getDoc session', sessionSnap.exists());
 
@@ -978,9 +978,9 @@ async function checkTodaySession() {
     const today = getJakartaDateStr();
 
     const sessionRef = doc(db, 'attendanceSessions', today);
-    console.log('[ABSEN] sebelum getDoc session', sessionId);
+    console.log('[ADMIN] sebelum getDoc session', today);
     const sessionSnap = await getDoc(sessionRef);
-    console.log('[ABSEN] sesudah getDoc session', sessionSnap.exists());
+    console.log('[ADMIN] sesudah getDoc session', sessionSnap.exists());
 
     const statusMsg = document.getElementById('sessionStatusMessage');
 
