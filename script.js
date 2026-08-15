@@ -260,12 +260,7 @@ async function renderDashboard(userData) {
     const dashboardContent = document.getElementById('dashboardContent');
 
     if (userData.role === 'student') {
-        dashboardContent.innerHTML = `
-            <p><strong>Nama:</strong> ${userData.nama}</p>
-            <p><strong>Kelas:</strong> ${userData.classId}</p>
-            <p><strong>Role:</strong> ${userData.role}</p>
-            <p style="margin-top:20px; color:#666;">🔧 Anda adalah siswa. Dashboard admin tidak tersedia.</p>
-        `;
+        window.location.href = '/absen';
         return;
     }
 
