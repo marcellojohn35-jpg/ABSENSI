@@ -106,7 +106,12 @@ async function processAbsenPage(user) {
 
     // STEP 1: AUTHENTICATION GATE
     if (!user) {
-        showSection(loginSection);
+        // Simpan full route (termasuk query parameter) ke sessionStorage
+        // agar setelah login user bisa kembali ke /absen?session=...
+        const currentRoute = window.location.pathname + window.location.search;
+        sessionStorage.setItem(REDIRECT_PATH_KEY, currentRoute);
+        // Redirect ke halaman utama untuk login
+        window.location.href = '/';
         return;
     }
 
@@ -1484,9 +1489,10 @@ function showAttendanceResult(success, data) {
 // ===== Auth Actions =====
 loginBtn.onclick = async () => {
     try {
-        // Simpan path saat ini (termasuk ?session=... dari QR) SEBELUM redirect ke Google,
-        // supaya bisa dipulihkan oleh restoreRedirectPath() saat browser kembali.
-        sessionStorage.setItem(REDIRECT_PATH_KEY, window.location.pathname + window.location.search);
+        // Hanya simpan path jika belum ada pending route dari QR (/absen)
+        if (!sessionStorage.getItem(REDIRECT_PATH_KEY)) {
+            sessionStorage.setItem(REDIRECT_PATH_KEY, window.location.pathname + window.location.search);
+        }
         await signInWithRedirect(auth, provider);
     } catch (e) {
         sessionStorage.removeItem(REDIRECT_PATH_KEY);
