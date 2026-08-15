@@ -522,17 +522,6 @@ async function handleManualStatus(userData) {
         }
         const targetData = targetDoc.data();
 
-        console.log('[MANUAL DEBUG]', {
-            currentUserUid: currentUser?.uid,
-            targetUid,
-            teacherRole: userData?.role,
-            targetRole: targetData?.role,
-            targetClassId: targetData?.classId,
-            status,
-            date,
-            docId
-        });
-
         // ===== VALIDASI CLASSID TARGET STUDENT =====
         if (!targetData.classId) {
             msgEl.style.background = '#f8d7da';
