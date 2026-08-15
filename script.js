@@ -1027,23 +1027,23 @@ async function handleCreateSession() {
         return;
     }
 
-    const [h, m] = startVal.split(':').map(Number);
-    const todayDate = new Date();
-    todayDate.setUTCHours(h - 7, m, 0, 0);
+    // Bangun Timestamp dari komponen tanggal WIB `today`, BUKAN dari
+    // UTC-day "sekarang" — supaya hasil selalu jatuh pada tanggal WIB
+    // yang sama dengan `today`, berapa pun jam saat tombol ini ditekan.
+    const [yy, mm, dd] = today.split('-').map(Number);
 
-    const startTimestamp = Timestamp.fromDate(todayDate);
+    function wibTimeToTimestamp(hh, min) {
+        return Timestamp.fromMillis(Date.UTC(yy, mm - 1, dd, hh - 7, min, 0, 0));
+    }
+
+    const [h, m] = startVal.split(':').map(Number);
+    const startTimestamp = wibTimeToTimestamp(h, m);
 
     const [h2, m2] = lateVal.split(':').map(Number);
-    const lateDate = new Date();
-    lateDate.setUTCHours(h2 - 7, m2, 0, 0);
-
-    const lateTimestamp = Timestamp.fromDate(lateDate);
+    const lateTimestamp = wibTimeToTimestamp(h2, m2);
 
     const [h3, m3] = endVal.split(':').map(Number);
-    const endDate = new Date();
-    endDate.setUTCHours(h3 - 7, m3, 0, 0);
-
-    const endTimestamp = Timestamp.fromDate(endDate);
+    const endTimestamp = wibTimeToTimestamp(h3, m3);
 
     if (
         startTimestamp.toDate() >= lateTimestamp.toDate() ||
