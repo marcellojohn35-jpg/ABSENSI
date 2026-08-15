@@ -125,6 +125,36 @@ service cloud.firestore {
           && targetUser.classId == clientClassId;
       }
 
+      // ===== ADMIN MANUAL ATTENDANCE HELPERS =====
+      function isValidFullStatus(status) {
+        return status == 'HADIR' || status == 'TERLAMBAT'
+          || status == 'IZIN' || status == 'SAKIT' || status == 'ALFA';
+      }
+
+      // SOURCE OF TRUTH: validasi target dari Firestore (admin tidak dibatasi classId sendiri)
+      // Memastikan:
+      // 1. Target user exists
+      // 2. Target role == student
+      // 3. Target classId == clientClassId (classId dari database, bukan dari client)
+      function isValidAdminManualTarget(targetUid, clientClassId) {
+        let targetUser = get(
+          /databases/$(database)/documents/users/$(targetUid)
+        ).data;
+        return targetUser != null
+          && targetUser.role == 'student'
+          && targetUser.classId == clientClassId;
+      }
+
+      // ===== SHARED UPDATE HELPER =====
+      // Dipakai saat UPDATE (resource.data sudah ada): memastikan uid target
+      // pada dokumen attendance existing memang milik user dengan role student.
+      function isTargetStudentRole(targetUid) {
+        let targetUser = get(
+          /databases/$(database)/documents/users/$(targetUid)
+        ).data;
+        return targetUser != null && targetUser.role == 'student';
+      }
+
       // Student: hanya attendance miliknya.
       // Teacher/Admin: bisa membaca seluruh attendance untuk dashboard.
       allow read: if request.auth != null && (
@@ -134,7 +164,8 @@ service cloud.firestore {
       );
 
       // Student hanya boleh membuat attendance untuk dirinya sendiri.
-      // Teacher manual attendance untuk semua student (tanpa batasan classId teacher).
+      // Teacher manual attendance HANYA untuk student di classId-nya sendiri.
+      // Admin manual attendance untuk student di kelas mana pun.
       allow create: if request.auth != null
         && (
           // ===== STUDENT QR =====
@@ -175,6 +206,39 @@ service cloud.firestore {
                  request.resource.data.uid,
                  request.resource.data.classId
                )
+            // Teacher hanya boleh menyentuh student di classId-nya sendiri
+            && getCurrentUserClassId() == request.resource.data.classId
+            && request.resource.data.tanggal == request.resource.data.sessionId
+            && request.resource.data.keys().hasAll([
+              'uid',
+              'tanggal',
+              'status',
+              'classId',
+              'method',
+              'sessionId',
+              'createdAt'
+            ])
+            && request.resource.data.keys().size() == 7
+            && request.resource.data.uid is string
+            && request.resource.data.tanggal is string
+            && request.resource.data.status is string
+            && request.resource.data.classId is string
+            && request.resource.data.method is string
+            && request.resource.data.sessionId is string
+            && request.resource.data.createdAt is timestamp
+            && !exists(/databases/$(database)/documents/attendance/$(docId))
+            && request.resource.data.method == 'manual'
+          )
+          ||
+          // ===== ADMIN MANUAL =====
+          (getCurrentUserRole() == 'admin'
+            && isValidFullStatus(request.resource.data.status)
+            && request.resource.data.uid != request.auth.uid
+            // SOURCE OF TRUTH: validasi target dari database (tanpa batasan classId admin)
+            && isValidAdminManualTarget(
+                 request.resource.data.uid,
+                 request.resource.data.classId
+               )
             && request.resource.data.tanggal == request.resource.data.sessionId
             && request.resource.data.keys().hasAll([
               'uid',
@@ -198,7 +262,62 @@ service cloud.firestore {
           )
         );
 
-      allow update, delete: if false;
+      // ===== UPDATE (KOREKSI ATTENDANCE EXISTING) =====
+      // Student: TIDAK PERNAH boleh update (tidak ada cabang untuk role student).
+      // Teacher: boleh koreksi status HANYA untuk student di kelasnya sendiri,
+      //          HANYA menjadi IZIN/SAKIT/ALFA (tidak pernah HADIR/TERLAMBAT),
+      //          dan tidak boleh mengubah field identitas dokumen.
+      // Admin: boleh koreksi status ke salah satu dari 5 status, untuk student
+      //        di kelas mana pun, dan tidak boleh mengubah field identitas dokumen.
+      allow update: if request.auth != null
+        && (
+          // ===== ADMIN CORRECTION =====
+          (getCurrentUserRole() == 'admin'
+            && isTargetStudentRole(resource.data.uid)
+            && isValidFullStatus(request.resource.data.status)
+            && request.resource.data.uid == resource.data.uid
+            && request.resource.data.tanggal == resource.data.tanggal
+            && request.resource.data.classId == resource.data.classId
+            && request.resource.data.sessionId == resource.data.sessionId
+            && request.resource.data.method == resource.data.method
+            && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.keys().hasAll([
+              'uid',
+              'tanggal',
+              'status',
+              'classId',
+              'method',
+              'sessionId',
+              'createdAt'
+            ])
+            && request.resource.data.keys().size() == 7
+          )
+          ||
+          // ===== TEACHER CORRECTION (kelas sendiri, status terbatas) =====
+          (getCurrentUserRole() == 'teacher'
+            && isTargetStudentRole(resource.data.uid)
+            && getCurrentUserClassId() == resource.data.classId
+            && isValidManualStatus(request.resource.data.status)
+            && request.resource.data.uid == resource.data.uid
+            && request.resource.data.tanggal == resource.data.tanggal
+            && request.resource.data.classId == resource.data.classId
+            && request.resource.data.sessionId == resource.data.sessionId
+            && request.resource.data.method == resource.data.method
+            && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.keys().hasAll([
+              'uid',
+              'tanggal',
+              'status',
+              'classId',
+              'method',
+              'sessionId',
+              'createdAt'
+            ])
+            && request.resource.data.keys().size() == 7
+          )
+        );
+
+      allow delete: if false;
     }
   }
 }

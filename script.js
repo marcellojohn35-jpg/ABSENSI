@@ -3,7 +3,7 @@ console.log("Sistem Absensi URL-Based aktif (Phase 7).");
 import {
     auth, db, provider, signInWithPopup, onAuthStateChanged, signOut
 } from './firebase-config.js';
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 // DOM Refs
 const $ = (id) => document.getElementById(id);
@@ -307,24 +307,40 @@ async function renderDashboard(userData) {
         `;
     }
 
-    // ===== TEACHER MANUAL ATTENDANCE PANEL =====
+    // ===== MANUAL ATTENDANCE PANEL (TEACHER: kelas sendiri, IZIN/SAKIT/ALFA — ADMIN: semua kelas, 5 status) =====
+    // Hanya salah satu yang pernah dirender untuk satu user (role tidak pernah dobel),
+    // jadi element id boleh sama persis untuk kedua kasus.
     let teacherManualHTML = '';
-    if (userData.role === 'teacher') {
+    if (userData.role === 'teacher' || userData.role === 'admin') {
+        const isAdminPanel = userData.role === 'admin';
+        const panelTitle = isAdminPanel ? '📝 Manual Attendance (Admin)' : '📝 Manual Attendance (Teacher)';
+        const panelDesc = isAdminPanel
+            ? 'Tetapkan/koreksi status attendance untuk siswa mana pun.'
+            : 'Tetapkan/koreksi status IZIN/SAKIT/ALFA untuk siswa di kelas Anda.';
+        const statusOptionsHTML = isAdminPanel
+            ? `
+                        <option value="HADIR">HADIR</option>
+                        <option value="TERLAMBAT">TERLAMBAT</option>
+                        <option value="IZIN">IZIN</option>
+                        <option value="SAKIT">SAKIT</option>
+                        <option value="ALFA">ALFA</option>`
+            : `
+                        <option value="IZIN">IZIN</option>
+                        <option value="SAKIT">SAKIT</option>
+                        <option value="ALFA">ALFA</option>`;
+
         teacherManualHTML = `
             <div id="teacherManualPanel" style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #eee; margin-bottom:20px;">
-                <h4>📝 Manual Attendance (Teacher)</h4>
+                <h4>${panelTitle}</h4>
                 <p style="font-size:14px; color:#666; margin-bottom:10px;">
-                    Tetapkan status IZIN/SAKIT/ALFA untuk siswa.
+                    ${panelDesc}
                 </p>
                 <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
                     <select id="manualStudentSelect" style="flex:2; min-width:150px; padding:10px; border-radius:4px; border:1px solid #ccc; font-size:16px;">
                         <option value="">Pilih Siswa...</option>
                     </select>
                     <select id="manualStatusSelect" style="flex:1; min-width:120px; padding:10px; border-radius:4px; border:1px solid #ccc; font-size:16px;">
-                        <option value="">Pilih Status...</option>
-                        <option value="IZIN">IZIN</option>
-                        <option value="SAKIT">SAKIT</option>
-                        <option value="ALFA">ALFA</option>
+                        <option value="">Pilih Status...</option>${statusOptionsHTML}
                     </select>
                     <button id="manualSetStatusBtn" class="btn-primary" style="flex:0 0 auto; padding:10px 24px; font-size:16px; width:auto;">Set Status</button>
                 </div>
@@ -332,7 +348,7 @@ async function renderDashboard(userData) {
             </div>
         `;
     }
-    // ===== END TEACHER MANUAL ATTENDANCE PANEL =====
+    // ===== END MANUAL ATTENDANCE PANEL =====
 
     // 2. Filter Area
     const filterHTML = `
@@ -441,8 +457,8 @@ async function renderDashboard(userData) {
     document.getElementById('applyFilterBtn').onclick = () => loadAttendanceData();
     document.getElementById('exportBtn').onclick = exportToExcel;
 
-    // Teacher manual attendance listeners
-    if (userData.role === 'teacher') {
+    // Manual attendance listeners (teacher: kelas sendiri, admin: semua kelas)
+    if (userData.role === 'teacher' || userData.role === 'admin') {
         document.getElementById('manualSetStatusBtn').onclick = () => handleManualStatus(userData);
         // Populate student dropdown setelah data dimuat
         setTimeout(() => populateManualStudentDropdown(userData), 500);
@@ -462,9 +478,11 @@ async function populateManualStudentDropdown(userData) {
         const students = [];
         snapshot.forEach(doc => {
             const data = doc.data();
-            if (data.role === 'student') {
-                students.push({ uid: doc.id, ...data });
-            }
+            if (data.role !== 'student') return;
+            // Teacher hanya boleh melihat/memilih student di classId-nya sendiri.
+            // Ini validasi UX saja — enforcement sebenarnya ada di Firestore Rules.
+            if (userData.role === 'teacher' && data.classId !== userData.classId) return;
+            students.push({ uid: doc.id, ...data });
         });
 
         // Sort by nama
@@ -482,7 +500,8 @@ async function populateManualStudentDropdown(userData) {
     }
 }
 
-// ===== HANDLE MANUAL STATUS (TEACHER ONLY) =====
+// ===== HANDLE MANUAL STATUS (TEACHER: kelas sendiri, IZIN/SAKIT/ALFA — ADMIN: semua kelas, 5 status) =====
+// CATATAN: semua validasi di fungsi ini hanya UX. Enforcement sebenarnya ada di firestore.rules.
 async function handleManualStatus(userData) {
     const uidSelect = document.getElementById('manualStudentSelect');
     const statusSelect = document.getElementById('manualStatusSelect');
@@ -490,6 +509,12 @@ async function handleManualStatus(userData) {
 
     const targetUid = uidSelect.value;
     const status = statusSelect.value;
+    const isAdmin = userData.role === 'admin';
+
+    // Status yang diizinkan per role (UX guard — rules yang jadi source of truth)
+    const allowedStatuses = isAdmin
+        ? ['HADIR', 'TERLAMBAT', 'IZIN', 'SAKIT', 'ALFA']
+        : ['IZIN', 'SAKIT', 'ALFA'];
 
     if (!targetUid) {
         msgEl.style.display = 'block';
@@ -507,6 +532,16 @@ async function handleManualStatus(userData) {
         return;
     }
 
+    if (!allowedStatuses.includes(status)) {
+        msgEl.style.display = 'block';
+        msgEl.style.background = '#f8d7da';
+        msgEl.style.color = '#721c24';
+        msgEl.textContent = isAdmin
+            ? '❌ Status tidak valid.'
+            : '❌ Anda hanya boleh menetapkan status IZIN/SAKIT/ALFA.';
+        return;
+    }
+
     msgEl.style.display = 'block';
     msgEl.style.background = '#fff3cd';
     msgEl.style.color = '#856404';
@@ -515,34 +550,66 @@ async function handleManualStatus(userData) {
     try {
         const date = document.getElementById('filterDate').value || getJakartaDateStr();
         const docId = `${targetUid}_${date}`;
+        const attendanceRef = doc(db, 'attendance', docId);
 
-        const targetDoc = await getDoc(doc(db, 'users', targetUid));
-        if (!targetDoc.exists()) {
-            throw new Error('Target user not found');
+        const existingSnap = await getDoc(attendanceRef);
+
+        if (existingSnap.exists()) {
+            // ===== PATH: UPDATE (koreksi attendance existing) =====
+            // WAJIB updateDoc({ status }) saja — tidak boleh setDoc ulang, supaya
+            // createdAt dan field identitas lain (uid/tanggal/classId/sessionId/method) tidak berubah.
+            const existingData = existingSnap.data();
+
+            if (!isAdmin && existingData.classId !== userData.classId) {
+                msgEl.style.background = '#f8d7da';
+                msgEl.style.color = '#721c24';
+                msgEl.textContent = '❌ Siswa ini bukan bagian dari kelas Anda.';
+                return;
+            }
+
+            await updateDoc(attendanceRef, { status: status });
+
+            msgEl.style.background = '#d4edda';
+            msgEl.style.color = '#155724';
+            msgEl.textContent = `✅ Status attendance berhasil dikoreksi menjadi ${status}.`;
+
+        } else {
+            // ===== PATH: CREATE (attendance manual baru) =====
+            const targetDoc = await getDoc(doc(db, 'users', targetUid));
+            if (!targetDoc.exists()) {
+                throw new Error('Target user not found');
+            }
+            const targetData = targetDoc.data();
+
+            // ===== VALIDASI CLASSID TARGET STUDENT =====
+            if (!targetData.classId) {
+                msgEl.style.background = '#f8d7da';
+                msgEl.style.color = '#721c24';
+                msgEl.textContent = '❌ Siswa ini belum memiliki kelas. Harap update profile siswa terlebih dahulu.';
+                return;
+            }
+
+            if (!isAdmin && targetData.classId !== userData.classId) {
+                msgEl.style.background = '#f8d7da';
+                msgEl.style.color = '#721c24';
+                msgEl.textContent = '❌ Siswa ini bukan bagian dari kelas Anda.';
+                return;
+            }
+
+            await setDoc(attendanceRef, {
+                uid: targetUid,
+                tanggal: date,
+                status: status,
+                classId: targetData.classId,  // ← Langsung pakai, tanpa fallback
+                sessionId: date,
+                method: 'manual',
+                createdAt: serverTimestamp()
+            });
+
+            msgEl.style.background = '#d4edda';
+            msgEl.style.color = '#155724';
+            msgEl.textContent = `✅ Status ${status} berhasil ditetapkan untuk ${targetData.nama || targetUid}.`;
         }
-        const targetData = targetDoc.data();
-
-        // ===== VALIDASI CLASSID TARGET STUDENT =====
-        if (!targetData.classId) {
-            msgEl.style.background = '#f8d7da';
-            msgEl.style.color = '#721c24';
-            msgEl.textContent = '❌ Siswa ini belum memiliki kelas. Harap update profile siswa terlebih dahulu.';
-            return;
-        }
-
-        await setDoc(doc(db, 'attendance', docId), {
-            uid: targetUid,
-            tanggal: date,
-            status: status,
-            classId: targetData.classId,  // ← Langsung pakai, tanpa fallback
-            sessionId: date,
-            method: 'manual',
-            createdAt: serverTimestamp()
-        });
-
-        msgEl.style.background = '#d4edda';
-        msgEl.style.color = '#155724';
-        msgEl.textContent = `✅ Status ${status} berhasil ditetapkan untuk ${targetData.nama || targetUid}.`;
 
         await loadAttendanceData();
         await populateManualStudentDropdown(userData);
