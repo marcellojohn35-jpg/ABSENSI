@@ -273,7 +273,11 @@ async function renderDashboard(userData) {
     const dashboardContent = document.getElementById('dashboardContent');
 
     if (userData.role === 'student') {
-        window.location.href = '/absen';
+        dashboardContent.innerHTML = `
+            <p><strong>Nama:</strong> ${userData.nama || '-'}</p>
+            <p><strong>Kelas:</strong> ${userData.classId || '-'}</p>
+            <p><strong>Role:</strong> ${userData.role || '-'}</p>
+        `;
         return;
     }
 
