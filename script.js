@@ -1,9 +1,40 @@
 console.log("Sistem Absensi URL-Based aktif (Phase 7).");
 
 import {
-    auth, db, provider, signInWithPopup, onAuthStateChanged, signOut
+    auth, db, provider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut
 } from './firebase-config.js';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
+// ===== Restore route setelah redirect login (jika ada) =====
+// Sinkron & dijalankan sedini mungkin (sebelum onAuthStateChanged pertama kali fire),
+// supaya window.location.pathname/search sudah benar SEBELUM auth-state handler
+// mengecek '/absen'. Ini kunci CASE B (QR): path + query session tidak boleh hilang
+// setelah bolak-balik ke halaman login Google.
+const REDIRECT_PATH_KEY = 'absensi_redirect_path';
+
+(function restoreRedirectPath() {
+    try {
+        const savedPath = sessionStorage.getItem(REDIRECT_PATH_KEY);
+        if (!savedPath) return; // page load biasa, bukan kembalian dari redirect login
+
+        sessionStorage.removeItem(REDIRECT_PATH_KEY);
+
+        const currentPath = window.location.pathname + window.location.search;
+        if (currentPath !== savedPath) {
+            history.replaceState(null, '', savedPath);
+        }
+    } catch (e) {
+        // sessionStorage bisa saja tidak tersedia (mis. mode privat ketat) — jangan blok load halaman
+        console.error('Gagal restore path setelah redirect login:', e);
+    }
+})();
+
+// Tangkap error dari signInWithRedirect (mis. akun ditolak, popup blocker khusus, dsb).
+// Auth state sesungguhnya tetap mengalir lewat onAuthStateChanged di bawah;
+// panggilan ini murni untuk memunculkan pesan error bila proses redirect gagal.
+getRedirectResult(auth).catch((error) => {
+    console.error('Redirect login error:', error);
+});
 
 // DOM Refs
 const $ = (id) => document.getElementById(id);
@@ -1453,8 +1484,12 @@ function showAttendanceResult(success, data) {
 // ===== Auth Actions =====
 loginBtn.onclick = async () => {
     try {
-        await signInWithPopup(auth, provider);
+        // Simpan path saat ini (termasuk ?session=... dari QR) SEBELUM redirect ke Google,
+        // supaya bisa dipulihkan oleh restoreRedirectPath() saat browser kembali.
+        sessionStorage.setItem(REDIRECT_PATH_KEY, window.location.pathname + window.location.search);
+        await signInWithRedirect(auth, provider);
     } catch (e) {
+        sessionStorage.removeItem(REDIRECT_PATH_KEY);
         alert('Login gagal: ' + e.message);
     }
 };
