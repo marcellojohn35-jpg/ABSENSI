@@ -95,7 +95,6 @@ function resolveSessionId(sessionDocSnap) {
 
 // ===== Logic Halaman Absen (Siswa) - Phase 4 =====
 async function processAbsenPage(user) {
-    console.log('[ABSEN] processAbsenPage START', user?.uid);
     // Reset UI absen terlebih dahulu
     absenActionArea.style.display = 'none';
     sessionInfoDisplay.style.display = 'none';
@@ -113,9 +112,7 @@ async function processAbsenPage(user) {
     }
 
     // STEP 2: CEK PROFILE USER
-    console.log('[ABSEN] sebelum getDoc users');
     const userDoc = await getDoc(doc(db, 'users', user.uid));
-    console.log('[ABSEN] sesudah getDoc users', userDoc.exists(), userDoc.data());
 
 
     if (!userDoc.exists()) {
@@ -136,9 +133,7 @@ async function processAbsenPage(user) {
     }
 
     // STEP 4: PROFILE ADA & ROLE student → LANJUTKAN KE ABSEN
-    console.log('[ABSEN] menampilkan absenSection');
     showSection(absenSection);
-    console.log('[ABSEN] absenSection berhasil ditampilkan');
 
 
     const params = new URLSearchParams(window.location.search);
@@ -150,16 +145,12 @@ async function processAbsenPage(user) {
 
     if (requestedSessionId) {
         // Session eksplisit lewat URL (?session=session_002, atau legacy: ?session=2026-08-15)
-        console.log('[ABSEN] sebelum getDoc session (explicit)', requestedSessionId);
         const explicitSnap = await getDoc(doc(db, 'attendanceSessions', requestedSessionId));
-        console.log('[ABSEN] sesudah getDoc session (explicit)', explicitSnap.exists());
         if (explicitSnap.exists()) sessionSnap = explicitSnap;
     } else {
         // Tanpa query param → cari session yang sedang ACTIVE (BUKAN tanggal hari ini)
-        console.log('[ABSEN] sebelum query session ACTIVE');
         const activeQuery = query(collection(db, 'attendanceSessions'), where('status', '==', 'ACTIVE'), limit(1));
         const activeQuerySnap = await getDocs(activeQuery);
-        console.log('[ABSEN] sesudah query session ACTIVE', !activeQuerySnap.empty);
         if (!activeQuerySnap.empty) sessionSnap = activeQuerySnap.docs[0];
     }
 
@@ -246,9 +237,7 @@ absenNowBtn.onclick = async () => {
         }
 
         const sessionRef = doc(db, 'attendanceSessions', currentSessionId);
-        console.log('[ABSEN] sebelum getDoc session', currentSessionId);
     const sessionSnap = await getDoc(sessionRef);
-    console.log('[ABSEN] sesudah getDoc session', sessionSnap.exists());
 
 
         if (!sessionSnap.exists()) {
@@ -282,7 +271,6 @@ absenNowBtn.onclick = async () => {
         const status = (now <= lateTime) ? 'HADIR' : 'TERLAMBAT';
 
 
-        console.log('[ABSEN DEBUG FULL]', JSON.stringify({
             uid,
             role: userData.role,
             classId: userData.classId,
@@ -627,26 +615,20 @@ async function initSessionSelector() {
 
 // ===== POPULATE MANUAL STUDENT DROPDOWN =====
 async function populateManualStudentDropdown(userData) {
-    console.log('[MANUAL] teacher data:', userData);
-    console.log('[MANUAL] teacher UID:', currentUser?.uid, 'classId:', userData.classId, 'role:', userData.role);
     const select = document.getElementById('manualStudentSelect');
     if (!select) return;
 
     try {
         const snapshot = await getDocs(collection(db, 'users'));
-        console.log('[MANUAL] users snapshot size:', snapshot.size);
         const students = [];
         snapshot.forEach(doc => {
             const data = doc.data();
-            if (data.role !== 'student') { console.log('[MANUAL] skip non-student:', doc.id, data.role); return; }
             // Teacher hanya boleh melihat/memilih student di classId-nya sendiri.
             // Ini validasi UX saja — enforcement sebenarnya ada di Firestore Rules.
-            if (userData.role === 'teacher' && data.classId !== userData.classId) { console.log('[MANUAL] skip class:', doc.id, data.classId, 'teacherClass:', userData.classId); return; }
             students.push({ uid: doc.id, ...data });
         });
 
         // Sort by nama
-        console.log('[MANUAL] students after filter:', students.length, students);
         students.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
 
         select.innerHTML = '<option value="">Pilih Siswa...</option>';
@@ -739,7 +721,6 @@ async function handleManualStatus(userData) {
             // WAJIB updateDoc({ status }) saja — tidak boleh setDoc ulang, supaya
             // createdAt dan field identitas lain (uid/tanggal/classId/sessionId/method) tidak berubah.
             const existingData = existingSnap.data();
-            console.log('[MANUAL DEBUG UPDATE]', { teacherClassId: userData.classId, targetUid, existingClassId: existingData.classId, sessionId: sessionIdForManual, existingData });
 
             if (!isAdmin && existingData.classId !== userData.classId) {
                 msgEl.style.background = '#f8d7da';
@@ -761,7 +742,6 @@ async function handleManualStatus(userData) {
                 throw new Error('Target user not found');
             }
             const targetData = targetDoc.data();
-            console.log('[MANUAL DEBUG TARGET]', { targetUid, targetName: targetData.nama, targetClassId: targetData.classId, teacherClassId: userData.classId, sessionId: sessionIdForManual });
 
             // ===== VALIDASI CLASSID TARGET STUDENT =====
             if (!targetData.classId) {
@@ -814,7 +794,6 @@ async function loadClassOptions() {
 
     try {
         const snapshot = await getDocs(collection(db, 'users'));
-        console.log('[MANUAL] users snapshot size:', snapshot.size);
         const classes = new Set();
 
         snapshot.forEach(doc => {
@@ -1159,10 +1138,8 @@ async function exportToExcel() {
 async function checkTodaySession() {
     const statusMsg = document.getElementById('sessionStatusMessage');
 
-    console.log('[ADMIN] sebelum query session ACTIVE');
     const activeQuery = query(collection(db, 'attendanceSessions'), where('status', '==', 'ACTIVE'), limit(1));
     const activeQuerySnap = await getDocs(activeQuery);
-    console.log('[ADMIN] sesudah query session ACTIVE', !activeQuerySnap.empty);
 
     if (!activeQuerySnap.empty) {
         const sessionSnap = activeQuerySnap.docs[0];
@@ -1327,7 +1304,6 @@ async function loadUserManagementData() {
 
     try {
         const snapshot = await getDocs(collection(db, 'users'));
-        console.log('[MANUAL] users snapshot size:', snapshot.size);
 
         umData = snapshot.docs.map(d => ({
             uid: d.id,
@@ -1584,9 +1560,7 @@ onAuthStateChanged(auth, async (user) => {
             return;
         }
 
-        console.log('[ABSEN] sebelum getDoc users');
     const userDoc = await getDoc(doc(db, 'users', user.uid));
-    console.log('[ABSEN] sesudah getDoc users', userDoc.exists(), userDoc.data());
 
 
         if (!userDoc.exists()) {
