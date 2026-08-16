@@ -761,6 +761,7 @@ async function handleManualStatus(userData) {
                 throw new Error('Target user not found');
             }
             const targetData = targetDoc.data();
+            console.log('[MANUAL DEBUG TARGET]', { targetUid, targetName: targetData.nama, targetClassId: targetData.classId, teacherClassId: userData.classId, sessionId: sessionIdForManual });
 
             // ===== VALIDASI CLASSID TARGET STUDENT =====
             if (!targetData.classId) {
