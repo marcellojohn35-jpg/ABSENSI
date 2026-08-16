@@ -536,6 +536,11 @@ async function renderDashboard(userData) {
 
     // 3. Summary Area
     const summaryHTML = `
+        <div class="attendance-rate-box">
+            <span class="attendance-rate-label">Tingkat Kehadiran</span>
+            <div class="attendance-rate-track"><div class="attendance-rate-fill" id="attendanceRateFill"></div></div>
+            <span class="attendance-rate-text" id="attendanceRateText">-</span>
+        </div>
         <div class="summary-container" id="summaryContainer">
             <div class="summary-card">
                 <div class="num" id="sumTotal">-</div>
@@ -577,7 +582,10 @@ async function renderDashboard(userData) {
     // 4. Table Area
     const tableHTML = `
         <div id="attendanceTableContainer">
-            <p class="state-message">Memuat data...</p>
+            <div class="empty-state">
+                <div class="spinner" role="status" aria-label="Memuat"></div>
+                <div class="empty-state-desc">Memuat data...</div>
+            </div>
         </div>
     `;
 
@@ -585,7 +593,10 @@ async function renderDashboard(userData) {
 
     dashboardContent.innerHTML = `
         <div>
-            <h3 class="page-title" style="margin-bottom:16px;">Dashboard ${roleHeader}</h3>
+            <div style="margin-bottom:16px;">
+                <h3 class="page-title" style="margin-bottom:2px;">Dashboard ${roleHeader}</h3>
+                <p class="page-subtitle mb-0">Kelola dan pantau kehadiran siswa.</p>
+            </div>
             ${userManagementBtnHTML}
             ${teacherManualHTML}
             ${adminPanelHTML}
@@ -897,13 +908,24 @@ async function loadAttendanceData() {
     const container = document.getElementById('attendanceTableContainer');
 
     if (!currentDashboardSessionId) {
-        container.innerHTML = `<p class="state-message">Pilih session terlebih dahulu.</p>`;
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon" aria-hidden="true">🗓️</div>
+                <div class="empty-state-title">Pilih Sesi</div>
+                <div class="empty-state-desc">Pilih session terlebih dahulu untuk menampilkan data absensi.</div>
+            </div>
+        `;
         attendanceFilteredData = [];
         updateSummary([]);
         return;
     }
 
-    container.innerHTML = `<p class="state-message">⏳ Memuat data...</p>`;
+    container.innerHTML = `
+        <div class="empty-state">
+            <div class="spinner" role="status" aria-label="Memuat"></div>
+            <div class="empty-state-desc">Memuat data...</div>
+        </div>
+    `;
 
     try {
         const usersSnapshot = await getDocs(collection(db, 'users'));
@@ -977,7 +999,13 @@ async function loadAttendanceData() {
         attendanceFilteredData = fullData.filter(d => d.role === 'student');
 
         if (attendanceFilteredData.length === 0) {
-            container.innerHTML = `<p class="state-message">Tidak ada data absensi untuk filter ini.</p>`;
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon" aria-hidden="true">📭</div>
+                    <div class="empty-state-title">Belum Ada Data</div>
+                    <div class="empty-state-desc">Tidak ada data absensi untuk filter ini.</div>
+                </div>
+            `;
             updateSummary([]);
             return;
         }
@@ -1024,7 +1052,13 @@ async function loadAttendanceData() {
 
     } catch (error) {
         console.error("Error loading attendance:", error);
-        container.innerHTML = `<p class="state-message state-error">❌ Gagal memuat data. Silakan coba lagi.</p>`;
+        container.innerHTML = `
+            <div class="empty-state state-error">
+                <div class="empty-state-icon" aria-hidden="true">⚠️</div>
+                <div class="empty-state-title">Gagal Memuat Data</div>
+                <div class="empty-state-desc">Terjadi kesalahan saat memuat data. Silakan coba lagi.</div>
+            </div>
+        `;
     }
 }
 
@@ -1045,6 +1079,15 @@ function updateSummary(data) {
     document.getElementById('sumSakit').textContent = sakit;
     document.getElementById('sumAlfa').textContent = alfa;
     document.getElementById('sumBelum').textContent = belum;
+
+    // Attendance rate: presentasi visual saja, dihitung dari angka di atas.
+    const rateFill = document.getElementById('attendanceRateFill');
+    const rateText = document.getElementById('attendanceRateText');
+    if (rateFill && rateText) {
+        const rate = total > 0 ? Math.round(((hadir + terlambat) / total) * 100) : 0;
+        rateFill.style.width = rate + '%';
+        rateText.textContent = total > 0 ? rate + '%' : '-';
+    }
 }
 
 // ===== Export to Excel (XLSX) =====

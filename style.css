@@ -125,15 +125,10 @@ a { color: var(--primary); }
   flex: 0 0 auto;
   width: 36px;
   height: 36px;
-  border-radius: var(--radius-md);
-  background: var(--primary);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 15px;
-  letter-spacing: -0.02em;
+  border-radius: var(--radius-full);
+  object-fit: contain;
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 .brand-text {
@@ -217,6 +212,14 @@ a { color: var(--primary); }
   margin: 0 auto 16px;
 }
 
+.auth-logo {
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  margin: 0 auto 16px;
+}
+
 /* ============================================================
    DASHBOARD / WIDE PAGES (teacher/admin, user management)
    ============================================================ */
@@ -238,6 +241,14 @@ a { color: var(--primary); }
   margin-bottom: 18px;
 }
 
+.dashboard-toolbar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+}
+
 #userInfo {
   display: flex;
   align-items: center;
@@ -246,11 +257,21 @@ a { color: var(--primary); }
 }
 
 #userPhoto {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-full);
   object-fit: cover;
   border: 1px solid var(--border);
+}
+
+.welcome-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 1px;
 }
 
 #userName {
@@ -295,6 +316,12 @@ a { color: var(--primary); }
   border-radius: var(--radius-lg);
   padding: 18px;
   margin-bottom: 16px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
 }
 
 .card-title {
@@ -354,13 +381,17 @@ button {
   padding: 10px 18px;
   min-height: 42px;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
   white-space: nowrap;
 }
 
 .btn:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .btn:disabled {
@@ -542,6 +573,59 @@ form#profileForm, form#editUserForm {
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   EMPTY / LOADING / ERROR STATE — polished block variant
+   Dipakai lewat markup .empty-state di dalam container
+   yang sebelumnya cuma diisi <p class="state-message">.
+   ============================================================ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-secondary);
+}
+
+.empty-state .empty-state-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--surface-muted);
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.empty-state.state-error .empty-state-icon {
+  background: var(--danger-light);
+}
+
+.empty-state .empty-state-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.empty-state.state-error .empty-state-title {
+  color: var(--danger);
+}
+
+.empty-state .empty-state-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 320px;
+}
+
+.empty-state .spinner {
+  margin-bottom: 10px;
+}
 
 /* ============================================================
    FILTER BAR
@@ -1433,6 +1517,65 @@ select:focus-visible {
   .summary-container {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
+}
+
+/* ============================================================
+   ATTENDANCE RATE — indikator visual, dihitung dari angka
+   summary yang sudah ada (tidak menyentuh data source).
+   ============================================================ */
+
+.attendance-rate-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.attendance-rate-track {
+  flex: 1;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+.attendance-rate-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: var(--radius-full);
+  background: var(--success);
+  transition: width 0.4s ease;
+}
+
+.attendance-rate-text {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 44px;
+  text-align: right;
+}
+
+.attendance-rate-label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .attendance-rate-box {
+    flex-wrap: wrap;
+  }
+  .attendance-rate-label { order: 1; flex-basis: 100%; }
+  .attendance-rate-track { order: 3; flex-basis: 100%; }
+  .attendance-rate-text { order: 2; }
 }
 
 /* ============================================================
