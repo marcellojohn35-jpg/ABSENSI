@@ -382,7 +382,12 @@ async function renderCasisDashboard(userData) {
 }
 
 // ===== Render Dashboard =====
-const ROLE_LABEL = { student: 'Siswa', teacher: 'Guru', admin: 'Admin' };
+const ROLE_LABEL = {
+    student: 'Siswa',
+    casis: 'Casis',
+    teacher: 'Guru',
+    admin: 'Admin'
+};
 
 async function renderDashboard(userData) {
     userPhoto.src = userData.photoURL || 'https://via.placeholder.com/50';
@@ -1421,6 +1426,7 @@ function renderUserManagement() {
             <select id="umFilterRole">
                 <option value="">Semua Role</option>
                 <option value="student" ${roleFilter === 'student' ? 'selected' : ''}>Siswa</option>
+                <option value="casis" ${roleFilter === 'casis' ? 'selected' : ''}>Casis</option>
                 <option value="teacher" ${roleFilter === 'teacher' ? 'selected' : ''}>Guru</option>
                 <option value="admin" ${roleFilter === 'admin' ? 'selected' : ''}>Admin</option>
             </select>
