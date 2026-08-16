@@ -27,6 +27,8 @@ const absenProfileInfo = $('absenProfileInfo');
 const loginBtn = $('loginBtn');
 const logoutBtn = $('logoutBtn');
 const userPhoto = $('userPhoto');
+const userAvatar = $('userAvatar');
+const userAvatarInitials = $('userAvatarInitials');
 const userName = $('userName');
 const userRole = $('userRole');
 
@@ -345,8 +347,9 @@ absenNowBtn.onclick = async () => {
 
 // ===== Render Dashboard CASIS =====
 async function renderCasisDashboard(userData) {
-    userPhoto.src = userData.photoURL || currentUser?.photoURL || 'https://via.placeholder.com/50';
-    userName.textContent = userData.nama || 'Pendaftar';
+    const casisName = userData.nama || 'Pendaftar';
+    setUserAvatar(userData.photoURL || currentUser?.photoURL, casisName);
+    userName.textContent = casisName;
     userRole.textContent = 'Casis';
     userRole.className = 'role-casis';
 
@@ -381,6 +384,38 @@ async function renderCasisDashboard(userData) {
     `;
 }
 
+// ===== User Avatar =====
+function setUserAvatar(photoURL, name = 'User') {
+    const safeName = String(name || 'User').trim();
+
+    const initials = safeName
+        .split(/\\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part.charAt(0).toUpperCase())
+        .join('') || '?';
+
+    userAvatarInitials.textContent = initials;
+
+    const showFallback = () => {
+        userPhoto.removeAttribute('src');
+        userAvatar.classList.add('is-fallback');
+    };
+
+    const showPhoto = (url) => {
+        userAvatar.classList.remove('is-fallback');
+        userPhoto.src = url;
+    };
+
+    userPhoto.onerror = showFallback;
+
+    if (photoURL) {
+        showPhoto(photoURL);
+    } else {
+        showFallback();
+    }
+}
+
 // ===== Render Dashboard =====
 const ROLE_LABEL = {
     student: 'Siswa',
@@ -390,8 +425,9 @@ const ROLE_LABEL = {
 };
 
 async function renderDashboard(userData) {
-    userPhoto.src = userData.photoURL || 'https://via.placeholder.com/50';
-    userName.textContent = userData.nama || 'User';
+    const dashboardUserName = userData.nama || 'User';
+    setUserAvatar(userData.photoURL || currentUser?.photoURL, dashboardUserName);
+    userName.textContent = dashboardUserName;
     userRole.textContent = ROLE_LABEL[userData.role] || userData.role || 'Siswa';
     userRole.className = 'role-' + (userData.role || 'student');
 
