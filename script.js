@@ -3,7 +3,7 @@ console.log("Sistem Absensi URL-Based aktif (Phase 7).");
 import {
     auth, db, provider, signInWithPopup, onAuthStateChanged, signOut
 } from './firebase-config.js';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, orderBy, limit, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 // ===== Auth redirect handling disabled: using popup login =====
 // DOM Refs
@@ -46,6 +46,14 @@ let umData = [];
 let umFilteredData = [];
 let attendanceFilteredData = [];
 
+// ===== SESSION REDESIGN (sessionId sebagai identity utama, bukan tanggal) =====
+// Dipakai khusus oleh Dashboard (teacher/admin) untuk menentukan session mana
+// yang sedang dipilih/difilter — terpisah dari `currentSessionId` (dipakai oleh
+// flow /absen siswa) supaya kedua flow tidak saling menimpa state.
+let currentDashboardSessionId = null;
+let currentDashboardSessionDate = null;
+let currentDashboardSessionStatus = null;
+
 function showSection(id) {
     [loadingState, loginSection, dashboardSection, profileSetupSection, attendanceResultSection, absenSection, userManagementContainer].forEach(el => el.style.display = 'none');
     if (id) id.style.display = 'block';
@@ -63,6 +71,17 @@ function formatTimestampToWIBTime(timestamp) {
     if (!timestamp) return '-';
     const date = timestamp.toDate();
     return new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
+}
+
+// ===== Session ID resolver (LEGACY-SAFE) =====
+// Session BARU (hasil handleCreateSession) selalu punya field `sessionId` (== doc.id, "session_NNN").
+// Session LAMA (attendanceSessions/{tanggal}, dari sebelum redesign) TIDAK punya field `sessionId`
+// sama sekali — untuk session itu, doc.id (string tanggal) sendiri yang menjadi sessionId-nya.
+// Fungsi ini adalah satu-satunya tempat yang boleh melakukan fallback ini, supaya konsisten
+// di seluruh file.
+function resolveSessionId(sessionDocSnap) {
+    const d = sessionDocSnap.data();
+    return d.sessionId || sessionDocSnap.id;
 }
 
 // ===== Logic Halaman Absen (Siswa) - Phase 4 =====
@@ -113,23 +132,37 @@ async function processAbsenPage(user) {
 
 
     const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get('session') || getJakartaDateStr();
-    currentSessionId = sessionId;
+    const requestedSessionId = params.get('session');
 
     absenStatus.textContent = '⏳ Memeriksa sesi absensi...';
 
-    const sessionRef = doc(db, 'attendanceSessions', sessionId);
-    console.log('[ABSEN] sebelum getDoc session', currentSessionId);
-    const sessionSnap = await getDoc(sessionRef);
-    console.log('[ABSEN] sesudah getDoc session', sessionSnap.exists());
+    let sessionSnap = null;
 
+    if (requestedSessionId) {
+        // Session eksplisit lewat URL (?session=session_002, atau legacy: ?session=2026-08-15)
+        console.log('[ABSEN] sebelum getDoc session (explicit)', requestedSessionId);
+        const explicitSnap = await getDoc(doc(db, 'attendanceSessions', requestedSessionId));
+        console.log('[ABSEN] sesudah getDoc session (explicit)', explicitSnap.exists());
+        if (explicitSnap.exists()) sessionSnap = explicitSnap;
+    } else {
+        // Tanpa query param → cari session yang sedang ACTIVE (BUKAN tanggal hari ini)
+        console.log('[ABSEN] sebelum query session ACTIVE');
+        const activeQuery = query(collection(db, 'attendanceSessions'), where('status', '==', 'ACTIVE'), limit(1));
+        const activeQuerySnap = await getDocs(activeQuery);
+        console.log('[ABSEN] sesudah query session ACTIVE', !activeQuerySnap.empty);
+        if (!activeQuerySnap.empty) sessionSnap = activeQuerySnap.docs[0];
+    }
 
-    if (!sessionSnap.exists()) {
-        absenStatus.textContent = '❌ Belum ada sesi absensi untuk hari ini.';
+    if (!sessionSnap) {
+        currentSessionId = null;
+        absenStatus.textContent = '❌ Belum ada sesi absensi aktif saat ini.';
         return;
     }
 
+    currentSessionId = resolveSessionId(sessionSnap);
+
     const data = sessionSnap.data();
+    const isSessionActive = data.status === 'ACTIVE';
     const startDate = data.startTime.toDate();
     const lateDate = data.lateAfter.toDate();
     const endDate = data.endTime.toDate();
@@ -142,10 +175,25 @@ async function processAbsenPage(user) {
 
     sessionInfoDisplay.innerHTML = `
         <div style="font-size:14px;">
+            <p><strong>Session:</strong> ${currentSessionId} ${isSessionActive ? '🟢 ACTIVE' : '🔒 ARCHIVED (read-only)'}</p>
             <p><strong>Tanggal:</strong> ${data.date}</p>
             <p><strong>Mulai:</strong> ${startTimeStr} | <strong>Batas Terlambat:</strong> ${lateTimeStr} | <strong>Tutup:</strong> ${endTimeStr}</p>
         </div>
     `;
+
+    if (!isSessionActive) {
+        absenStatus.textContent = '🔒 Sesi ini sudah diarsipkan (ARCHIVED). Anda tidak bisa absen di sesi ini lagi.';
+        absenContent.innerHTML = '';
+        absenActionArea.style.display = 'none';
+        // Tampilkan tetap info profil siswa untuk konsistensi UX
+        absenProfileInfo.style.display = 'block';
+        absenProfileInfo.innerHTML = `
+            <p><strong>Nama:</strong> ${uData.nama || 'Belum diisi'}</p>
+            <p><strong>Kelas:</strong> ${uData.classId || 'Belum diisi'}</p>
+            <p><strong>NIS:</strong> ${uData.nis || '-'}</p>
+        `;
+        return;
+    }
 
     absenStatus.textContent = '✅ Session valid.';
     absenContent.innerHTML = '';
@@ -199,6 +247,13 @@ absenNowBtn.onclick = async () => {
 
         const s = sessionSnap.data();
 
+        // Guard client-side (defense in depth — enforcement sesungguhnya ada di Firestore Rules):
+        // session ARCHIVED (termasuk legacy session yang tidak punya field `status` sama sekali)
+        // tidak boleh dipakai untuk absen baru.
+        if (s.status !== 'ACTIVE') {
+            throw new Error('SESSION_ARCHIVED');
+        }
+
         const docId = `${uid}_${currentSessionId}`;
         const now = new Date();
 
@@ -231,7 +286,7 @@ absenNowBtn.onclick = async () => {
 
         await setDoc(doc(db, 'attendance', docId), {
             uid: uid,
-            tanggal: currentSessionId,
+            tanggal: s.date,
             status: status,
             classId: userData.classId,
             sessionId: currentSessionId,
@@ -241,7 +296,7 @@ absenNowBtn.onclick = async () => {
 
         showAttendanceResult(true, {
             status,
-            tanggal: currentSessionId
+            tanggal: s.date
         });
 
     } catch (error) {
@@ -308,7 +363,7 @@ async function renderDashboard(userData) {
                 </div>
 
                 <button id="createSessionBtn" class="btn-primary">
-                    Buat / Perbarui Sesi Hari Ini
+                    Buat Sesi Baru (Arsipkan Sesi Aktif Sebelumnya)
                 </button>
 
                 <div id="sessionStatusMessage" style="margin-top:10px; padding:10px; border-radius:4px; display:none;"></div>
@@ -366,9 +421,17 @@ async function renderDashboard(userData) {
     // ===== END MANUAL ATTENDANCE PANEL =====
 
     // 2. Filter Area
+    // CATATAN REDESIGN: `filterDate` (query driver lama, berbasis tanggal) DIHAPUS.
+    // Sumber kebenaran filter attendance sekarang HANYA `filterSession`
+    // (selectedSessionId -> where('sessionId','==', selectedSessionId)) — tidak ada
+    // dua sumber kebenaran. Tanggal tetap ditampilkan sebagai info non-interaktif
+    // di sebelah dropdown (diisi oleh initSessionSelector()/onchange-nya).
     const filterHTML = `
         <div class="filter-container">
-            <input type="date" id="filterDate" value="${getJakartaDateStr()}">
+            <select id="filterSession" style="min-width:220px;">
+                <option value="">Memuat daftar sesi...</option>
+            </select>
+            <span id="filterSessionDateLabel" style="font-size:13px; color:#666; align-self:center;"></span>
 
             <select id="filterClass">
                 <option value="">Semua Kelas</option>
@@ -480,6 +543,73 @@ async function renderDashboard(userData) {
     }
 
     await loadClassOptions();
+    // Isi dropdown session (sumber kebenaran filter attendance) lalu load data
+    // untuk session yang otomatis terpilih (default: session ACTIVE).
+    await initSessionSelector();
+}
+
+// ===== Dashboard: Isi dropdown pilihan session (LEGACY-SAFE) =====
+// Sumber kebenaran TUNGGAL untuk "attendance mana yang ditampilkan" adalah
+// currentDashboardSessionId hasil dropdown ini -> where('sessionId','==', ...).
+// `filterDate` (lama) sudah dihapus sepenuhnya dari UI dan tidak lagi dipakai
+// di mana pun sebagai query driver.
+async function initSessionSelector() {
+    const select = document.getElementById('filterSession');
+    const dateLabel = document.getElementById('filterSessionDateLabel');
+    if (!select) return;
+
+    const snap = await getDocs(query(collection(db, 'attendanceSessions'), orderBy('createdAt', 'desc')));
+
+    if (snap.empty) {
+        select.innerHTML = '<option value="">Belum ada sesi</option>';
+        currentDashboardSessionId = null;
+        currentDashboardSessionDate = null;
+        currentDashboardSessionStatus = null;
+        if (dateLabel) dateLabel.textContent = '';
+        await loadAttendanceData();
+        return;
+    }
+
+    let optionsHTML = '';
+    let activeSessionId = null;
+    const firstDocSessionId = resolveSessionId(snap.docs[0]);
+
+    snap.forEach((docSnap) => {
+        const d = docSnap.data();
+        const sid = resolveSessionId(docSnap);
+        const isLegacy = !d.sessionId; // session lama tidak punya field sessionId sama sekali
+        const status = d.status || (isLegacy ? 'LEGACY' : '-');
+        const label = isLegacy
+            ? `${sid} (legacy, ${d.date || '-'})`
+            : `${sid} — ${d.date || '-'} (${status})`;
+
+        optionsHTML += `<option value="${sid}" data-date="${d.date || ''}" data-status="${status}">${label}</option>`;
+
+        if (status === 'ACTIVE') activeSessionId = sid;
+    });
+
+    // Default pilihan: session ACTIVE kalau ada; kalau tidak ada sama sekali, pakai
+    // dokumen paling atas (terbaru berdasarkan createdAt).
+    const defaultSessionId = activeSessionId || firstDocSessionId;
+
+    select.innerHTML = optionsHTML;
+    select.value = defaultSessionId;
+
+    const selectedOption = select.options[select.selectedIndex];
+    currentDashboardSessionId = select.value || null;
+    currentDashboardSessionDate = selectedOption ? selectedOption.dataset.date : null;
+    currentDashboardSessionStatus = selectedOption ? selectedOption.dataset.status : null;
+    if (dateLabel) dateLabel.textContent = currentDashboardSessionDate ? `Tanggal: ${currentDashboardSessionDate}` : '';
+
+    select.onchange = async () => {
+        const opt = select.options[select.selectedIndex];
+        currentDashboardSessionId = select.value || null;
+        currentDashboardSessionDate = opt ? opt.dataset.date : null;
+        currentDashboardSessionStatus = opt ? opt.dataset.status : null;
+        if (dateLabel) dateLabel.textContent = currentDashboardSessionDate ? `Tanggal: ${currentDashboardSessionDate}` : '';
+        await loadAttendanceData();
+    };
+
     await loadAttendanceData();
 }
 
@@ -557,14 +687,33 @@ async function handleManualStatus(userData) {
         return;
     }
 
+    if (!currentDashboardSessionId) {
+        msgEl.style.display = 'block';
+        msgEl.style.background = '#f8d7da';
+        msgEl.style.color = '#721c24';
+        msgEl.textContent = 'Pilih session terlebih dahulu.';
+        return;
+    }
+
+    // Teacher hanya boleh manual attendance pada session ACTIVE (Admin boleh ACTIVE maupun ARCHIVED).
+    // UX guard saja — enforcement sesungguhnya ada di firestore.rules.
+    if (!isAdmin && currentDashboardSessionStatus !== 'ACTIVE') {
+        msgEl.style.display = 'block';
+        msgEl.style.background = '#f8d7da';
+        msgEl.style.color = '#721c24';
+        msgEl.textContent = '❌ Teacher hanya boleh input manual attendance pada session yang sedang ACTIVE.';
+        return;
+    }
+
     msgEl.style.display = 'block';
     msgEl.style.background = '#fff3cd';
     msgEl.style.color = '#856404';
     msgEl.textContent = '⏳ Memproses...';
 
     try {
-        const date = document.getElementById('filterDate').value || getJakartaDateStr();
-        const docId = `${targetUid}_${date}`;
+        const sessionIdForManual = currentDashboardSessionId;
+        const dateForManual = currentDashboardSessionDate || getJakartaDateStr();
+        const docId = `${targetUid}_${sessionIdForManual}`;
         const attendanceRef = doc(db, 'attendance', docId);
 
         const existingSnap = await getDoc(attendanceRef);
@@ -613,10 +762,10 @@ async function handleManualStatus(userData) {
 
             await setDoc(attendanceRef, {
                 uid: targetUid,
-                tanggal: date,
+                tanggal: dateForManual,
                 status: status,
                 classId: targetData.classId,  // ← Langsung pakai, tanpa fallback
-                sessionId: date,
+                sessionId: sessionIdForManual,
                 method: 'manual',
                 createdAt: serverTimestamp()
             });
@@ -670,13 +819,22 @@ async function loadClassOptions() {
 }
 
 // ===== Load Attendance Data =====
+// CATATAN REDESIGN: sumber kebenaran filter attendance sekarang `currentDashboardSessionId`
+// (diisi oleh initSessionSelector()/dropdown filterSession), BUKAN tanggal. Tidak ada lagi
+// `filterDate` — dihapus sepenuhnya dari UI, supaya tidak ada 2 sumber kebenaran.
 async function loadAttendanceData() {
-    const date = document.getElementById('filterDate').value;
     const cls = document.getElementById('filterClass').value;
     const status = document.getElementById('filterStatus').value;
     const nama = document.getElementById('filterNama').value.toLowerCase();
 
     const container = document.getElementById('attendanceTableContainer');
+
+    if (!currentDashboardSessionId) {
+        container.innerHTML = `<p style="color:#666;">Pilih session terlebih dahulu.</p>`;
+        attendanceFilteredData = [];
+        updateSummary([]);
+        return;
+    }
 
     container.innerHTML = `<p style="color:#666;">⏳ Memuat data...</p>`;
 
@@ -696,7 +854,7 @@ async function loadAttendanceData() {
         });
 
         let q = collection(db, 'attendance');
-        let constraints = [where('tanggal', '==', date)];
+        let constraints = [where('sessionId', '==', currentDashboardSessionId)];
 
         if (cls) {
             constraints.push(where('classId', '==', cls));
@@ -726,10 +884,10 @@ async function loadAttendanceData() {
                 uid: user.uid,
                 nama: user.nama,
                 classId: user.classId,
-                tanggal: date,
+                tanggal: att ? att.tanggal : (currentDashboardSessionDate || '-'),
                 jam: jam,
                 status: att ? att.status : 'BELUM_ABSEN',
-                sessionId: att ? att.sessionId : '-',
+                sessionId: att ? att.sessionId : currentDashboardSessionId,
                 method: att ? att.method : '-',
                 createdAt: att ? att.createdAt : null,
                 role: user.role
@@ -969,23 +1127,28 @@ async function exportToExcel() {
 
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `absensi_${getJakartaDateStr()}.xlsx`;
+    link.download = `absensi_${currentDashboardSessionId || getJakartaDateStr()}.xlsx`;
     link.click();
 }
 
-// ===== Admin: Cek Sesi Hari Ini =====
+// ===== Admin: Cek Session yang Sedang ACTIVE =====
+// CATATAN REDESIGN: sebelumnya function ini membaca attendanceSessions/{tanggal}.
+// Sekarang sessionId TIDAK LAGI berbasis tanggal, jadi satu-satunya cara benar
+// untuk tahu "session apa yang sedang berlaku" adalah query status == 'ACTIVE'.
+// Nama function TETAP dipertahankan (checkTodaySession) untuk meminimalkan diff —
+// hanya isi/behavior yang berubah.
 async function checkTodaySession() {
-    const today = getJakartaDateStr();
-
-    const sessionRef = doc(db, 'attendanceSessions', today);
-    console.log('[ADMIN] sebelum getDoc session', today);
-    const sessionSnap = await getDoc(sessionRef);
-    console.log('[ADMIN] sesudah getDoc session', sessionSnap.exists());
-
     const statusMsg = document.getElementById('sessionStatusMessage');
 
-    if (sessionSnap.exists()) {
+    console.log('[ADMIN] sebelum query session ACTIVE');
+    const activeQuery = query(collection(db, 'attendanceSessions'), where('status', '==', 'ACTIVE'), limit(1));
+    const activeQuerySnap = await getDocs(activeQuery);
+    console.log('[ADMIN] sesudah query session ACTIVE', !activeQuerySnap.empty);
+
+    if (!activeQuerySnap.empty) {
+        const sessionSnap = activeQuerySnap.docs[0];
         const data = sessionSnap.data();
+        const sid = resolveSessionId(sessionSnap);
 
         const start = data.startTime.toDate();
         const late = data.lateAfter.toDate();
@@ -1000,9 +1163,9 @@ async function checkTodaySession() {
         statusMsg.style.color = '#0c5460';
 
         statusMsg.innerHTML = `
-            Sesi hari ini sudah ada:
+            Session aktif saat ini: <strong>${sid}</strong> (${data.date}) —
             ${startStr} - ${lateStr} - ${endStr}.
-            Klik tombol di atas untuk menimpa.
+            Klik tombol di atas untuk membuat sesi baru (sesi ini akan diarsipkan).
         `;
 
     } else {
@@ -1010,7 +1173,11 @@ async function checkTodaySession() {
     }
 }
 
-// ===== Admin: Handle Create/Overwrite Session =====
+// ===== Admin: Handle Create Session Baru (archive lama + create baru, ATOMIK) =====
+// CATATAN REDESIGN: sebelumnya function ini overwrite attendanceSessions/{tanggal}.
+// Sekarang SELALU membuat dokumen session_NNN baru (ID dari counter), dan meng-arsipkan
+// session ACTIVE lama (jika ada) — dalam SATU Firestore transaction supaya tidak pernah
+// ada kondisi 2 session ACTIVE sekaligus jika salah satu write gagal.
 async function handleCreateSession() {
     const today = getJakartaDateStr();
 
@@ -1027,6 +1194,7 @@ async function handleCreateSession() {
         return;
     }
 
+    // ===== TIMEZONE FIX (DIPERTAHANKAN, TIDAK BOLEH DIUBAH) =====
     // Bangun Timestamp dari komponen tanggal WIB `today`, BUKAN dari
     // UTC-day "sekarang" — supaya hasil selalu jatuh pada tanggal WIB
     // yang sama dengan `today`, berapa pun jam saat tombol ini ditekan.
@@ -1044,6 +1212,7 @@ async function handleCreateSession() {
 
     const [h3, m3] = endVal.split(':').map(Number);
     const endTimestamp = wibTimeToTimestamp(h3, m3);
+    // ===== END TIMEZONE FIX =====
 
     if (
         startTimestamp.toDate() >= lateTimestamp.toDate() ||
@@ -1056,19 +1225,59 @@ async function handleCreateSession() {
         return;
     }
 
+    const counterRef = doc(db, 'settings', 'sessionCounter');
+
     try {
-        await setDoc(doc(db, 'attendanceSessions', today), {
-            date: today,
-            startTime: startTimestamp,
-            lateAfter: lateTimestamp,
-            endTime: endTimestamp,
-            createdAt: serverTimestamp()
+        const newSessionId = await runTransaction(db, async (transaction) => {
+            // ===== SEMUA READ DULU (syarat Firestore transaction) =====
+            const counterSnap = await transaction.get(counterRef);
+            const lastNumber = counterSnap.exists() ? (counterSnap.data().lastNumber || 0) : 0;
+            const oldActiveSessionId = counterSnap.exists() ? (counterSnap.data().activeSessionId || null) : null;
+
+            let oldSessionRef = null;
+            let oldSessionSnap = null;
+            if (oldActiveSessionId) {
+                oldSessionRef = doc(db, 'attendanceSessions', oldActiveSessionId);
+                oldSessionSnap = await transaction.get(oldSessionRef);
+            }
+
+            // ===== BARU SETELAH ITU WRITE =====
+            const newNumber = lastNumber + 1;
+            const newSessionId = `session_${String(newNumber).padStart(3, '0')}`;
+            const newSessionRef = doc(db, 'attendanceSessions', newSessionId);
+
+            // Arsipkan session ACTIVE lama HANYA jika memang masih ACTIVE saat dibaca
+            // (defense in depth — mencegah archive dokumen yang statusnya sudah berubah).
+            if (oldSessionRef && oldSessionSnap && oldSessionSnap.exists() && oldSessionSnap.data().status === 'ACTIVE') {
+                transaction.update(oldSessionRef, { status: 'ARCHIVED' });
+            }
+
+            transaction.set(newSessionRef, {
+                sessionId: newSessionId,
+                date: today,
+                startTime: startTimestamp,
+                lateAfter: lateTimestamp,
+                endTime: endTimestamp,
+                status: 'ACTIVE',
+                createdAt: serverTimestamp()
+            });
+
+            transaction.set(counterRef, {
+                lastNumber: newNumber,
+                activeSessionId: newSessionId
+            }, { merge: true });
+
+            return newSessionId;
         });
 
         statusMsg.style.display = 'block';
         statusMsg.style.background = '#d4edda';
         statusMsg.style.color = '#155724';
-        statusMsg.textContent = '✅ Sesi berhasil dibuat/diperbarui!';
+        statusMsg.textContent = `✅ Sesi ${newSessionId} berhasil dibuat & diaktifkan! Sesi sebelumnya (jika ada) sudah diarsipkan.`;
+
+        // Refresh status panel admin + dropdown session + tabel dashboard
+        await checkTodaySession();
+        await initSessionSelector();
 
     } catch (error) {
         console.error(error);
@@ -1451,6 +1660,8 @@ function showAttendanceResult(success, data) {
 
         if (data.error?.includes('SESSION_NOT_FOUND')) {
             msg = '⚠️ Session tidak ditemukan.';
+        } else if (data.error?.includes('SESSION_ARCHIVED')) {
+            msg = '🔒 Sesi ini sudah diarsipkan, tidak bisa absen lagi.';
         } else if (data.error?.includes('SESSION_CLOSED')) {
             msg = '⏰ Sesi sudah ditutup.';
         } else if (data.error?.includes('SESSION_NOT_STARTED')) {

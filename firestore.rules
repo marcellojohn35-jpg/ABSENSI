@@ -44,6 +44,12 @@ service cloud.firestore {
     // ============================================
     // ATTENDANCE SESSIONS COLLECTION
     // ============================================
+    // CATATAN REDESIGN: sessionId (doc ID) TIDAK LAGI berbasis tanggal.
+    // Session BARU (dari handleCreateSession di script.js) selalu formatnya
+    // "session_NNN" dan wajib punya field sessionId+status. Session LAMA
+    // (attendanceSessions/{tanggal}, dari sebelum redesign) tidak disentuh
+    // rules ini sama sekali untuk create/update baru — dokumennya tetap ada
+    // apa adanya dan tetap bisa dibaca (allow read di bawah tidak berubah).
     match /attendanceSessions/{sessionId} {
 
       allow read: if request.auth != null;
@@ -56,13 +62,73 @@ service cloud.firestore {
                user.data.role == 'teacher';
       }
 
-      allow create, update: if request.auth != null
+      // CREATE: hanya untuk session BARU (docId harus "session_NNN", dibuat oleh
+      // flow handleCreateSession). Selalu berstatus ACTIVE saat pertama dibuat —
+      // proses archive session lama terjadi lewat operasi UPDATE terpisah
+      // (di dokumen session yang lain), dalam Firestore transaction yang sama.
+      allow create: if request.auth != null
         && isAdminOrTeacher()
+        && request.resource.data.sessionId == sessionId
+        && request.resource.data.status == 'ACTIVE'
+        && request.resource.data.date is string
         && request.resource.data.startTime is timestamp
         && request.resource.data.lateAfter is timestamp
         && request.resource.data.endTime is timestamp
         && request.resource.data.startTime < request.resource.data.lateAfter
-        && request.resource.data.lateAfter < request.resource.data.endTime;
+        && request.resource.data.lateAfter < request.resource.data.endTime
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.keys().hasAll(['sessionId', 'date', 'startTime', 'lateAfter', 'endTime', 'status', 'createdAt'])
+        && request.resource.data.keys().size() == 7;
+
+      // UPDATE: HANYA transisi ACTIVE -> ARCHIVED (proses archive session lama
+      // saat admin membuat session baru). Field lain selain `status` TIDAK BOLEH
+      // berubah. Ini juga otomatis menolak upaya "update" pada session LEGACY
+      // (doc tanpa field status), karena resource.data.status == 'ACTIVE' pasti
+      // gagal untuk dokumen yang field `status`-nya tidak pernah ada.
+      allow update: if request.auth != null
+        && isAdminOrTeacher()
+        && resource.data.status == 'ACTIVE'
+        && request.resource.data.status == 'ARCHIVED'
+        && request.resource.data.sessionId == resource.data.sessionId
+        && request.resource.data.date == resource.data.date
+        && request.resource.data.startTime == resource.data.startTime
+        && request.resource.data.lateAfter == resource.data.lateAfter
+        && request.resource.data.endTime == resource.data.endTime
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.keys().hasAll(['sessionId', 'date', 'startTime', 'lateAfter', 'endTime', 'status', 'createdAt'])
+        && request.resource.data.keys().size() == 7;
+
+      allow delete: if false;
+    }
+
+    // ============================================
+    // SETTINGS COLLECTION (session ID counter)
+    // ============================================
+    // Dipakai HANYA oleh transaction di handleCreateSession() untuk generate
+    // sessionId sequential ("session_001", "session_002", ...) secara aman
+    // terhadap race condition, dan menyimpan pointer session ACTIVE saat ini
+    // supaya transaction bisa membaca doc ref-nya langsung tanpa query
+    // (Firestore transaction tidak mendukung query, hanya get-by-reference).
+    // HANYA admin yang boleh read/write — teacher tidak butuh akses ini sama
+    // sekali (mereka hanya baca attendanceSessions langsung untuk dropdown).
+    match /settings/sessionCounter {
+
+      function isAdmin() {
+        let user = get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        );
+        return user.data.role == 'admin';
+      }
+
+      allow read: if request.auth != null && isAdmin();
+
+      allow create, update: if request.auth != null
+        && isAdmin()
+        && request.resource.data.lastNumber is int
+        && request.resource.data.lastNumber >= 0
+        && request.resource.data.activeSessionId is string
+        && request.resource.data.keys().hasAll(['lastNumber', 'activeSessionId'])
+        && request.resource.data.keys().size() == 2;
 
       allow delete: if false;
     }
@@ -90,6 +156,31 @@ service cloud.firestore {
         return request.time <= session.lateAfter
           ? 'HADIR'
           : 'TERLAMBAT';
+      }
+
+      // ===== SESSION REDESIGN HELPERS =====
+      // sessionId sekarang identity independen dari tanggal, jadi validasi lama
+      // `tanggal == sessionId` diganti dengan memastikan `tanggal` yang dikirim
+      // client benar-benar cocok dengan field `date` pada dokumen session yang
+      // dirujuk (bukan sekadar sama dengan sessionId itu sendiri).
+      function sessionDateMatches() {
+        let session = get(
+          /databases/$(database)/documents/attendanceSessions/$(request.resource.data.sessionId)
+        ).data;
+
+        return session != null && session.date == request.resource.data.tanggal;
+      }
+
+      // Session ARCHIVED (termasuk session LEGACY yang tidak punya field `status`
+      // sama sekali) tidak boleh dipakai untuk create attendance baru oleh STUDENT
+      // atau TEACHER. Admin dikecualikan (lihat blok ADMIN MANUAL di bawah) karena
+      // butuh koreksi/menambah data historis ke session yang sudah diarsipkan.
+      function isSessionActive() {
+        let session = get(
+          /databases/$(database)/documents/attendanceSessions/$(request.resource.data.sessionId)
+        ).data;
+
+        return session != null && session.status == 'ACTIVE';
       }
 
       function getCurrentUserClassId() {
@@ -155,6 +246,17 @@ service cloud.firestore {
         return targetUser != null && targetUser.role == 'student';
       }
 
+      // Variant untuk UPDATE (korekasi): sessionId diambil dari resource.data
+      // (dokumen existing), bukan request.resource.data, karena update TIDAK
+      // BOLEH mengubah sessionId (sudah dikunci terpisah di bawah).
+      function isSessionActiveForCorrection() {
+        let session = get(
+          /databases/$(database)/documents/attendanceSessions/$(resource.data.sessionId)
+        ).data;
+
+        return session != null && session.status == 'ACTIVE';
+      }
+
       // Student: hanya attendance miliknya.
       // Teacher/Admin: bisa membaca seluruh attendance untuk dashboard.
       allow read: if request.auth != null && (
@@ -174,6 +276,7 @@ service cloud.firestore {
             && docId.matches('^' + request.auth.uid + '_.*')
             && !exists(/databases/$(database)/documents/attendance/$(docId))
             && isValidSessionTime()
+            && isSessionActive()
             && request.resource.data.status == getCorrectStatus()
             && request.resource.data.keys().hasAll([
               'uid',
@@ -193,7 +296,7 @@ service cloud.firestore {
             && request.resource.data.sessionId is string
             && request.resource.data.createdAt is timestamp
             && request.resource.data.classId == getCurrentUserClassId()
-            && request.resource.data.tanggal == request.resource.data.sessionId
+            && sessionDateMatches()
             && request.resource.data.method == 'qr'
           )
           ||
@@ -208,7 +311,10 @@ service cloud.firestore {
                )
             // Teacher hanya boleh menyentuh student di classId-nya sendiri
             && getCurrentUserClassId() == request.resource.data.classId
-            && request.resource.data.tanggal == request.resource.data.sessionId
+            // Teacher HANYA boleh manual attendance pada session yang ACTIVE
+            // (Admin dikecualikan — lihat blok ADMIN MANUAL di bawah).
+            && isSessionActive()
+            && sessionDateMatches()
             && request.resource.data.keys().hasAll([
               'uid',
               'tanggal',
@@ -239,7 +345,10 @@ service cloud.firestore {
                  request.resource.data.uid,
                  request.resource.data.classId
                )
-            && request.resource.data.tanggal == request.resource.data.sessionId
+            // Admin BOLEH manual attendance pada session ACTIVE maupun ARCHIVED
+            // (dibutuhkan untuk koreksi/history) — sessionDateMatches() sudah
+            // cukup memastikan sessionId merujuk session yang benar-benar ada.
+            && sessionDateMatches()
             && request.resource.data.keys().hasAll([
               'uid',
               'tanggal',
@@ -298,6 +407,9 @@ service cloud.firestore {
             && isTargetStudentRole(resource.data.uid)
             && getCurrentUserClassId() == resource.data.classId
             && isValidManualStatus(request.resource.data.status)
+            // Konsisten dengan pembatasan CREATE: teacher hanya boleh menyentuh
+            // (termasuk koreksi) attendance pada session yang masih ACTIVE.
+            && isSessionActiveForCorrection()
             && request.resource.data.uid == resource.data.uid
             && request.resource.data.tanggal == resource.data.tanggal
             && request.resource.data.classId == resource.data.classId
