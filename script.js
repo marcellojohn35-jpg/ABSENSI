@@ -281,6 +281,14 @@ absenNowBtn.onclick = async () => {
 
         const status = (now <= lateTime) ? 'HADIR' : 'TERLAMBAT';
 
+        // ===== CEK DUPLICATE SEBELUM WRITE =====
+        const existingDoc = await getDoc(doc(db, 'attendance', docId));
+        if (existingDoc.exists()) {
+            showAttendanceResult(false, { error: 'DUPLICATE' });
+            return;
+        }
+        // ===== END CEK DUPLICATE =====
+
         console.log('[ABSEN DEBUG FULL]', JSON.stringify({
             uid,
             role: userData.role,
