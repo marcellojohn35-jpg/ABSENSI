@@ -550,56 +550,75 @@ form#profileForm, form#editUserForm {
 .filter-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 16px;
   align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .filter-container select,
 .filter-container input {
-  padding: 9px 10px;
   min-height: 40px;
+  padding: 9px 10px;
+  flex: 1 1 150px;
+  min-width: 140px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
-  flex: 1;
-  min-width: 140px;
-  font-size: 13px;
-}
-
-.filter-container .btn { flex: 0 0 auto; }
-
-/* ============================================================
-   SUMMARY CARDS
-   ============================================================ */
-
-.summary-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-.summary-card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 14px 10px;
-  text-align: center;
-}
-
-.summary-card .num {
-  font-size: 22px;
-  font-weight: 800;
   color: var(--text);
-  line-height: 1.2;
+  font-family: inherit;
+  font-size: 13px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-.summary-card .label {
-  font-size: 11px;
+.filter-container select:focus,
+.filter-container input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.filter-container select:hover,
+.filter-container input:hover {
+  border-color: var(--primary);
+}
+
+.filter-container input::placeholder {
+  color: var(--text-muted);
+}
+
+#filterSession {
+  flex: 1.5 1 220px;
+  font-weight: 600;
+}
+
+#filterSessionDateLabel {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
   color: var(--text-secondary);
-  margin-top: 2px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  font-size: 12px !important;
+  white-space: nowrap;
+}
+
+.filter-container .btn {
+  flex: 0 0 auto;
+  min-height: 40px;
+}
+
+#applyFilterBtn {
+  min-width: 90px;
+}
+
+#exportBtn {
+  min-width: 130px;
 }
 
 /* ============================================================
@@ -1287,14 +1306,38 @@ select:focus-visible {
 
 .attendance-table th,
 .attendance-table td {
-  padding: 9px 10px;
+  padding: 10px 12px;
   white-space: nowrap;
 }
 
-/* Kolom nama lebih lega */
+.attendance-table th {
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.attendance-table tbody tr {
+  transition: background 0.12s ease;
+}
+
+.attendance-table tbody tr:hover {
+  background: var(--surface-muted);
+}
+
+/* Nomor */
+.attendance-table th:first-child,
+.attendance-table td:first-child {
+  width: 48px;
+  text-align: center;
+}
+
+/* Nama siswa */
 .attendance-table th:nth-child(2),
 .attendance-table td:nth-child(2) {
-  min-width: 150px;
+  min-width: 160px;
 }
 
 /* Kelas */
@@ -1306,30 +1349,90 @@ select:focus-visible {
 /* Status */
 .attendance-table th:last-child,
 .attendance-table td:last-child {
-  min-width: 115px;
+  min-width: 120px;
+}
+
+/* Status badge di dalam tabel */
+.attendance-table .status-label {
+  min-width: 92px;
+  text-align: center;
 }
 
 /* ============================================================
    SUMMARY ABSENSI
    ============================================================ */
-
 .summary-container {
-  grid-template-columns: repeat(4, minmax(100px, 1fr));
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
 }
 
 .summary-card {
   min-width: 0;
+  padding: 14px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.summary-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
 }
 
 .summary-card .num {
   font-size: 21px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
 }
 
 .summary-card .label {
+  margin-top: 3px;
+  color: var(--text-secondary);
   font-size: 11px;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Status colors */
+#sumHadir {
+  color: var(--success);
+}
+
+#sumTerlambat {
+  color: var(--warning);
+}
+
+#sumIzin {
+  color: var(--info);
+}
+
+#sumSakit {
+  color: var(--purple);
+}
+
+#sumAlfa {
+  color: var(--danger);
+}
+
+#sumBelum {
+  color: var(--neutral);
+}
+
+@media (max-width: 900px) {
+  .summary-container {
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
+  }
 }
 
 /* ============================================================
@@ -1418,6 +1521,55 @@ select:focus-visible {
 
   .attendance-table {
     min-width: 580px;
+  }
+}
+
+
+/* ============================================================
+   ATTENDANCE DATA PANEL
+   ============================================================ */
+
+#attendanceTableContainer {
+  width: 100%;
+  min-width: 0;
+}
+
+/* State loading / empty / error */
+#attendanceTableContainer .state-message {
+  min-height: 120px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  background: var(--surface-muted);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+/* Table wrapper */
+#attendanceTableContainer .table-responsive {
+  background: var(--surface);
+}
+
+/* Sedikit lebih tegas pada header data */
+#attendanceTableContainer .attendance-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* Nama siswa */
+#attendanceTableContainer .attendance-table td:nth-child(2) {
+  font-weight: 600;
+}
+
+/* Mobile */
+@media (max-width: 700px) {
+  #attendanceTableContainer .state-message {
+    min-height: 100px;
+    padding: 22px 12px;
+    font-size: 13px;
   }
 }
 
