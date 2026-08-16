@@ -1077,3 +1077,201 @@ select:focus-visible {
     padding: 30px 15px;
   }
 }
+
+/* ============================================================
+   DASHBOARD UI REVAMP
+   Responsive: HP / Tablet / Desktop
+   ============================================================ */
+
+.dashboard-page {
+  max-width: 1180px;
+}
+
+/* Header akun */
+#dashboardSection .page-toolbar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+#userInfo {
+  gap: 10px;
+}
+
+#userPhoto {
+  width: 44px;
+  height: 44px;
+}
+
+#userName {
+  font-size: 14px;
+}
+
+#userRole {
+  margin-top: 3px;
+}
+
+/* Semua card dashboard */
+#dashboardContent .card {
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease;
+}
+
+#dashboardContent .card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Judul section */
+#dashboardContent .card-title {
+  font-size: 16px;
+}
+
+#dashboardContent .card-desc {
+  line-height: 1.5;
+}
+
+/* Panel session */
+#sessionAdminPanel {
+  border-left: 4px solid var(--primary);
+}
+
+#sessionAdminPanel h3,
+#sessionAdminPanel .card-title {
+  font-size: 16px;
+}
+
+/* Form dashboard */
+#dashboardContent form {
+  width: 100%;
+}
+
+#dashboardContent .form-group {
+  margin-bottom: 10px;
+}
+
+/* Tombol dashboard */
+#dashboardContent .btn {
+  min-height: 42px;
+}
+
+/* Area tombol yang bersebelahan */
+#dashboardContent .button-group,
+#dashboardContent .actions,
+#dashboardContent .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Pesan dashboard */
+#dashboardContent .alert {
+  margin-bottom: 14px;
+}
+
+/* ============================================================
+   DASHBOARD MOBILE
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  #dashboardSection .page-toolbar {
+    padding: 13px;
+    gap: 12px;
+  }
+
+  #userInfo {
+    width: calc(100% - 90px);
+    min-width: 0;
+  }
+
+  #userInfo > div {
+    min-width: 0;
+  }
+
+  #userName {
+    max-width: 190px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #logoutBtn {
+    flex: 0 0 auto;
+  }
+
+  #dashboardContent .card {
+    padding: 15px;
+    border-radius: var(--radius-lg);
+  }
+
+  #dashboardContent .card-title {
+    font-size: 15px;
+  }
+
+  #dashboardContent .card-desc {
+    font-size: 12px;
+  }
+
+  #dashboardContent .btn {
+    min-height: 44px;
+  }
+
+  #dashboardContent .button-group,
+  #dashboardContent .actions,
+  #dashboardContent .form-actions {
+    flex-direction: column;
+  }
+
+  #dashboardContent .button-group .btn,
+  #dashboardContent .actions .btn,
+  #dashboardContent .form-actions .btn {
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   HP KECIL
+   ============================================================ */
+
+@media (max-width: 420px) {
+
+  #dashboardSection .page-toolbar {
+    padding: 12px;
+  }
+
+  #userPhoto {
+    width: 40px;
+    height: 40px;
+  }
+
+  #userInfo {
+    width: calc(100% - 82px);
+  }
+
+  #userName {
+    max-width: 150px;
+  }
+
+  #dashboardContent .card {
+    padding: 13px;
+  }
+}
+
+/* ============================================================
+   DESKTOP
+   ============================================================ */
+
+@media (min-width: 701px) {
+
+  #dashboardSection .page-toolbar {
+    padding: 15px 18px;
+  }
+
+  #dashboardContent .card {
+    padding: 20px;
+  }
+}
+
