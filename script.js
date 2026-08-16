@@ -282,7 +282,9 @@ absenNowBtn.onclick = async () => {
         const status = (now <= lateTime) ? 'HADIR' : 'TERLAMBAT';
 
         // ===== CEK DUPLICATE SEBELUM WRITE =====
+        console.log('[ABSEN] sebelum cek duplicate', docId);
         const existingDoc = await getDoc(doc(db, 'attendance', docId));
+        console.log('[ABSEN] sesudah cek duplicate', existingDoc.exists());
         if (existingDoc.exists()) {
             showAttendanceResult(false, { error: 'DUPLICATE' });
             return;
