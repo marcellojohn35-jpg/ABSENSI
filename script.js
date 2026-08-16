@@ -296,18 +296,12 @@ absenNowBtn.onclick = async () => {
             status
         }, null, 2));
 
-        // ===== DUPLICATE GUARD =====
-        // Cek attendance terlebih dahulu supaya percobaan kedua
-        // ditolak secara eksplisit sebelum setDoc menyentuh Firestore.
-        const attendanceRef = doc(db, 'attendance', docId);
-        const existingAttendanceSnap = await getDoc(attendanceRef);
-
-        if (existingAttendanceSnap.exists()) {
-            console.log('[ABSEN] DUPLICATE attendance detected', docId);
-            throw new Error('DUPLICATE');
-        }
-
         // ===== CREATE ATTENDANCE =====
+        // Duplicate dicegah oleh Firestore Rules melalui !exists(docId).
+        // Jangan melakukan getDoc() terlebih dahulu karena student tidak
+        // boleh membaca dokumen attendance yang belum ada.
+        const attendanceRef = doc(db, 'attendance', docId);
+
         await setDoc(attendanceRef, {
             uid: uid,
             tanggal: s.date,
