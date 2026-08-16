@@ -15,6 +15,7 @@ const profileSetupSection = $('profileSetupSection');
 const attendanceResultSection = $('attendanceResultSection');
 const absenSection = $('absenSection');
 const userManagementContainer = $('userManagementContainer');
+const successScreenSection = $('successScreenSection');
 
 const absenContent = $('absenContent');
 const absenStatus = $('absenStatus');
@@ -63,7 +64,7 @@ let currentDashboardSessionStatus = null;
 const POST_LOGIN_REDIRECT_KEY = 'postLoginRedirect';
 
 function showSection(id) {
-    [loadingState, loginSection, dashboardSection, profileSetupSection, attendanceResultSection, absenSection, userManagementContainer].forEach(el => el.style.display = 'none');
+    [loadingState, loginSection, dashboardSection, profileSetupSection, attendanceResultSection, absenSection, userManagementContainer, successScreenSection].forEach(el => el.style.display = 'none');
     if (id) id.style.display = 'block';
 }
 
@@ -303,6 +304,7 @@ absenNowBtn.onclick = async () => {
             createdAt: serverTimestamp()
         });
 
+        // SUCCESS: tampilkan success screen
         showAttendanceResult(true, {
             status,
             tanggal: s.date
@@ -1666,38 +1668,44 @@ function setupProfileForm(user) {
 
 // ===== Attendance Result =====
 function showAttendanceResult(success, data) {
-    showSection(attendanceResultSection);
-
     if (success) {
-        attendanceResultTitle.textContent = '✅ ABSENSI BERHASIL';
-        attendanceResultTitle.className = 'success';
+        // Tampilkan SUCCESS SCREEN
+        showSection(successScreenSection);
 
-        attendanceResultData.innerHTML = `
-            <p><strong>Status:</strong> ${data.status}</p>
-            <p><strong>Tanggal:</strong> ${data.tanggal}</p>
-        `;
+        // Tombol logout di success screen
+        document.getElementById('successLogoutBtn').onclick = async () => {
+            try {
+                await signOut(auth);
+                window.location.href = '/';
+            } catch (e) {
+                console.error('Logout error:', e);
+            }
+        };
 
-    } else {
-        let msg = '❌ Gagal melakukan absensi.';
-
-        if (data.error?.includes('SESSION_NOT_FOUND')) {
-            msg = '⚠️ Session tidak ditemukan.';
-        } else if (data.error?.includes('SESSION_ARCHIVED')) {
-            msg = '🔒 Sesi ini sudah diarsipkan, tidak bisa absen lagi.';
-        } else if (data.error?.includes('SESSION_CLOSED')) {
-            msg = '⏰ Sesi sudah ditutup.';
-        } else if (data.error?.includes('SESSION_NOT_STARTED')) {
-            msg = '⏰ Sesi belum dimulai.';
-        } else if (data.error?.includes('DUPLICATE')) {
-            msg = 'ℹ️ Anda sudah absen hari ini.';
-        } else if (data.error?.includes('permission-denied')) {
-            msg = 'Akses ditolak oleh sistem.';
-        }
-
-        attendanceResultTitle.textContent = msg;
-        attendanceResultTitle.className = 'error';
-        attendanceResultData.innerHTML = `<p>${data.error || ''}</p>`;
+        return;
     }
+
+    // GAGAL - tampilkan error di attendanceResultSection (existing behavior)
+    showSection(attendanceResultSection);
+    attendanceResultTitle.className = 'error';
+
+    let msg = '❌ Gagal melakukan absensi.';
+    if (data.error?.includes('SESSION_NOT_FOUND')) {
+        msg = '⚠️ Session tidak ditemukan.';
+    } else if (data.error?.includes('SESSION_ARCHIVED')) {
+        msg = '🔒 Sesi ini sudah diarsipkan, tidak bisa absen lagi.';
+    } else if (data.error?.includes('SESSION_CLOSED')) {
+        msg = '⏰ Sesi sudah ditutup.';
+    } else if (data.error?.includes('SESSION_NOT_STARTED')) {
+        msg = '⏰ Sesi belum dimulai.';
+    } else if (data.error?.includes('DUPLICATE')) {
+        msg = 'ℹ️ Anda sudah absen hari ini.';
+    } else if (data.error?.includes('permission-denied')) {
+        msg = 'Akses ditolak oleh sistem.';
+    }
+
+    attendanceResultTitle.textContent = msg;
+    attendanceResultData.innerHTML = `<p>${data.error || ''}</p>`;
 
     goToAbsenBtn.onclick = () => {
         window.location.href = '/absen?session=' + currentSessionId;
