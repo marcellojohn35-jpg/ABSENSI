@@ -1476,9 +1476,22 @@ function renderUserManagement() {
                     <td>${ROLE_LABEL[u.role] || u.role || '-'}</td>
                     <td>${u.nis || '-'}</td>
                     <td>
-                        <button class="btn-edit" data-uid="${u.uid}">
-                            ✏️ Edit
-                        </button>
+                        ${
+                            u.role === 'casis'
+                                ? `
+                                    <button class="btn-approve" data-uid="${u.uid}">
+                                        ✅ Approve
+                                    </button>
+                                    <button class="btn-reject" data-uid="${u.uid}">
+                                        ❌ Tolak
+                                    </button>
+                                `
+                                : `
+                                    <button class="btn-edit" data-uid="${u.uid}">
+                                        ✏️ Edit
+                                    </button>
+                                `
+                        }
                     </td>
                 </tr>
             `;
@@ -1505,6 +1518,88 @@ function renderUserManagement() {
 
     document.querySelectorAll('.btn-edit').forEach(btn => {
         btn.onclick = () => openEditModal(btn.dataset.uid);
+    });
+
+    // ===== APPROVE CASIS =====
+    document.querySelectorAll('.btn-approve').forEach(btn => {
+        btn.onclick = async () => {
+            const uid = btn.dataset.uid;
+            const user = umData.find(u => u.uid === uid);
+
+            if (!user) return;
+
+            if (!confirm(`Approve ${user.nama || 'casis ini'} menjadi Siswa?`)) {
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.textContent = '⏳ Memproses...';
+
+                await updateDoc(doc(db, 'users', uid), {
+                    role: 'student',
+                    updatedAt: serverTimestamp()
+                });
+
+                alert(`✅ ${user.nama || 'Casis'} berhasil disetujui menjadi Siswa.`);
+
+                await loadUserManagementData();
+
+            } catch (error) {
+                console.error('[CASIS APPROVE ERROR]', error);
+
+                alert(
+                    `❌ Gagal approve casis.\n\n` +
+                    `Kode: ${error.code || 'N/A'}\n` +
+                    `Pesan: ${error.message || error}`
+                );
+
+                btn.disabled = false;
+                btn.textContent = '✅ Approve';
+            }
+        };
+    });
+
+    // ===== TOLAK CASIS =====
+    document.querySelectorAll('.btn-reject').forEach(btn => {
+        btn.onclick = async () => {
+            const uid = btn.dataset.uid;
+            const user = umData.find(u => u.uid === uid);
+
+            if (!user) return;
+
+            if (!confirm(
+                `Tolak dan hapus pendaftaran ${user.nama || 'casis ini'}?\n\n` +
+                `Data pendaftaran akan dihapus dari database.`
+            )) {
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.textContent = '⏳ Menghapus...';
+
+                await deleteDoc(doc(db, 'users', uid));
+
+                alert(
+                    `🗑️ Pendaftaran ${user.nama || 'Casis'} berhasil ditolak dan dihapus.`
+                );
+
+                await loadUserManagementData();
+
+            } catch (error) {
+                console.error('[CASIS REJECT ERROR]', error);
+
+                alert(
+                    `❌ Gagal menghapus pendaftaran.\n\n` +
+                    `Kode: ${error.code || 'N/A'}\n` +
+                    `Pesan: ${error.message || error}`
+                );
+
+                btn.disabled = false;
+                btn.textContent = '❌ Tolak';
+            }
+        };
     });
 }
 
