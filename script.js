@@ -1,3 +1,4 @@
+console.log("[BOOT] script.js loaded");
 console.log("Sistem Absensi URL-Based aktif (Phase 7).");
 
 import {
