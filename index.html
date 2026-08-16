@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absensi Sekolah</title>
+    <meta name="theme-color" content="#2563eb">
+    <title>Absensi Yadika 4</title>
     <link rel="stylesheet" href="style.css">
-    
+
     <!-- ===== TEMPORARY DEBUG ONLY ===== -->
     <!-- Eruda: console debugger untuk Android -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
@@ -22,95 +23,133 @@
     <!-- ===== END TEMPORARY DEBUG ===== -->
 </head>
 <body>
-    <div id="app">
-        <h1>SISTEM ABSENSI SEKOLAH</h1>
-        <p>URL-Based Attendance</p>
-
-        <!-- Loading -->
-        <div id="loadingState" style="display:none;"><p>⏳ Memuat...</p></div>
-
-        <!-- Login -->
-        <div id="loginSection" style="display:none;">
-            <h2>Login</h2>
-            <p>Silakan login dengan akun Google</p>
-            <button id="loginBtn">Login dengan Google</button>
-        </div>
-
-        <!-- Halaman Absen (Siswa) -->
-        <div id="absenSection" style="display:none;">
-            <h2>📋 Absensi Sekolah</h2>
-            <div id="absenContent">
-                <p id="absenStatus">Memvalidasi QR...</p>
+    <div class="app-shell">
+        <header class="app-header">
+            <div class="app-header-inner">
+                <div class="brand">
+                    <div class="brand-mark" aria-hidden="true">Y4</div>
+                    <div class="brand-text">
+                        <span class="brand-title">Absensi Yadika 4</span>
+                        <span class="brand-subtitle">Sistem Absensi Sekolah</span>
+                    </div>
+                </div>
             </div>
-            <div id="sessionInfoDisplay" style="margin-top:15px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;"></div>
-            <div id="absenActionArea" style="margin-top:15px; display:none;">
-                <button id="absenNowBtn" class="btn-primary">✅ Absen Sekarang</button>
-            </div>
-            <div id="absenProfileInfo" style="margin-top:15px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;"></div>
-        </div>
+        </header>
 
-        <!-- Dashboard -->
-        <div id="dashboardSection" style="display:none;">
-            <div id="userInfo">
-                <img id="userPhoto" src="" alt="Foto" width="50">
-                <span id="userName"></span>
-                <span id="userRole"></span>
-                <button id="logoutBtn">Logout</button>
-            </div>
-            <hr>
-            <div id="dashboardContent">
-                <!-- Konten dashboard diisi oleh JS -->
-            </div>
-        </div>
+        <main class="app-main">
+            <div id="app">
 
-        <!-- User Management (Admin Only) -->
-        <div id="userManagementContainer" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2>👥 Manajemen User</h2>
-                <button id="backToDashboardBtn" class="btn-secondary" style="padding:8px 16px;">↩ Kembali</button>
-            </div>
-            <div id="umContent">
-                <!-- Konten user management diisi oleh JS -->
-            </div>
-        </div>
+                <!-- Loading -->
+                <div id="loadingState" class="auth-page hidden">
+                    <div class="auth-card">
+                        <div class="spinner" role="status" aria-label="Memuat"></div>
+                        <p class="text-secondary mb-0">Memuat...</p>
+                    </div>
+                </div>
 
-        <!-- Profile Setup -->
-        <div id="profileSetupSection" style="display:none;">
-            <h2>Lengkapi Profil</h2>
-            <!-- ===== PESAN INFORMATIF UNTUK PROVISIONING ===== -->
-            <div style="background:#fff3cd; border-left:4px solid #ffc107; padding:12px 16px; margin-bottom:20px; border-radius:4px; text-align:left; font-size:14px; color:#856404;">
-                <p style="margin:0 0 6px 0;"><strong>📌 Informasi Awal</strong></p>
-                <p style="margin:0;">
-                    Setelah menyelesaikan form ini, akun Anda akan dibuat dengan peran <strong>STUDENT</strong>.
-                    Jika Anda adalah <strong>GURU</strong> atau <strong>ADMIN</strong>, silakan hubungi administrator setelah menyelesaikan profil agar peran Anda diaktifkan.
-                    Anda tidak dapat mengubah peran sendiri.
-                </p>
-            </div>
-            <!-- ===== END PESAN ===== -->
-            <form id="profileForm">
-                <label>Nama:</label><input type="text" id="profileNama" required><br>
-                <label>NIS:</label><input type="text" id="profileNis"><br>
-                <label>Kelas:</label><input type="text" id="profileKelas"><br>
-                <button type="submit">Simpan</button>
-            </form>
-        </div>
+                <!-- Login -->
+                <div id="loginSection" class="auth-page hidden">
+                    <div class="auth-card">
+                        <div class="auth-icon" aria-hidden="true">🔐</div>
+                        <h2>Masuk</h2>
+                        <p class="subtitle">Silakan masuk dengan akun Google sekolah Anda untuk melanjutkan.</p>
+                        <button id="loginBtn" class="btn btn-primary btn-block">Masuk dengan Google</button>
+                    </div>
+                </div>
 
-        <!-- Hasil Absensi -->
-        <div id="attendanceResultSection" style="display:none;">
-            <h2 id="attendanceResultTitle"></h2>
-            <div id="attendanceResultData"></div>
-            <button id="goToAbsenBtn">↩ Kembali</button>
-        </div>
+                <!-- Halaman Absen (Siswa) -->
+                <div id="absenSection" class="auth-page hidden">
+                    <div class="auth-card">
+                        <h2>Absensi</h2>
+                        <div id="absenContent">
+                            <p id="absenStatus" class="text-secondary">Memvalidasi QR...</p>
+                        </div>
+                        <div id="sessionInfoDisplay" class="session-info-box" style="display:none;"></div>
+                        <div id="absenActionArea" style="display:none;">
+                            <button id="absenNowBtn" class="btn btn-primary btn-block">Absen Sekarang</button>
+                        </div>
+                        <div id="absenProfileInfo" class="profile-info-box" style="display:none;"></div>
+                    </div>
+                </div>
 
-        <!-- Success Screen (Post-Attendance) -->
-        <div id="successScreenSection" style="display:none;">
-            <div style="text-align:center; padding:30px 20px;">
-                <div style="font-size:64px; margin-bottom:16px;">✅</div>
-                <h2 style="color:#28a745; margin-bottom:8px;">Absensi berhasil!</h2>
-                <p style="font-size:18px; color:#555; margin-bottom:30px;">Terima kasih sudah melakukan absensi hari ini.</p>
-                <button id="successLogoutBtn" class="btn-primary" style="padding:12px 40px; font-size:16px;">Logout</button>
+                <!-- Dashboard -->
+                <div id="dashboardSection" class="dashboard-page hidden">
+                    <div class="page-toolbar">
+                        <div id="userInfo">
+                            <img id="userPhoto" src="" alt="Foto profil">
+                            <div>
+                                <div id="userName"></div>
+                                <span id="userRole"></span>
+                            </div>
+                        </div>
+                        <button id="logoutBtn" class="btn btn-danger">Keluar</button>
+                    </div>
+                    <div id="dashboardContent">
+                        <!-- Konten dashboard diisi oleh JS -->
+                    </div>
+                </div>
+
+                <!-- User Management (Admin Only) -->
+                <div id="userManagementContainer" class="dashboard-page hidden">
+                    <div class="page-toolbar">
+                        <div>
+                            <h2 class="page-title">Manajemen User</h2>
+                            <p class="page-subtitle mb-0">Kelola data siswa, guru, dan admin.</p>
+                        </div>
+                        <button id="backToDashboardBtn" class="btn btn-secondary">↩ Kembali</button>
+                    </div>
+                    <div id="umContent">
+                        <!-- Konten user management diisi oleh JS -->
+                    </div>
+                </div>
+
+                <!-- Profile Setup -->
+                <div id="profileSetupSection" class="auth-page hidden">
+                    <div class="auth-card">
+                        <h2>Lengkapi Profil</h2>
+                        <div class="notice-box">
+                            <p><strong>📌 Informasi Awal</strong></p>
+                            <p>
+                                Setelah menyelesaikan form ini, akun Anda akan dibuat dengan peran <strong>Siswa</strong>.
+                                Jika Anda adalah <strong>Guru</strong> atau <strong>Admin</strong>, silakan hubungi administrator setelah menyelesaikan profil agar peran Anda diaktifkan.
+                                Anda tidak dapat mengubah peran sendiri.
+                            </p>
+                        </div>
+                        <form id="profileForm">
+                            <label for="profileNama">Nama</label>
+                            <input type="text" id="profileNama" required>
+                            <label for="profileNis">NIS</label>
+                            <input type="text" id="profileNis">
+                            <label for="profileKelas">Kelas</label>
+                            <input type="text" id="profileKelas">
+                            <button type="submit" class="btn btn-primary btn-block mt-16">Simpan</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Hasil Absensi -->
+                <div id="attendanceResultSection" class="auth-page hidden">
+                    <div class="auth-card">
+                        <h2 id="attendanceResultTitle"></h2>
+                        <div id="attendanceResultData"></div>
+                        <button id="goToAbsenBtn" class="btn btn-secondary btn-block">↩ Kembali</button>
+                    </div>
+                </div>
+
+                <!-- Success Screen (Post-Attendance) -->
+                <div id="successScreenSection" class="auth-page hidden">
+                    <div class="auth-card">
+                        <div class="success-box">
+                            <div class="success-icon" aria-hidden="true">✓</div>
+                            <h2>Absensi berhasil!</h2>
+                            <p>Terima kasih sudah melakukan absensi hari ini.</p>
+                            <button id="successLogoutBtn" class="btn btn-primary">Keluar</button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
-        </div>
+        </main>
     </div>
 
     <script type="importmap">

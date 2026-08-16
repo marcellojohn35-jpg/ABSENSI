@@ -64,8 +64,11 @@ let currentDashboardSessionStatus = null;
 const POST_LOGIN_REDIRECT_KEY = 'postLoginRedirect';
 
 function showSection(id) {
-    [loadingState, loginSection, dashboardSection, profileSetupSection, attendanceResultSection, absenSection, userManagementContainer, successScreenSection].forEach(el => el.style.display = 'none');
-    if (id) id.style.display = 'block';
+    // Menggunakan class "hidden" (bukan inline style.display) supaya tiap section
+    // tetap memakai display mode aslinya dari CSS (flex untuk auth-page, block
+    // untuk dashboard-page) alih-alih dipaksa "block" oleh inline style.
+    [loadingState, loginSection, dashboardSection, profileSetupSection, attendanceResultSection, absenSection, userManagementContainer, successScreenSection].forEach(el => el.classList.add('hidden'));
+    if (id) id.classList.remove('hidden');
 }
 
 // ===== WIB Helpers =====
@@ -184,11 +187,9 @@ async function processAbsenPage(user) {
     sessionInfoDisplay.style.display = 'block';
 
     sessionInfoDisplay.innerHTML = `
-        <div style="font-size:14px;">
-            <p><strong>Session:</strong> ${currentSessionId} ${isSessionActive ? '🟢 ACTIVE' : '🔒 ARCHIVED (read-only)'}</p>
-            <p><strong>Tanggal:</strong> ${data.date}</p>
-            <p><strong>Mulai:</strong> ${startTimeStr} | <strong>Batas Terlambat:</strong> ${lateTimeStr} | <strong>Tutup:</strong> ${endTimeStr}</p>
-        </div>
+        <p><strong>Sesi:</strong> ${currentSessionId} ${isSessionActive ? '<span class="status-label status-HADIR">Aktif</span>' : '<span class="status-label status-BELUM_ABSEN">Diarsipkan</span>'}</p>
+        <p><strong>Tanggal:</strong> ${data.date}</p>
+        <p><strong>Mulai:</strong> ${startTimeStr} &middot; <strong>Batas Terlambat:</strong> ${lateTimeStr} &middot; <strong>Tutup:</strong> ${endTimeStr}</p>
     `;
 
     if (!isSessionActive) {
@@ -332,18 +333,26 @@ absenNowBtn.onclick = async () => {
 };
 
 // ===== Render Dashboard =====
+const ROLE_LABEL = { student: 'Siswa', teacher: 'Guru', admin: 'Admin' };
+
 async function renderDashboard(userData) {
     userPhoto.src = userData.photoURL || 'https://via.placeholder.com/50';
     userName.textContent = userData.nama || 'User';
-    userRole.textContent = userData.role || 'student';
+    userRole.textContent = ROLE_LABEL[userData.role] || userData.role || 'Siswa';
+    userRole.className = 'role-' + (userData.role || 'student');
 
     const dashboardContent = document.getElementById('dashboardContent');
 
     if (userData.role === 'student') {
         dashboardContent.innerHTML = `
-            <p><strong>Nama:</strong> ${userData.nama || '-'}</p>
-            <p><strong>Kelas:</strong> ${userData.classId || '-'}</p>
-            <p><strong>Role:</strong> ${userData.role || '-'}</p>
+            <h3 class="page-title">Dashboard Siswa</h3>
+            <div class="card">
+                <div class="profile-summary">
+                    <div class="profile-row"><span class="label">Nama</span><span class="value">${userData.nama || '-'}</span></div>
+                    <div class="profile-row"><span class="label">Kelas</span><span class="value">${userData.classId || '-'}</span></div>
+                    <div class="profile-row"><span class="label">Role</span><span class="value">Siswa</span></div>
+                </div>
+            </div>
         `;
         return;
     }
@@ -356,34 +365,34 @@ async function renderDashboard(userData) {
 
     if (userData.role === 'admin') {
         adminPanelHTML = `
-            <div id="sessionAdminPanel" style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #eee; margin-bottom:20px;">
-                <h4>🕒 Buat Sesi Absensi Hari Ini</h4>
+            <div id="sessionAdminPanel" class="card">
+                <div class="card-title">🕒 Buat Sesi Absensi Hari Ini</div>
 
-                <div style="margin:10px 0;">
-                    <label>Jam Mulai:</label>
-                    <input type="time" id="inputStartTime" value="06:30" style="width:100%; padding:8px;">
+                <div class="form-group">
+                    <label for="inputStartTime">Jam Mulai</label>
+                    <input type="time" id="inputStartTime" value="06:30">
                 </div>
 
-                <div style="margin:10px 0;">
-                    <label>Batas Terlambat:</label>
-                    <input type="time" id="inputLateTime" value="07:00" style="width:100%; padding:8px;">
+                <div class="form-group">
+                    <label for="inputLateTime">Batas Terlambat</label>
+                    <input type="time" id="inputLateTime" value="07:00">
                 </div>
 
-                <div style="margin:10px 0;">
-                    <label>Jam Tutup:</label>
-                    <input type="time" id="inputEndTime" value="08:00" style="width:100%; padding:8px;">
+                <div class="form-group">
+                    <label for="inputEndTime">Jam Tutup</label>
+                    <input type="time" id="inputEndTime" value="08:00">
                 </div>
 
-                <button id="createSessionBtn" class="btn-primary">
+                <button id="createSessionBtn" class="btn btn-primary mt-16">
                     Buat Sesi Baru (Arsipkan Sesi Aktif Sebelumnya)
                 </button>
 
-                <div id="sessionStatusMessage" style="margin-top:10px; padding:10px; border-radius:4px; display:none;"></div>
+                <div id="sessionStatusMessage" class="alert mt-16" style="display:none;"></div>
             </div>
         `;
 
         userManagementBtnHTML = `
-            <button id="userManagementBtn" class="btn-secondary" style="width:100%; margin-bottom:10px;">
+            <button id="userManagementBtn" class="btn btn-secondary btn-block" style="margin-bottom:16px;">
                 👥 Manajemen User
             </button>
         `;
@@ -412,21 +421,21 @@ async function renderDashboard(userData) {
                         <option value="ALFA">ALFA</option>`;
 
         teacherManualHTML = `
-            <div id="teacherManualPanel" style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #eee; margin-bottom:20px;">
-                <h4>${panelTitle}</h4>
-                <p style="font-size:14px; color:#666; margin-bottom:10px;">
+            <div id="teacherManualPanel" class="card">
+                <div class="card-title">${panelTitle}</div>
+                <p class="card-desc">
                     ${panelDesc}
                 </p>
-                <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-                    <select id="manualStudentSelect" style="flex:2; min-width:150px; padding:10px; border-radius:4px; border:1px solid #ccc; font-size:16px;">
+                <div class="filter-container" style="margin-bottom:0;">
+                    <select id="manualStudentSelect" style="flex:2;">
                         <option value="">Pilih Siswa...</option>
                     </select>
-                    <select id="manualStatusSelect" style="flex:1; min-width:120px; padding:10px; border-radius:4px; border:1px solid #ccc; font-size:16px;">
+                    <select id="manualStatusSelect" style="flex:1;">
                         <option value="">Pilih Status...</option>${statusOptionsHTML}
                     </select>
-                    <button id="manualSetStatusBtn" class="btn-primary" style="flex:0 0 auto; padding:10px 24px; font-size:16px; width:auto;">Set Status</button>
+                    <button id="manualSetStatusBtn" class="btn btn-primary">Set Status</button>
                 </div>
-                <div id="manualStatusMessage" style="margin-top:10px; padding:10px; border-radius:4px; display:none;"></div>
+                <div id="manualStatusMessage" class="alert mt-16" style="display:none;"></div>
             </div>
         `;
     }
@@ -443,7 +452,7 @@ async function renderDashboard(userData) {
             <select id="filterSession" style="min-width:220px;">
                 <option value="">Memuat daftar sesi...</option>
             </select>
-            <span id="filterSessionDateLabel" style="font-size:13px; color:#666; align-self:center;"></span>
+            <span id="filterSessionDateLabel" class="text-secondary" style="align-self:center; font-size:13px;"></span>
 
             <select id="filterClass">
                 <option value="">Semua Kelas</option>
@@ -461,11 +470,11 @@ async function renderDashboard(userData) {
 
             <input type="text" id="filterNama" placeholder="Cari nama...">
 
-            <button id="applyFilterBtn" class="btn-primary" style="padding:8px 16px; width:auto;">
+            <button id="applyFilterBtn" class="btn btn-primary">
                 Filter
             </button>
 
-            <button id="exportBtn" style="background:#28a745; color:white; padding:8px 16px; border-radius:4px;">
+            <button id="exportBtn" class="btn btn-success">
                 📥 Export Excel
             </button>
         </div>
@@ -514,15 +523,15 @@ async function renderDashboard(userData) {
     // 4. Table Area
     const tableHTML = `
         <div id="attendanceTableContainer">
-            <p style="color:#666;">Memuat data...</p>
+            <p class="state-message">Memuat data...</p>
         </div>
     `;
 
     const roleHeader = userData.role === 'admin' ? 'Admin' : 'Guru';
 
     dashboardContent.innerHTML = `
-        <div style="text-align:left;">
-            <h3>📋 Dashboard ${roleHeader}</h3>
+        <div>
+            <h3 class="page-title" style="margin-bottom:16px;">Dashboard ${roleHeader}</h3>
             ${userManagementBtnHTML}
             ${teacherManualHTML}
             ${adminPanelHTML}
@@ -678,25 +687,22 @@ async function handleManualStatus(userData) {
         : ['IZIN', 'SAKIT', 'ALFA'];
 
     if (!targetUid) {
+        msgEl.className = 'alert alert-danger';
         msgEl.style.display = 'block';
-        msgEl.style.background = '#f8d7da';
-        msgEl.style.color = '#721c24';
         msgEl.textContent = 'Pilih siswa terlebih dahulu.';
         return;
     }
 
     if (!status) {
+        msgEl.className = 'alert alert-danger';
         msgEl.style.display = 'block';
-        msgEl.style.background = '#f8d7da';
-        msgEl.style.color = '#721c24';
         msgEl.textContent = 'Pilih status terlebih dahulu.';
         return;
     }
 
     if (!allowedStatuses.includes(status)) {
+        msgEl.className = 'alert alert-danger';
         msgEl.style.display = 'block';
-        msgEl.style.background = '#f8d7da';
-        msgEl.style.color = '#721c24';
         msgEl.textContent = isAdmin
             ? '❌ Status tidak valid.'
             : '❌ Anda hanya boleh menetapkan status IZIN/SAKIT/ALFA.';
@@ -704,9 +710,8 @@ async function handleManualStatus(userData) {
     }
 
     if (!currentDashboardSessionId) {
+        msgEl.className = 'alert alert-danger';
         msgEl.style.display = 'block';
-        msgEl.style.background = '#f8d7da';
-        msgEl.style.color = '#721c24';
         msgEl.textContent = 'Pilih session terlebih dahulu.';
         return;
     }
@@ -714,16 +719,14 @@ async function handleManualStatus(userData) {
     // Teacher hanya boleh manual attendance pada session ACTIVE (Admin boleh ACTIVE maupun ARCHIVED).
     // UX guard saja — enforcement sesungguhnya ada di firestore.rules.
     if (!isAdmin && currentDashboardSessionStatus !== 'ACTIVE') {
+        msgEl.className = 'alert alert-danger';
         msgEl.style.display = 'block';
-        msgEl.style.background = '#f8d7da';
-        msgEl.style.color = '#721c24';
         msgEl.textContent = '❌ Teacher hanya boleh input manual attendance pada session yang sedang ACTIVE.';
         return;
     }
 
+    msgEl.className = 'alert alert-warning';
     msgEl.style.display = 'block';
-    msgEl.style.background = '#fff3cd';
-    msgEl.style.color = '#856404';
     msgEl.textContent = '⏳ Memproses...';
 
     try {
@@ -742,16 +745,14 @@ async function handleManualStatus(userData) {
             console.log('[MANUAL DEBUG UPDATE]', { teacherClassId: userData.classId, targetUid, existingClassId: existingData.classId, sessionId: sessionIdForManual, existingData });
 
             if (!isAdmin && existingData.classId !== userData.classId) {
-                msgEl.style.background = '#f8d7da';
-                msgEl.style.color = '#721c24';
+                msgEl.className = 'alert alert-danger';
                 msgEl.textContent = '❌ Siswa ini bukan bagian dari kelas Anda.';
                 return;
             }
 
             await updateDoc(attendanceRef, { status: status });
 
-            msgEl.style.background = '#d4edda';
-            msgEl.style.color = '#155724';
+            msgEl.className = 'alert alert-success';
             msgEl.textContent = `✅ Status attendance berhasil dikoreksi menjadi ${status}.`;
 
         } else {
@@ -765,15 +766,13 @@ async function handleManualStatus(userData) {
 
             // ===== VALIDASI CLASSID TARGET STUDENT =====
             if (!targetData.classId) {
-                msgEl.style.background = '#f8d7da';
-                msgEl.style.color = '#721c24';
+                msgEl.className = 'alert alert-danger';
                 msgEl.textContent = '❌ Siswa ini belum memiliki kelas. Harap update profile siswa terlebih dahulu.';
                 return;
             }
 
             if (!isAdmin && targetData.classId !== userData.classId) {
-                msgEl.style.background = '#f8d7da';
-                msgEl.style.color = '#721c24';
+                msgEl.className = 'alert alert-danger';
                 msgEl.textContent = '❌ Siswa ini bukan bagian dari kelas Anda.';
                 return;
             }
@@ -788,8 +787,7 @@ async function handleManualStatus(userData) {
                 createdAt: serverTimestamp()
             });
 
-            msgEl.style.background = '#d4edda';
-            msgEl.style.color = '#155724';
+            msgEl.className = 'alert alert-success';
             msgEl.textContent = `✅ Status ${status} berhasil ditetapkan untuk ${targetData.nama || targetUid}.`;
         }
 
@@ -798,8 +796,7 @@ async function handleManualStatus(userData) {
 
     } catch (error) {
         console.error('Manual status error:', error);
-        msgEl.style.background = '#f8d7da';
-        msgEl.style.color = '#721c24';
+        msgEl.className = 'alert alert-danger';
         if (error.code === 'permission-denied') {
             msgEl.textContent = '❌ Anda tidak memiliki izin untuk menetapkan status ini.';
         } else {
@@ -849,13 +846,13 @@ async function loadAttendanceData() {
     const container = document.getElementById('attendanceTableContainer');
 
     if (!currentDashboardSessionId) {
-        container.innerHTML = `<p style="color:#666;">Pilih session terlebih dahulu.</p>`;
+        container.innerHTML = `<p class="state-message">Pilih session terlebih dahulu.</p>`;
         attendanceFilteredData = [];
         updateSummary([]);
         return;
     }
 
-    container.innerHTML = `<p style="color:#666;">⏳ Memuat data...</p>`;
+    container.innerHTML = `<p class="state-message">⏳ Memuat data...</p>`;
 
     try {
         const usersSnapshot = await getDocs(collection(db, 'users'));
@@ -929,12 +926,13 @@ async function loadAttendanceData() {
         attendanceFilteredData = fullData.filter(d => d.role === 'student');
 
         if (attendanceFilteredData.length === 0) {
-            container.innerHTML = `<p style="color:#666;">Tidak ada data absensi untuk filter ini.</p>`;
+            container.innerHTML = `<p class="state-message">Tidak ada data absensi untuk filter ini.</p>`;
             updateSummary([]);
             return;
         }
 
         let html = `
+            <div class="table-responsive">
             <table class="attendance-table">
                 <thead>
                     <tr>
@@ -968,14 +966,14 @@ async function loadAttendanceData() {
             `;
         });
 
-        html += `</tbody></table>`;
+        html += `</tbody></table></div>`;
         container.innerHTML = html;
 
         updateSummary(attendanceFilteredData);
 
     } catch (error) {
         console.error("Error loading attendance:", error);
-        container.innerHTML = `<p style="color:#dc3545;">❌ Gagal memuat data.</p>`;
+        container.innerHTML = `<p class="state-message state-error">❌ Gagal memuat data. Silakan coba lagi.</p>`;
     }
 }
 
@@ -1177,9 +1175,8 @@ async function checkTodaySession() {
         const lateStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).format(late);
         const endStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).format(end);
 
+        statusMsg.className = 'alert alert-info';
         statusMsg.style.display = 'block';
-        statusMsg.style.background = '#d1ecf1';
-        statusMsg.style.color = '#0c5460';
 
         statusMsg.innerHTML = `
             Session aktif saat ini: <strong>${sid}</strong> (${data.date}) —
@@ -1206,9 +1203,8 @@ async function handleCreateSession() {
     const statusMsg = document.getElementById('sessionStatusMessage');
 
     if (!startVal || !lateVal || !endVal) {
+        statusMsg.className = 'alert alert-danger';
         statusMsg.style.display = 'block';
-        statusMsg.style.background = '#f8d7da';
-        statusMsg.style.color = '#721c24';
         statusMsg.textContent = 'Harap isi semua jam.';
         return;
     }
@@ -1237,9 +1233,8 @@ async function handleCreateSession() {
         startTimestamp.toDate() >= lateTimestamp.toDate() ||
         lateTimestamp.toDate() >= endTimestamp.toDate()
     ) {
+        statusMsg.className = 'alert alert-danger';
         statusMsg.style.display = 'block';
-        statusMsg.style.background = '#f8d7da';
-        statusMsg.style.color = '#721c24';
         statusMsg.textContent = 'Urutan waktu salah: Start < Late < End.';
         return;
     }
@@ -1289,9 +1284,8 @@ async function handleCreateSession() {
             return newSessionId;
         });
 
+        statusMsg.className = 'alert alert-success';
         statusMsg.style.display = 'block';
-        statusMsg.style.background = '#d4edda';
-        statusMsg.style.color = '#155724';
         statusMsg.textContent = `✅ Sesi ${newSessionId} berhasil dibuat & diaktifkan! Sesi sebelumnya (jika ada) sudah diarsipkan.`;
 
         // Refresh status panel admin + dropdown session + tabel dashboard
@@ -1301,9 +1295,8 @@ async function handleCreateSession() {
     } catch (error) {
         console.error(error);
 
+        statusMsg.className = 'alert alert-danger';
         statusMsg.style.display = 'block';
-        statusMsg.style.background = '#f8d7da';
-        statusMsg.style.color = '#721c24';
         statusMsg.textContent = 'Gagal membuat sesi. Periksa Firestore Rules.';
     }
 }
@@ -1323,7 +1316,7 @@ const CLASS_LIST = [
 async function loadUserManagementData() {
     const content = document.getElementById('umContent');
 
-    content.innerHTML = `<p style="color:#666;">⏳ Memuat data user...</p>`;
+    content.innerHTML = `<p class="state-message">⏳ Memuat data user...</p>`;
 
     try {
         const snapshot = await getDocs(collection(db, 'users'));
@@ -1341,7 +1334,7 @@ async function loadUserManagementData() {
 
     } catch (error) {
         console.error("Error loading user management data:", error);
-        content.innerHTML = `<p style="color:#dc3545;">❌ Gagal memuat data user.</p>`;
+        content.innerHTML = `<p class="state-message state-error">❌ Gagal memuat data user. Silakan coba lagi.</p>`;
     }
 }
 
@@ -1378,16 +1371,16 @@ function renderUserManagement() {
 
             <select id="umFilterRole">
                 <option value="">Semua Role</option>
-                <option value="student" ${roleFilter === 'student' ? 'selected' : ''}>Student</option>
-                <option value="teacher" ${roleFilter === 'teacher' ? 'selected' : ''}>Teacher</option>
+                <option value="student" ${roleFilter === 'student' ? 'selected' : ''}>Siswa</option>
+                <option value="teacher" ${roleFilter === 'teacher' ? 'selected' : ''}>Guru</option>
                 <option value="admin" ${roleFilter === 'admin' ? 'selected' : ''}>Admin</option>
             </select>
 
-            <button id="umApplyFilterBtn" class="btn-primary" style="padding:8px 16px; width:auto;">
+            <button id="umApplyFilterBtn" class="btn btn-primary">
                 Filter
             </button>
 
-            <button id="umResetFilterBtn" class="btn-secondary" style="padding:8px 16px; width:auto;">
+            <button id="umResetFilterBtn" class="btn btn-secondary">
                 Reset
             </button>
         </div>
@@ -1395,6 +1388,7 @@ function renderUserManagement() {
 
     // Build table
     let tableHTML = `
+        <div class="table-responsive">
         <table class="um-table">
             <thead>
                 <tr>
@@ -1412,7 +1406,7 @@ function renderUserManagement() {
     if (umFilteredData.length === 0) {
         tableHTML += `
             <tr>
-                <td colspan="6" style="text-align:center; color:#666;">
+                <td colspan="6" class="state-message">
                     Tidak ada user ditemukan.
                 </td>
             </tr>
@@ -1424,7 +1418,7 @@ function renderUserManagement() {
                     <td>${i + 1}</td>
                     <td>${u.nama || '-'}</td>
                     <td>${u.classId || '-'}</td>
-                    <td>${u.role || '-'}</td>
+                    <td>${ROLE_LABEL[u.role] || u.role || '-'}</td>
                     <td>${u.nis || '-'}</td>
                     <td>
                         <button class="btn-edit" data-uid="${u.uid}">
@@ -1436,10 +1430,9 @@ function renderUserManagement() {
         });
     }
 
-    tableHTML += `</tbody></table>`;
+    tableHTML += `</tbody></table></div>`;
 
     container.innerHTML = `
-        <h3>👥 Manajemen User</h3>
         ${filterUI}
         ${tableHTML}
     `;
@@ -1473,7 +1466,7 @@ function openEditModal(uid) {
 
     const roleOptions = ['student', 'teacher', 'admin'].map(r =>
         `<option value="${r}" ${user.role === r ? 'selected' : ''}>
-            ${r.charAt(0).toUpperCase() + r.slice(1)}
+            ${ROLE_LABEL[r]}
         </option>`
     ).join('');
 
