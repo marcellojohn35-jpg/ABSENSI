@@ -19,7 +19,10 @@ service cloud.firestore {
       // Student hanya boleh membuat profile dirinya sendiri.
       allow create: if request.auth != null
         && request.auth.uid == uid
-        && request.resource.data.role == 'student';
+        && (
+          request.resource.data.role == 'student' ||
+          request.resource.data.role == 'casis'
+        );
 
       // Admin: boleh update user mana pun, termasuk role.
       // Student: hanya boleh update dokumennya sendiri dan tidak boleh mengubah role.
@@ -36,6 +39,63 @@ service cloud.firestore {
               request.resource.data.role == resource.data.role
             )
           )
+        );
+
+      allow delete: if false;
+    }
+
+    // ============================================
+    // CANDIDATES / CASIS COLLECTION
+    // ============================================
+    match /candidates/{uid} {
+
+      function isAdmin() {
+        return request.auth != null
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      }
+
+      function isCasis() {
+        return request.auth != null
+          && request.auth.uid == uid
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'casis';
+      }
+
+      // CASIS hanya boleh membuat data pendaftarannya sendiri.
+      allow create: if isCasis()
+        && request.resource.data.uid == uid
+        && request.resource.data.status == 'DRAFT'
+        && request.resource.data.keys().hasAll([
+          'uid',
+          'nama',
+          'nisn',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().size() >= 6;
+
+      // CASIS hanya boleh membaca data sendiri.
+      // Admin boleh membaca seluruh data CASIS.
+      allow read: if isCasis() || isAdmin();
+
+      // CASIS hanya boleh mengubah data miliknya.
+      // Field status/approval tidak boleh dimanipulasi CASIS.
+      // Admin boleh mengubah seluruh data.
+      allow update: if isAdmin()
+        || (
+          isCasis()
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.createdAt == resource.data.createdAt
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'uid',
+            'status',
+            'createdAt',
+            'verifiedAt',
+            'acceptedAt',
+            'verifiedBy',
+            'rejectionReason'
+          ])
         );
 
       allow delete: if false;
