@@ -738,6 +738,7 @@ async function handleManualStatus(userData) {
             // WAJIB updateDoc({ status }) saja — tidak boleh setDoc ulang, supaya
             // createdAt dan field identitas lain (uid/tanggal/classId/sessionId/method) tidak berubah.
             const existingData = existingSnap.data();
+            console.log('[MANUAL DEBUG UPDATE]', { teacherClassId: userData.classId, targetUid, existingClassId: existingData.classId, sessionId: sessionIdForManual, existingData });
 
             if (!isAdmin && existingData.classId !== userData.classId) {
                 msgEl.style.background = '#f8d7da';
