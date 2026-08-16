@@ -54,6 +54,14 @@ let currentDashboardSessionId = null;
 let currentDashboardSessionDate = null;
 let currentDashboardSessionStatus = null;
 
+// ===== AUTH GATE: Intended-route restoration =====
+// Key sessionStorage untuk menyimpan route tujuan (pathname + query) saat user
+// belum login mengakses /absen, supaya setelah login (popup) bisa dikembalikan
+// persis ke route itu (termasuk ?session=... jika ada). Single-use: selalu
+// di-consume (removeItem) begitu dibaca, supaya tidak ada redirect loop dan
+// login normal dari '/' tidak terpengaruh saat tidak ada route tersimpan.
+const POST_LOGIN_REDIRECT_KEY = 'postLoginRedirect';
+
 function showSection(id) {
     [loadingState, loginSection, dashboardSection, profileSetupSection, attendanceResultSection, absenSection, userManagementContainer].forEach(el => el.style.display = 'none');
     if (id) id.style.display = 'block';
@@ -98,6 +106,7 @@ async function processAbsenPage(user) {
     if (!user) {
         // Simpan full route (termasuk query parameter) ke sessionStorage
         // agar setelah login user bisa kembali ke /absen?session=...
+        sessionStorage.setItem(POST_LOGIN_REDIRECT_KEY, window.location.pathname + window.location.search);
         window.location.href = '/';
         return;
     }
@@ -1551,6 +1560,19 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     if (user) {
+        // ===== AUTH GATE: Intended-route restoration =====
+        // Kalau user baru saja login (popup) setelah di-redirect dari /absen
+        // (lihat processAbsenPage STEP 1), kembalikan ke route itu SEBELUM
+        // merender dashboard di '/'. Single-use (removeItem) supaya tidak ada
+        // redirect loop, dan login normal dari '/' (tanpa route tersimpan)
+        // tetap berjalan seperti sebelumnya karena getItem() akan null.
+        const pendingRedirect = sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY);
+        if (pendingRedirect) {
+            sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
+            window.location.href = pendingRedirect;
+            return;
+        }
+
         console.log('[ABSEN] sebelum getDoc users');
     const userDoc = await getDoc(doc(db, 'users', user.uid));
     console.log('[ABSEN] sesudah getDoc users', userDoc.exists(), userDoc.data());
