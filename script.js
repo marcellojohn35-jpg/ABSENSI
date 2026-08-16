@@ -296,7 +296,19 @@ absenNowBtn.onclick = async () => {
             status
         }, null, 2));
 
-        await setDoc(doc(db, 'attendance', docId), {
+        // ===== DUPLICATE GUARD =====
+        // Cek attendance terlebih dahulu supaya percobaan kedua
+        // ditolak secara eksplisit sebelum setDoc menyentuh Firestore.
+        const attendanceRef = doc(db, 'attendance', docId);
+        const existingAttendanceSnap = await getDoc(attendanceRef);
+
+        if (existingAttendanceSnap.exists()) {
+            console.log('[ABSEN] DUPLICATE attendance detected', docId);
+            throw new Error('DUPLICATE');
+        }
+
+        // ===== CREATE ATTENDANCE =====
+        await setDoc(attendanceRef, {
             uid: uid,
             tanggal: s.date,
             status: status,
