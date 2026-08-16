@@ -32,7 +32,6 @@ const userRole = $('userRole');
 
 const profileForm = $('profileForm');
 const profileNama = $('profileNama');
-const profileNis = $('profileNis');
 const profileKelas = $('profileKelas');
 
 const attendanceResultTitle = $('attendanceResultTitle');
@@ -1641,8 +1640,7 @@ function setupProfileForm(user) {
         e.preventDefault();
 
         const nama = profileNama.value.trim();
-        const nis = profileNis.value.trim() || null;
-        const classId = document.getElementById('profileKelas').value || null;
+        const classId = document.getElementById('profileKelas').value.trim() || null;
 
         // Validasi kelas wajib dipilih
         if (!classId) {
@@ -1656,10 +1654,11 @@ function setupProfileForm(user) {
 
         try {
             await setDoc(doc(db, 'users', user.uid), {
+                uid: user.uid,
                 nama,
-                nis,
+                email: user.email || null,
                 classId,
-                role: 'student',
+                role: 'casis',
                 updatedAt: serverTimestamp()
             }, { merge: true });
 
