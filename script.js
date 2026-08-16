@@ -628,6 +628,7 @@ async function initSessionSelector() {
 // ===== POPULATE MANUAL STUDENT DROPDOWN =====
 async function populateManualStudentDropdown(userData) {
     console.log('[MANUAL] teacher data:', userData);
+    console.log('[MANUAL] teacher UID:', currentUser?.uid, 'classId:', userData.classId, 'role:', userData.role);
     const select = document.getElementById('manualStudentSelect');
     if (!select) return;
 
