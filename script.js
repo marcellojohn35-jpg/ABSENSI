@@ -130,8 +130,15 @@ async function processAbsenPage(user) {
     // STEP 3: CEK ROLE — hanya student yang boleh mengakses /absen
     const uData = userDoc.data();
 
+    if (uData.role === 'casis') {
+        // CASIS belum memiliki akses ke halaman absensi.
+        // Jangan arahkan ke dashboard teacher/admin.
+        showSection(loginSection);
+        return;
+    }
+
     if (uData.role !== 'student') {
-        // Teacher/Admin → redirect ke dashboard
+        // Teacher/Admin → dashboard
         showSection(dashboardSection);
         await renderDashboard(uData);
         return;
@@ -1593,8 +1600,16 @@ onAuthStateChanged(auth, async (user) => {
             return;
         }
 
+        const userData = userDoc.data();
+
+        if (userData.role === 'casis') {
+            // CASIS belum memiliki dashboard.
+            showSection(loginSection);
+            return;
+        }
+
         showSection(dashboardSection);
-        await renderDashboard(userDoc.data());
+        await renderDashboard(userData);
 
     } else {
         showSection(loginSection);
