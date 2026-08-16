@@ -627,22 +627,25 @@ async function initSessionSelector() {
 
 // ===== POPULATE MANUAL STUDENT DROPDOWN =====
 async function populateManualStudentDropdown(userData) {
+    console.log('[MANUAL] teacher data:', userData);
     const select = document.getElementById('manualStudentSelect');
     if (!select) return;
 
     try {
         const snapshot = await getDocs(collection(db, 'users'));
+        console.log('[MANUAL] users snapshot size:', snapshot.size);
         const students = [];
         snapshot.forEach(doc => {
             const data = doc.data();
-            if (data.role !== 'student') return;
+            if (data.role !== 'student') { console.log('[MANUAL] skip non-student:', doc.id, data.role); return; }
             // Teacher hanya boleh melihat/memilih student di classId-nya sendiri.
             // Ini validasi UX saja — enforcement sebenarnya ada di Firestore Rules.
-            if (userData.role === 'teacher' && data.classId !== userData.classId) return;
+            if (userData.role === 'teacher' && data.classId !== userData.classId) { console.log('[MANUAL] skip class:', doc.id, data.classId, 'teacherClass:', userData.classId); return; }
             students.push({ uid: doc.id, ...data });
         });
 
         // Sort by nama
+        console.log('[MANUAL] students after filter:', students.length, students);
         students.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
 
         select.innerHTML = '<option value="">Pilih Siswa...</option>';
@@ -808,6 +811,7 @@ async function loadClassOptions() {
 
     try {
         const snapshot = await getDocs(collection(db, 'users'));
+        console.log('[MANUAL] users snapshot size:', snapshot.size);
         const classes = new Set();
 
         snapshot.forEach(doc => {
@@ -1320,6 +1324,7 @@ async function loadUserManagementData() {
 
     try {
         const snapshot = await getDocs(collection(db, 'users'));
+        console.log('[MANUAL] users snapshot size:', snapshot.size);
 
         umData = snapshot.docs.map(d => ({
             uid: d.id,
