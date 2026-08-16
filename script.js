@@ -682,10 +682,7 @@ async function initSessionSelector() {
         currentDashboardSessionDate = opt ? opt.dataset.date : null;
         currentDashboardSessionStatus = opt ? opt.dataset.status : null;
         if (dateLabel) dateLabel.textContent = currentDashboardSessionDate ? `Tanggal: ${currentDashboardSessionDate}` : '';
-        await loadAttendanceData();
     };
-
-    await loadAttendanceData();
 }
 
 // ===== POPULATE MANUAL STUDENT DROPDOWN =====

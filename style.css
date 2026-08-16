@@ -1275,3 +1275,149 @@ select:focus-visible {
   }
 }
 
+
+/* ============================================================
+   ATTENDANCE TABLE — RESPONSIVE OPTIMIZATION
+   ============================================================ */
+
+.attendance-table {
+  min-width: 620px;
+  table-layout: auto;
+}
+
+.attendance-table th,
+.attendance-table td {
+  padding: 9px 10px;
+  white-space: nowrap;
+}
+
+/* Kolom nama lebih lega */
+.attendance-table th:nth-child(2),
+.attendance-table td:nth-child(2) {
+  min-width: 150px;
+}
+
+/* Kelas */
+.attendance-table th:nth-child(3),
+.attendance-table td:nth-child(3) {
+  min-width: 70px;
+}
+
+/* Status */
+.attendance-table th:last-child,
+.attendance-table td:last-child {
+  min-width: 115px;
+}
+
+/* ============================================================
+   SUMMARY ABSENSI
+   ============================================================ */
+
+.summary-container {
+  grid-template-columns: repeat(4, minmax(100px, 1fr));
+}
+
+.summary-card {
+  min-width: 0;
+}
+
+.summary-card .num {
+  font-size: 21px;
+}
+
+.summary-card .label {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================
+   MOBILE — TABEL TETAP TERBACA
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .attendance-table {
+    min-width: 600px;
+    font-size: 12px;
+  }
+
+  .attendance-table th {
+    font-size: 11px;
+    padding: 8px 9px;
+  }
+
+  .attendance-table td {
+    padding: 8px 9px;
+  }
+
+  .attendance-table th:nth-child(2),
+  .attendance-table td:nth-child(2) {
+    min-width: 135px;
+    max-width: 180px;
+  }
+
+  .attendance-table th:nth-child(3),
+  .attendance-table td:nth-child(3) {
+    min-width: 60px;
+  }
+
+  .attendance-table th:nth-child(4),
+  .attendance-table td:nth-child(4) {
+    min-width: 95px;
+  }
+
+  .attendance-table th:nth-child(5),
+  .attendance-table td:nth-child(5) {
+    min-width: 80px;
+  }
+
+  .attendance-table th:nth-child(6),
+  .attendance-table td:nth-child(6) {
+    min-width: 105px;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  /* Petunjuk scroll */
+  .table-responsive::after {
+    content: "Geser ke samping untuk melihat kolom lainnya →";
+    display: block;
+    padding: 7px 10px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--surface-muted);
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .summary-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .summary-card {
+    padding: 12px 8px;
+  }
+
+  .summary-card .num {
+    font-size: 20px;
+  }
+}
+
+/* HP sangat kecil */
+@media (max-width: 420px) {
+
+  .summary-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .attendance-table {
+    min-width: 580px;
+  }
+}
+
