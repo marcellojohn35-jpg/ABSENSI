@@ -131,9 +131,8 @@ async function processAbsenPage(user) {
     const uData = userDoc.data();
 
     if (uData.role === 'casis') {
-        // CASIS belum memiliki akses ke halaman absensi.
-        // Jangan arahkan ke dashboard teacher/admin.
-        showSection(loginSection);
+        showSection(dashboardSection);
+        await renderCasisDashboard(uData);
         return;
     }
 
@@ -343,6 +342,44 @@ absenNowBtn.onclick = async () => {
         absenNowBtn.textContent = "✅ Absen Sekarang";
     }
 };
+
+// ===== Render Dashboard CASIS =====
+async function renderCasisDashboard(userData) {
+    userPhoto.src = userData.photoURL || currentUser?.photoURL || 'https://via.placeholder.com/50';
+    userName.textContent = userData.nama || 'Pendaftar';
+    userRole.textContent = 'Casis';
+    userRole.className = 'role-casis';
+
+    const dashboardContent = document.getElementById('dashboardContent');
+
+    dashboardContent.innerHTML = `
+        <h3 class="page-title">Dashboard Casis</h3>
+
+        <div class="card">
+            <div class="profile-summary">
+                <div class="profile-row">
+                    <span class="label">Nama</span>
+                    <span class="value">${userData.nama || '-'}</span>
+                </div>
+
+                <div class="profile-row">
+                    <span class="label">Kelas</span>
+                    <span class="value">${userData.classId || '-'}</span>
+                </div>
+
+                <div class="profile-row">
+                    <span class="label">Email</span>
+                    <span class="value">${userData.email || currentUser?.email || '-'}</span>
+                </div>
+
+                <div class="profile-row">
+                    <span class="label">Status</span>
+                    <span class="value">Pendaftar</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
 // ===== Render Dashboard =====
 const ROLE_LABEL = { student: 'Siswa', teacher: 'Guru', admin: 'Admin' };
@@ -1603,8 +1640,8 @@ onAuthStateChanged(auth, async (user) => {
         const userData = userDoc.data();
 
         if (userData.role === 'casis') {
-            // CASIS belum memiliki dashboard.
-            showSection(loginSection);
+            showSection(dashboardSection);
+            await renderCasisDashboard(userData);
             return;
         }
 
