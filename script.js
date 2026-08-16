@@ -1681,6 +1681,14 @@ function showAttendanceResult(success, data) {
         showSection(successScreenSection);
 
         // Tombol logout di success screen
+        document.getElementById('successBackBtn').onclick = () => {
+            if (currentUser) {
+                showSection(dashboardSection);
+            } else {
+                window.location.href = '/';
+            }
+        };
+
         document.getElementById('successLogoutBtn').onclick = async () => {
             try {
                 await signOut(auth);
@@ -1717,6 +1725,15 @@ function showAttendanceResult(success, data) {
 
     goToAbsenBtn.onclick = () => {
         window.location.href = '/absen?session=' + currentSessionId;
+    };
+
+    document.getElementById('attendanceErrorLogoutBtn').onclick = async () => {
+        try {
+            await signOut(auth);
+            window.location.href = '/';
+        } catch (e) {
+            console.error('Logout error:', e);
+        }
     };
 }
 
