@@ -1699,7 +1699,7 @@ function showAttendanceResult(success, data) {
     } else if (data.error?.includes('SESSION_NOT_STARTED')) {
         msg = '⏰ Sesi belum dimulai.';
     } else if (data.error?.includes('DUPLICATE')) {
-        msg = 'ℹ️ Anda sudah absen hari ini.';
+        msg = '⚠️ Maaf, Anda sudah melakukan absensi sebelumnya. Anda tidak perlu melakukan absensi lagi hari ini.';
     } else if (data.error?.includes('permission-denied')) {
         msg = 'Akses ditolak oleh sistem.';
     }
