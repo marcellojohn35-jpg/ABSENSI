@@ -9,6 +9,7 @@ const {
   setDoc,
   updateDoc,
   Timestamp,
+  serverTimestamp,
 } = require("firebase/firestore");
 
 const fs = require("fs");
@@ -71,7 +72,7 @@ const fs = require("fs");
         classId: "XI.1",
         method: "qr",
         sessionId: "session_001",
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp(),
       })
     );
 
@@ -87,7 +88,7 @@ const fs = require("fs");
           classId: "XI.2",
           method: "qr",
           sessionId: "session_001",
-          createdAt: Timestamp.now(),
+          createdAt: serverTimestamp(),
         }
       )
     );
@@ -104,7 +105,7 @@ const fs = require("fs");
           classId: "XI.2",
           method: "qr",
           sessionId: "session_001",
-          createdAt: Timestamp.now(),
+          createdAt: serverTimestamp(),
         }
       )
     );
@@ -121,7 +122,7 @@ const fs = require("fs");
           classId: "XI.2",
           method: "manual",
           sessionId: "session_001",
-          createdAt: Timestamp.now(),
+          createdAt: serverTimestamp(),
         }
       )
     );
