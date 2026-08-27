@@ -16,16 +16,19 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
 
-      // Student hanya boleh membuat profile dirinya sendiri.
+      // User baru HANYA boleh membuat profil dirinya sendiri sebagai CASIS.
+      // Role 'student' TIDAK BOLEH dibuat langsung oleh user lewat create ini —
+      // promosi casis -> student HANYA boleh dilakukan ADMIN lewat allow update
+      // di bawah. (Sebelumnya rule ini mengizinkan role == 'student' langsung
+      // saat create, yang merupakan privilege escalation CRITICAL.)
       allow create: if request.auth != null
         && request.auth.uid == uid
-        && (
-          request.resource.data.role == 'student' ||
-          request.resource.data.role == 'casis'
-        );
+        && request.resource.data.role == 'casis';
 
-      // Admin: boleh update user mana pun, termasuk role.
-      // Student: hanya boleh update dokumennya sendiri dan tidak boleh mengubah role.
+      // Admin: boleh update user mana pun, termasuk role dan classId.
+      // Student: hanya boleh update dokumennya sendiri, dan TIDAK BOLEH mengubah
+      // field otorisasi/identitas (role, classId, uid, email) — field lain di
+      // luar itu (mis. profil) tetap bebas diedit seperti sebelumnya.
       allow update: if request.auth != null
         && (
           // ADMIN
@@ -34,10 +37,12 @@ service cloud.firestore {
           // STUDENT
           (request.auth.uid == uid
             && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student'
-            && (
-              !('role' in request.resource.data) ||
-              request.resource.data.role == resource.data.role
-            )
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'role',
+              'classId',
+              'uid',
+              'email'
+            ])
           )
         );
 
@@ -141,6 +146,7 @@ service cloud.firestore {
         && request.resource.data.startTime < request.resource.data.lateAfter
         && request.resource.data.lateAfter < request.resource.data.endTime
         && request.resource.data.createdAt is timestamp
+            && request.resource.data.createdAt == request.time
         && request.resource.data.keys().hasAll(['sessionId', 'date', 'startTime', 'lateAfter', 'endTime', 'status', 'createdAt'])
         && request.resource.data.keys().size() == 7;
 
@@ -359,6 +365,7 @@ service cloud.firestore {
             && request.resource.data.method is string
             && request.resource.data.sessionId is string
             && request.resource.data.createdAt is timestamp
+            && request.resource.data.createdAt == request.time
             && request.resource.data.classId == getCurrentUserClassId()
             && sessionDateMatches()
             && request.resource.data.method == 'qr'
@@ -396,6 +403,7 @@ service cloud.firestore {
             && request.resource.data.method is string
             && request.resource.data.sessionId is string
             && request.resource.data.createdAt is timestamp
+            && request.resource.data.createdAt == request.time
             && !exists(/databases/$(database)/documents/attendance/$(docId))
             && request.resource.data.method == 'manual'
           )
@@ -430,6 +438,7 @@ service cloud.firestore {
             && request.resource.data.method is string
             && request.resource.data.sessionId is string
             && request.resource.data.createdAt is timestamp
+            && request.resource.data.createdAt == request.time
             && !exists(/databases/$(database)/documents/attendance/$(docId))
             && request.resource.data.method == 'manual'
           )

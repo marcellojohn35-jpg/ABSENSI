@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": ".",
+    "public": "src",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -13,6 +13,6 @@
     "runtime": "nodejs20"
   },
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firebase/firestore.rules"
   }
 }
