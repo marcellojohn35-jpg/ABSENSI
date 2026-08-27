@@ -3,7 +3,7 @@ console.log("Sistem Absensi URL-Based aktif (Phase 7).");
 import {
     auth, db, provider, signInWithPopup, onAuthStateChanged, signOut
 } from './firebase-config.js';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, orderBy, limit, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, orderBy, limit, deleteDoc, runTransaction, writeBatch } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 // ===== Auth redirect handling disabled: using popup login =====
 // DOM Refs
@@ -47,6 +47,10 @@ let currentSessionId = null;
 let umData = [];
 let umFilteredData = [];
 let attendanceFilteredData = [];
+
+// ===== MANUAL ATTENDANCE MULTI SELECT STATE =====
+let manualStudents = [];
+let manualSelectedStudentUids = new Set();
 
 // ===== SESSION REDESIGN (sessionId sebagai identity utama, bukan tanggal) =====
 // Dipakai khusus oleh Dashboard (teacher/admin) untuk menentukan session mana
@@ -488,44 +492,98 @@ async function renderDashboard(userData) {
         `;
     }
 
-    // ===== MANUAL ATTENDANCE PANEL (TEACHER: kelas sendiri, IZIN/SAKIT/ALFA — ADMIN: semua kelas, 5 status) =====
-    // Hanya salah satu yang pernah dirender untuk satu user (role tidak pernah dobel),
-    // jadi element id boleh sama persis untuk kedua kasus.
+    // ===== MANUAL ATTENDANCE PANEL =====
+    // Teacher: hanya kelas sendiri + IZIN/SAKIT/ALFA
+    // Admin: semua siswa + 5 status
     let teacherManualHTML = '';
+
     if (userData.role === 'teacher' || userData.role === 'admin') {
         const isAdminPanel = userData.role === 'admin';
-        const panelTitle = isAdminPanel ? '📝 Manual Attendance (Admin)' : '📝 Manual Attendance (Teacher)';
+
+        const panelTitle = isAdminPanel
+            ? '📝 Manual Attendance (Admin)'
+            : '📝 Manual Attendance (Teacher)';
+
         const panelDesc = isAdminPanel
             ? 'Tetapkan/koreksi status attendance untuk siswa mana pun.'
             : 'Tetapkan/koreksi status IZIN/SAKIT/ALFA untuk siswa di kelas Anda.';
+
         const statusOptionsHTML = isAdminPanel
             ? `
-                        <option value="HADIR">HADIR</option>
-                        <option value="TERLAMBAT">TERLAMBAT</option>
-                        <option value="IZIN">IZIN</option>
-                        <option value="SAKIT">SAKIT</option>
-                        <option value="ALFA">ALFA</option>`
+                <option value="HADIR">HADIR</option>
+                <option value="TERLAMBAT">TERLAMBAT</option>
+                <option value="IZIN">IZIN</option>
+                <option value="SAKIT">SAKIT</option>
+                <option value="ALFA">ALFA</option>`
             : `
-                        <option value="IZIN">IZIN</option>
-                        <option value="SAKIT">SAKIT</option>
-                        <option value="ALFA">ALFA</option>`;
+                <option value="IZIN">IZIN</option>
+                <option value="SAKIT">SAKIT</option>
+                <option value="ALFA">ALFA</option>`;
 
         teacherManualHTML = `
             <div id="teacherManualPanel" class="card">
                 <div class="card-title">${panelTitle}</div>
+
                 <p class="card-desc">
                     ${panelDesc}
                 </p>
-                <div class="filter-container" style="margin-bottom:0;">
-                    <select id="manualStudentSelect" style="flex:2;">
-                        <option value="">Pilih Siswa...</option>
-                    </select>
-                    <select id="manualStatusSelect" style="flex:1;">
-                        <option value="">Pilih Status...</option>${statusOptionsHTML}
-                    </select>
-                    <button id="manualSetStatusBtn" class="btn btn-primary">Set Status</button>
+
+                <div style="margin-bottom:12px;">
+                    <input
+                        type="text"
+                        id="manualStudentSearch"
+                        placeholder="🔍 Cari nama siswa..."
+                        autocomplete="off"
+                        style="width:100%;"
+                    >
                 </div>
-                <div id="manualStatusMessage" class="alert mt-16" style="display:none;"></div>
+
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    gap:12px;
+                    margin-bottom:10px;
+                    flex-wrap:wrap;
+                ">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                        <input type="checkbox" id="manualSelectAll">
+                        <span>Pilih Semua Hasil</span>
+                    </label>
+
+                    <strong id="manualSelectedCount">0 siswa terpilih</strong>
+                </div>
+
+                <div
+                    id="manualStudentList"
+                    style="
+                        max-height:280px;
+                        overflow-y:auto;
+                        border:1px solid var(--border-color, #ddd);
+                        border-radius:8px;
+                        padding:8px;
+                        margin-bottom:12px;
+                    "
+                >
+                    <div class="text-secondary">Memuat siswa...</div>
+                </div>
+
+                <div class="filter-container" style="margin-bottom:0;">
+                    <select id="manualStatusSelect" style="flex:1;">
+                        <option value="">Pilih Status...</option>
+                        ${statusOptionsHTML}
+                    </select>
+
+                    <button id="manualSetStatusBtn" class="btn btn-primary">
+                        Terapkan ke Siswa Terpilih
+                    </button>
+                </div>
+
+                <div
+                    id="manualStatusMessage"
+                    class="alert mt-16"
+                    style="display:none;"
+                ></div>
             </div>
         `;
     }
@@ -657,11 +715,31 @@ async function renderDashboard(userData) {
     document.getElementById('applyFilterBtn').onclick = () => loadAttendanceData();
     document.getElementById('exportBtn').onclick = exportToExcel;
 
-    // Manual attendance listeners (teacher: kelas sendiri, admin: semua kelas)
+    // Manual attendance listeners
     if (userData.role === 'teacher' || userData.role === 'admin') {
         document.getElementById('manualSetStatusBtn').onclick = () => handleManualStatus(userData);
-        // Populate student dropdown setelah data dimuat
-        setTimeout(() => populateManualStudentDropdown(userData), 500);
+
+        document.getElementById('manualStudentSearch').addEventListener('input', () => {
+            renderManualStudentList();
+        });
+
+        document.getElementById('manualSelectAll').addEventListener('change', (event) => {
+            const visibleStudents = getVisibleManualStudents();
+
+            if (event.target.checked) {
+                visibleStudents.forEach(student => {
+                    manualSelectedStudentUids.add(student.uid);
+                });
+            } else {
+                visibleStudents.forEach(student => {
+                    manualSelectedStudentUids.delete(student.uid);
+                });
+            }
+
+            renderManualStudentList();
+        });
+
+        setTimeout(() => populateManualStudentDropdown(userData), 300);
     }
 
     await loadClassOptions();
@@ -732,62 +810,198 @@ async function initSessionSelector() {
     };
 }
 
-// ===== POPULATE MANUAL STUDENT DROPDOWN =====
+// ===== MANUAL ATTENDANCE MULTI SELECT =====
+
 async function populateManualStudentDropdown(userData) {
-    console.log('[MANUAL] teacher data:', userData);
-    console.log('[MANUAL] teacher UID:', currentUser?.uid, 'classId:', userData.classId, 'role:', userData.role);
-    const select = document.getElementById('manualStudentSelect');
-    if (!select) return;
+    console.log('[MANUAL] loading students...', {
+        role: userData.role,
+        classId: userData.classId
+    });
 
     try {
         const snapshot = await getDocs(collection(db, 'users'));
-        console.log('[MANUAL] users snapshot size:', snapshot.size);
         const students = [];
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.role !== 'student') { console.log('[MANUAL] skip non-student:', doc.id, data.role); return; }
-            // Teacher hanya boleh melihat/memilih student di classId-nya sendiri.
-            // Ini validasi UX saja — enforcement sebenarnya ada di Firestore Rules.
-            if (userData.role === 'teacher' && data.classId !== userData.classId) { console.log('[MANUAL] skip class:', doc.id, data.classId, 'teacherClass:', userData.classId); return; }
-            students.push({ uid: doc.id, ...data });
+
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+
+            if (data.role !== 'student') return;
+
+            // Teacher hanya melihat kelasnya sendiri.
+            // Ini UX filtering; Firestore Rules tetap enforcement utama.
+            if (
+                userData.role === 'teacher' &&
+                data.classId !== userData.classId
+            ) {
+                return;
+            }
+
+            students.push({
+                uid: docSnap.id,
+                ...data
+            });
         });
 
-        // Sort by nama
-        console.log('[MANUAL] students after filter:', students.length, students);
-        students.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
+        students.sort((a, b) =>
+            (a.nama || '').localeCompare(b.nama || '', 'id')
+        );
 
-        select.innerHTML = '<option value="">Pilih Siswa...</option>';
-        students.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s.uid;
-            opt.textContent = `${s.nama || 'Unknown'} (${s.classId || '-'})`;
-            select.appendChild(opt);
-        });
+        manualStudents = students;
+
+        // Selection yang UID-nya sudah tidak ada dibersihkan.
+        const validUids = new Set(students.map(student => student.uid));
+
+        manualSelectedStudentUids = new Set(
+            [...manualSelectedStudentUids].filter(uid => validUids.has(uid))
+        );
+
+        renderManualStudentList();
+
+        console.log('[MANUAL] students loaded:', manualStudents.length);
+
     } catch (error) {
-        console.error('Error loading students for manual attendance:', error);
+        console.error('[MANUAL] Error loading students:', error);
+
+        const list = document.getElementById('manualStudentList');
+        if (list) {
+            list.innerHTML = `
+                <div class="alert alert-danger">
+                    ❌ Gagal memuat daftar siswa.
+                </div>
+            `;
+        }
     }
 }
 
-// ===== HANDLE MANUAL STATUS (TEACHER: kelas sendiri, IZIN/SAKIT/ALFA — ADMIN: semua kelas, 5 status) =====
-// CATATAN: semua validasi di fungsi ini hanya UX. Enforcement sebenarnya ada di firestore.rules.
+function getVisibleManualStudents() {
+    const searchInput = document.getElementById('manualStudentSearch');
+
+    if (!searchInput) {
+        return manualStudents;
+    }
+
+    const keyword = searchInput.value.trim().toLowerCase();
+
+    if (!keyword) {
+        return manualStudents;
+    }
+
+    return manualStudents.filter(student => {
+        const nama = (student.nama || '').toLowerCase();
+        const classId = (student.classId || '').toLowerCase();
+
+        return (
+            nama.includes(keyword) ||
+            classId.includes(keyword)
+        );
+    });
+}
+
+function renderManualStudentList() {
+    const list = document.getElementById('manualStudentList');
+    const selectAll = document.getElementById('manualSelectAll');
+    const countEl = document.getElementById('manualSelectedCount');
+
+    if (!list) return;
+
+    const visibleStudents = getVisibleManualStudents();
+
+    if (countEl) {
+        countEl.textContent =
+            `${manualSelectedStudentUids.size} siswa terpilih`;
+    }
+
+    if (visibleStudents.length === 0) {
+        list.innerHTML = `
+            <div class="text-secondary" style="padding:12px;text-align:center;">
+                Tidak ada siswa yang ditemukan.
+            </div>
+        `;
+
+        if (selectAll) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+            selectAll.disabled = true;
+        }
+
+        return;
+    }
+
+    const selectedVisibleCount = visibleStudents.filter(student =>
+        manualSelectedStudentUids.has(student.uid)
+    ).length;
+
+    if (selectAll) {
+        selectAll.disabled = false;
+        selectAll.checked =
+            selectedVisibleCount === visibleStudents.length;
+
+        selectAll.indeterminate =
+            selectedVisibleCount > 0 &&
+            selectedVisibleCount < visibleStudents.length;
+    }
+
+    list.innerHTML = '';
+
+    visibleStudents.forEach(student => {
+        const label = document.createElement('label');
+
+        label.style.cssText = `
+            display:flex;
+            align-items:center;
+            gap:10px;
+            padding:9px 8px;
+            cursor:pointer;
+            border-radius:6px;
+        `;
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked =
+            manualSelectedStudentUids.has(student.uid);
+
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                manualSelectedStudentUids.add(student.uid);
+            } else {
+                manualSelectedStudentUids.delete(student.uid);
+            }
+
+            renderManualStudentList();
+        });
+
+        const text = document.createElement('span');
+        text.textContent =
+            `${student.nama || 'Unknown'} (${student.classId || '-'})`;
+
+        label.appendChild(checkbox);
+        label.appendChild(text);
+        list.appendChild(label);
+    });
+}
+
+// ===== HANDLE MANUAL STATUS =====
+// Teacher: kelas sendiri, IZIN/SAKIT/ALFA
+// Admin: semua kelas, HADIR/TERLAMBAT/IZIN/SAKIT/ALFA
+//
+// Semua validasi UX di sini bukan pengganti Firestore Rules.
+
 async function handleManualStatus(userData) {
-    const uidSelect = document.getElementById('manualStudentSelect');
     const statusSelect = document.getElementById('manualStatusSelect');
     const msgEl = document.getElementById('manualStatusMessage');
 
-    const targetUid = uidSelect.value;
-    const status = statusSelect.value;
+    const status = statusSelect?.value;
+    const selectedUids = [...manualSelectedStudentUids];
     const isAdmin = userData.role === 'admin';
 
-    // Status yang diizinkan per role (UX guard — rules yang jadi source of truth)
     const allowedStatuses = isAdmin
         ? ['HADIR', 'TERLAMBAT', 'IZIN', 'SAKIT', 'ALFA']
         : ['IZIN', 'SAKIT', 'ALFA'];
 
-    if (!targetUid) {
+    if (selectedUids.length === 0) {
         msgEl.className = 'alert alert-danger';
         msgEl.style.display = 'block';
-        msgEl.textContent = 'Pilih siswa terlebih dahulu.';
+        msgEl.textContent = 'Pilih minimal satu siswa terlebih dahulu.';
         return;
     }
 
@@ -814,91 +1028,210 @@ async function handleManualStatus(userData) {
         return;
     }
 
-    // Teacher hanya boleh manual attendance pada session ACTIVE (Admin boleh ACTIVE maupun ARCHIVED).
-    // UX guard saja — enforcement sesungguhnya ada di firestore.rules.
-    if (!isAdmin && currentDashboardSessionStatus !== 'ACTIVE') {
+    // Teacher hanya boleh manual pada ACTIVE.
+    // Ini UX guard; Firestore Rules tetap enforcement utama.
+    if (
+        !isAdmin &&
+        currentDashboardSessionStatus !== 'ACTIVE'
+    ) {
         msgEl.className = 'alert alert-danger';
         msgEl.style.display = 'block';
-        msgEl.textContent = '❌ Teacher hanya boleh input manual attendance pada session yang sedang ACTIVE.';
+        msgEl.textContent =
+            '❌ Teacher hanya boleh input manual attendance pada session yang sedang ACTIVE.';
         return;
+    }
+
+    const button = document.getElementById('manualSetStatusBtn');
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = '⏳ Memproses...';
     }
 
     msgEl.className = 'alert alert-warning';
     msgEl.style.display = 'block';
-    msgEl.textContent = '⏳ Memproses...';
+    msgEl.textContent =
+        `⏳ Memproses ${selectedUids.length} siswa...`;
 
     try {
         const sessionIdForManual = currentDashboardSessionId;
-        const dateForManual = currentDashboardSessionDate || getJakartaDateStr();
-        const docId = `${targetUid}_${sessionIdForManual}`;
-        const attendanceRef = doc(db, 'attendance', docId);
+        const dateForManual =
+            currentDashboardSessionDate || getJakartaDateStr();
 
-        const existingSnap = await getDoc(attendanceRef);
+        /*
+         * ========================================================
+         * PHASE 1: Baca semua data DULU.
+         *
+         * Tidak ada write sampai seluruh target berhasil divalidasi.
+         * Ini penting supaya batch tidak menghasilkan sebagian update
+         * karena satu target bermasalah.
+         * ========================================================
+         */
 
-        if (existingSnap.exists()) {
-            // ===== PATH: UPDATE (koreksi attendance existing) =====
-            // WAJIB updateDoc({ status }) saja — tidak boleh setDoc ulang, supaya
-            // createdAt dan field identitas lain (uid/tanggal/classId/sessionId/method) tidak berubah.
-            const existingData = existingSnap.data();
-            console.log('[MANUAL DEBUG UPDATE]', { teacherClassId: userData.classId, targetUid, existingClassId: existingData.classId, sessionId: sessionIdForManual, existingData });
+        const targetResults = await Promise.all(
+            selectedUids.map(async targetUid => {
+                const [targetSnap, attendanceSnap] = await Promise.all([
+                    getDoc(doc(db, 'users', targetUid)),
+                    getDoc(
+                        doc(
+                            db,
+                            'attendance',
+                            `${targetUid}_${sessionIdForManual}`
+                        )
+                    )
+                ]);
 
-            if (!isAdmin && existingData.classId !== userData.classId) {
-                msgEl.className = 'alert alert-danger';
-                msgEl.textContent = '❌ Siswa ini bukan bagian dari kelas Anda.';
-                return;
+                if (!targetSnap.exists()) {
+                    throw new Error(
+                        `Profil siswa ${targetUid} tidak ditemukan.`
+                    );
+                }
+
+                const targetData = targetSnap.data();
+
+                if (targetData.role !== 'student') {
+                    throw new Error(
+                        `${targetData.nama || targetUid} bukan student.`
+                    );
+                }
+
+                if (!targetData.classId) {
+                    throw new Error(
+                        `${targetData.nama || targetUid} belum memiliki kelas.`
+                    );
+                }
+
+                if (
+                    !isAdmin &&
+                    targetData.classId !== userData.classId
+                ) {
+                    throw new Error(
+                        `${targetData.nama || targetUid} bukan bagian dari kelas Anda.`
+                    );
+                }
+
+                const attendanceData = attendanceSnap.exists()
+                    ? attendanceSnap.data()
+                    : null;
+
+                // Untuk existing attendance, teacher juga harus memastikan
+                // attendance tersebut memang milik kelasnya.
+                if (
+                    attendanceData &&
+                    !isAdmin &&
+                    attendanceData.classId !== userData.classId
+                ) {
+                    throw new Error(
+                        `Attendance ${targetData.nama || targetUid} berada di luar kelas Anda.`
+                    );
+                }
+
+                return {
+                    targetUid,
+                    targetData,
+                    attendanceSnap,
+                    attendanceData
+                };
+            })
+        );
+
+        /*
+         * ========================================================
+         * PHASE 2: Buat SATU Firestore WriteBatch.
+         * Existing -> update status saja.
+         * Baru     -> create attendance lengkap.
+         * ========================================================
+         */
+
+        const batch = writeBatch(db);
+
+        targetResults.forEach(result => {
+            const {
+                targetUid,
+                targetData,
+                attendanceSnap
+            } = result;
+
+            const attendanceRef = doc(
+                db,
+                'attendance',
+                `${targetUid}_${sessionIdForManual}`
+            );
+
+            if (attendanceSnap.exists()) {
+                // UPDATE:
+                // Jangan sentuh uid/classId/sessionId/tanggal/createdAt/method.
+                batch.update(attendanceRef, {
+                    status: status
+                });
+
+                console.log(
+                    '[MANUAL BATCH] UPDATE',
+                    targetData.nama || targetUid,
+                    status
+                );
+
+            } else {
+                // CREATE:
+                batch.set(attendanceRef, {
+                    uid: targetUid,
+                    tanggal: dateForManual,
+                    status: status,
+                    classId: targetData.classId,
+                    sessionId: sessionIdForManual,
+                    method: 'manual',
+                    createdAt: serverTimestamp()
+                });
+
+                console.log(
+                    '[MANUAL BATCH] CREATE',
+                    targetData.nama || targetUid,
+                    status
+                );
             }
+        });
 
-            await updateDoc(attendanceRef, { status: status });
+        /*
+         * Satu commit.
+         * Firestore batch bersifat atomic: seluruh write berhasil
+         * atau seluruh write gagal.
+         */
+        await batch.commit();
 
-            msgEl.className = 'alert alert-success';
-            msgEl.textContent = `✅ Status attendance berhasil dikoreksi menjadi ${status}.`;
+        msgEl.className = 'alert alert-success';
+        msgEl.style.display = 'block';
+        msgEl.textContent =
+            `✅ ${selectedUids.length} siswa berhasil ditetapkan menjadi ${status}.`;
 
-        } else {
-            // ===== PATH: CREATE (attendance manual baru) =====
-            const targetDoc = await getDoc(doc(db, 'users', targetUid));
-            if (!targetDoc.exists()) {
-                throw new Error('Target user not found');
-            }
-            const targetData = targetDoc.data();
-            console.log('[MANUAL DEBUG TARGET]', { targetUid, targetName: targetData.nama, targetClassId: targetData.classId, teacherClassId: userData.classId, sessionId: sessionIdForManual });
+        // Clear selection setelah sukses.
+        manualSelectedStudentUids.clear();
 
-            // ===== VALIDASI CLASSID TARGET STUDENT =====
-            if (!targetData.classId) {
-                msgEl.className = 'alert alert-danger';
-                msgEl.textContent = '❌ Siswa ini belum memiliki kelas. Harap update profile siswa terlebih dahulu.';
-                return;
-            }
-
-            if (!isAdmin && targetData.classId !== userData.classId) {
-                msgEl.className = 'alert alert-danger';
-                msgEl.textContent = '❌ Siswa ini bukan bagian dari kelas Anda.';
-                return;
-            }
-
-            await setDoc(attendanceRef, {
-                uid: targetUid,
-                tanggal: dateForManual,
-                status: status,
-                classId: targetData.classId,  // ← Langsung pakai, tanpa fallback
-                sessionId: sessionIdForManual,
-                method: 'manual',
-                createdAt: serverTimestamp()
-            });
-
-            msgEl.className = 'alert alert-success';
-            msgEl.textContent = `✅ Status ${status} berhasil ditetapkan untuk ${targetData.nama || targetUid}.`;
+        if (statusSelect) {
+            statusSelect.value = '';
         }
 
+        renderManualStudentList();
+
         await loadAttendanceData();
-        await populateManualStudentDropdown(userData);
 
     } catch (error) {
-        console.error('Manual status error:', error);
+        console.error('[MANUAL BATCH ERROR]', error);
+
         msgEl.className = 'alert alert-danger';
+        msgEl.style.display = 'block';
+
         if (error.code === 'permission-denied') {
-            msgEl.textContent = '❌ Anda tidak memiliki izin untuk menetapkan status ini.';
+            msgEl.textContent =
+                '❌ Firestore menolak perubahan. Periksa role, kelas, session, atau status.';
         } else {
-            msgEl.textContent = `❌ Gagal menetapkan status: ${error.message}`;
+            msgEl.textContent =
+                `❌ Gagal menetapkan attendance: ${error.message}`;
+        }
+
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Terapkan ke Siswa Terpilih';
         }
     }
 }
