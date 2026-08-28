@@ -1481,6 +1481,7 @@ async function loadAttendanceData() {
                         <th>Tanggal</th>
                         <th>Jam</th>
                         <th>Status</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1500,6 +1501,19 @@ async function loadAttendanceData() {
                         <span class="status-label ${statusClass}">
                             ${d.status === 'BELUM_ABSEN' ? 'BELUM ABSEN' : d.status}
                         </span>
+                    </td>
+                    <td>
+                        ${
+                            d.status !== 'BELUM_ABSEN'
+                                ? `<button
+                                    class="btn btn-secondary"
+                                    style="padding:6px 10px;font-size:12px;"
+                                    onclick="rollbackAttendance('${d.uid}', '${d.sessionId}', '${String(d.nama).replace(/'/g, "\\'")}')"
+                                   >
+                                    ↩️ Rollback
+                                   </button>`
+                                : '-'
+                        }
                     </td>
                 </tr>
             `;
@@ -1521,6 +1535,50 @@ async function loadAttendanceData() {
         `;
     }
 }
+
+
+// ===== ROLLBACK ATTENDANCE =====
+// Hanya ADMIN yang boleh menghapus record attendance.
+// Firestore Rules tetap menjadi enforcement utama.
+async function rollbackAttendance(uid, sessionId, nama) {
+    if (!uid || !sessionId) {
+        alert('❌ Data attendance tidak valid.');
+        return;
+    }
+
+    const confirmed = confirm(
+        `Yakin ingin membatalkan absensi ${nama || 'siswa'}?\n\n` +
+        `Status akan kembali menjadi BELUM ABSEN.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const attendanceRef = doc(
+            db,
+            'attendance',
+            `${uid}_${sessionId}`
+        );
+
+        await deleteDoc(attendanceRef);
+
+        alert(`✅ Absensi ${nama || 'siswa'} berhasil di-rollback.`);
+
+        // Refresh tabel agar status langsung menjadi BELUM ABSEN.
+        await loadAttendanceData();
+
+    } catch (error) {
+        console.error('[ROLLBACK ERROR]', error);
+
+        if (error.code === 'permission-denied') {
+            alert('❌ Anda tidak memiliki izin untuk melakukan rollback.');
+        } else {
+            alert(`❌ Gagal melakukan rollback: ${error.message}`);
+        }
+    }
+}
+
+window.rollbackAttendance = rollbackAttendance;
 
 // ===== Update Summary =====
 function updateSummary(data) {

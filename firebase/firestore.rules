@@ -502,7 +502,11 @@ service cloud.firestore {
           )
         );
 
-      allow delete: if false;
+      // ===== ROLLBACK ATTENDANCE =====
+      // Hanya ADMIN yang boleh menghapus attendance.
+      // Student dan Teacher tidak boleh melakukan rollback.
+      allow delete: if request.auth != null
+        && getCurrentUserRole() == 'admin';
     }
   }
 }
