@@ -1443,6 +1443,21 @@ async function loadAttendanceData() {
             };
         });
 
+        // Urutkan: yang sudah absen berdasarkan jam paling awal, BELUM ABSEN paling bawah.
+        fullData.sort((a, b) => {
+            const aAbsent = a.status === 'BELUM_ABSEN';
+            const bAbsent = b.status === 'BELUM_ABSEN';
+
+            if (aAbsent && !bAbsent) return 1;
+            if (!aAbsent && bAbsent) return -1;
+            if (aAbsent && bAbsent) return 0;
+
+            const aTime = a.createdAt?.seconds ?? Number.MAX_SAFE_INTEGER;
+            const bTime = b.createdAt?.seconds ?? Number.MAX_SAFE_INTEGER;
+
+            return aTime - bTime;
+        });
+
         if (cls) {
             fullData = fullData.filter(d => d.classId === cls);
         }
