@@ -1540,18 +1540,33 @@ async function loadAttendanceData() {
 // ===== ROLLBACK ATTENDANCE =====
 // Hanya ADMIN yang boleh menghapus record attendance.
 // Firestore Rules tetap menjadi enforcement utama.
-async function rollbackAttendance(uid, sessionId, nama) {
+async function rollbackAttendance(uid, sessionId, nama, button = null) {
     if (!uid || !sessionId) {
-        alert('❌ Data attendance tidak valid.');
+        showRollbackMessage(
+            'danger',
+            '❌ Data attendance tidak valid.'
+        );
         return;
     }
 
     const confirmed = confirm(
-        `Yakin ingin membatalkan absensi ${nama || 'siswa'}?\n\n` +
-        `Status akan kembali menjadi BELUM ABSEN.`
+        `Batalkan absensi ${nama || 'siswa'}?\n\n` +
+        `Data absensi akan dihapus dan siswa kembali menjadi BELUM ABSEN.`
     );
 
     if (!confirmed) return;
+
+    const originalText = button?.textContent || '↩️ Rollback';
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = '⏳ Membatalkan...';
+    }
+
+    showRollbackMessage(
+        'warning',
+        `⏳ Membatalkan absensi ${nama || 'siswa'}...`
+    );
 
     try {
         const attendanceRef = doc(
@@ -1562,20 +1577,53 @@ async function rollbackAttendance(uid, sessionId, nama) {
 
         await deleteDoc(attendanceRef);
 
-        alert(`✅ Absensi ${nama || 'siswa'} berhasil di-rollback.`);
+        showRollbackMessage(
+            'success',
+            `✅ Absensi ${nama || 'siswa'} berhasil dibatalkan. Siswa sekarang berstatus BELUM ABSEN.`
+        );
 
-        // Refresh tabel agar status langsung menjadi BELUM ABSEN.
         await loadAttendanceData();
 
     } catch (error) {
         console.error('[ROLLBACK ERROR]', error);
 
         if (error.code === 'permission-denied') {
-            alert('❌ Anda tidak memiliki izin untuk melakukan rollback.');
+            showRollbackMessage(
+                'danger',
+                '❌ Anda tidak memiliki izin untuk melakukan rollback.'
+            );
         } else {
-            alert(`❌ Gagal melakukan rollback: ${error.message}`);
+            showRollbackMessage(
+                'danger',
+                `❌ Gagal melakukan rollback: ${error.message}`
+            );
+        }
+
+        if (button) {
+            button.disabled = false;
+            button.textContent = originalText;
         }
     }
+}
+
+function showRollbackMessage(type, message) {
+    let messageEl = document.getElementById('rollbackMessage');
+
+    if (!messageEl) {
+        const container = document.getElementById('attendanceTableContainer');
+
+        if (!container) return;
+
+        messageEl = document.createElement('div');
+        messageEl.id = 'rollbackMessage';
+        messageEl.style.marginBottom = '12px';
+
+        container.parentNode.insertBefore(messageEl, container);
+    }
+
+    messageEl.className = `alert alert-${type}`;
+    messageEl.style.display = 'block';
+    messageEl.textContent = message;
 }
 
 window.rollbackAttendance = rollbackAttendance;
