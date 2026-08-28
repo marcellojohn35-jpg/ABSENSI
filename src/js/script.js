@@ -231,6 +231,87 @@ async function processAbsenPage(user) {
     `;
 }
 
+
+// ===== GEOLOCATION CONFIG (TESTING) =====
+const GEOLOCATION_CONFIG = {
+    enabled: true,
+    targetLat: -6.267010,
+    targetLng: 106.906702,
+    radiusMeters: 50
+};
+
+function getDistanceMeters(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) *
+        Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function verifyAttendanceLocation() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error('GEOLOCATION_NOT_SUPPORTED'));
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const accuracy = position.coords.accuracy;
+
+                const distance = getDistanceMeters(
+                    lat,
+                    lng,
+                    GEOLOCATION_CONFIG.targetLat,
+                    GEOLOCATION_CONFIG.targetLng
+                );
+
+                console.log('[GEOLOCATION]', {
+                    latitude: lat,
+                    longitude: lng,
+                    accuracy,
+                    distance
+                });
+
+                if (distance > GEOLOCATION_CONFIG.radiusMeters) {
+                    reject(new Error(
+                        `OUTSIDE_ATTENDANCE_AREA:${Math.round(distance)}`
+                    ));
+                    return;
+                }
+
+                resolve({
+                    latitude: lat,
+                    longitude: lng,
+                    accuracy,
+                    distance
+                });
+            },
+            (error) => {
+                console.error('[GEOLOCATION ERROR]', error);
+
+                reject(new Error(
+                    `GEOLOCATION_ERROR:${error.code}`
+                ));
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0
+            }
+        );
+    });
+}
+
 // ===== Tombol "Absen Sekarang" (Siswa) =====
 absenNowBtn.onclick = async () => {
     if (isProcessing) return;
@@ -293,6 +374,16 @@ absenNowBtn.onclick = async () => {
 
         const status = (now <= lateTime) ? 'HADIR' : 'TERLAMBAT';
 
+        // ===== GEOLOCATION CHECK =====
+        if (GEOLOCATION_CONFIG.enabled) {
+            absenNowBtn.textContent = "📍 Memeriksa lokasi...";
+
+            const location = await verifyAttendanceLocation();
+
+            console.log('[ABSEN] lokasi valid:', location);
+
+            absenNowBtn.textContent = "⏳ Memproses...";
+        }
 
         console.log('[ABSEN DEBUG FULL]', JSON.stringify({
             uid,
