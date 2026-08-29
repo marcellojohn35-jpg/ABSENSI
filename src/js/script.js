@@ -1,8 +1,15 @@
 console.log("Sistem Absensi URL-Based aktif (Phase 7).");
 
 import {
-    auth, db, provider, signInWithPopup, onAuthStateChanged, signOut
-} from './firebase-config.js';
+    auth,
+    db,
+    provider,
+    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
+    onAuthStateChanged,
+    signOut
+} from './firebase-config.js?v=2';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, orderBy, limit, deleteDoc, runTransaction, writeBatch } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 // ===== Auth redirect handling disabled: using popup login =====
@@ -67,6 +74,61 @@ let currentDashboardSessionStatus = null;
 // di-consume (removeItem) begitu dibaca, supaya tidak ada redirect loop dan
 // login normal dari '/' tidak terpengaruh saat tidak ada route tersimpan.
 const POST_LOGIN_REDIRECT_KEY = 'postLoginRedirect';
+
+function isMobileAuthDevice() {
+    return window.matchMedia('(max-width: 768px)').matches
+        || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function getAuthErrorMessage(error) {
+    const code = String(error?.code || '');
+
+    if (code.includes('popup-closed-by-user')) {
+        return 'Login dibatalkan sebelum selesai. Silakan coba kembali.';
+    }
+
+    if (code.includes('popup-blocked')) {
+        return 'Popup login diblokir browser. Izinkan popup atau coba kembali.';
+    }
+
+    if (code.includes('cancelled-popup-request')) {
+        return 'Permintaan login sebelumnya dibatalkan. Silakan coba kembali.';
+    }
+
+    if (code.includes('unauthorized-domain')) {
+        return 'Domain website belum diizinkan di Firebase Authentication.';
+    }
+
+    if (code.includes('network-request-failed')) {
+        return 'Koneksi internet bermasalah. Periksa jaringan lalu coba kembali.';
+    }
+
+    return 'Login Google gagal. Silakan coba kembali.';
+}
+
+function isInactiveAccount(userData) {
+    return ['INACTIVE', 'DELETED'].includes(userData?.accountStatus);
+}
+
+async function rejectInactiveAccount() {
+    sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
+
+    alert(
+        'Akun ini sedang dinonaktifkan. Hubungi admin sekolah jika ini merupakan kesalahan.'
+    );
+
+    await signOut(auth);
+
+    if (window.location.pathname !== '/') {
+        window.location.href = '/';
+    }
+}
+
+// Membaca hasil login redirect setelah browser kembali dari Google.
+getRedirectResult(auth).catch(error => {
+    console.error('[AUTH REDIRECT ERROR]', error);
+    alert(getAuthErrorMessage(error));
+});
 
 function showSection(id) {
     // Menggunakan class "hidden" (bukan inline style.display) supaya tiap section
@@ -149,8 +211,13 @@ async function processAbsenPage(user) {
         return;
     }
 
-    // STEP 3: CEK ROLE — hanya student yang boleh mengakses /absen
+    // STEP 3: CEK STATUS DAN ROLE
     const uData = userDoc.data();
+
+    if (isInactiveAccount(uData)) {
+        await rejectInactiveAccount();
+        return;
+    }
 
     if (uData.role === 'casis') {
         showSection(dashboardSection);
@@ -950,6 +1017,7 @@ async function populateManualStudentDropdown(userData) {
             const data = docSnap.data();
 
             if (data.role !== 'student') return;
+            if (['INACTIVE', 'DELETED'].includes(data.accountStatus)) return;
 
             // Teacher hanya melihat kelasnya sendiri.
             // Ini UX filtering; Firestore Rules tetap enforcement utama.
@@ -1431,7 +1499,8 @@ async function loadAttendanceData() {
                 uid: d.id,
                 nama: data.nama || 'Unknown',
                 classId: data.classId || '-',
-                role: data.role || 'student'
+                role: data.role || 'student',
+                accountStatus: data.accountStatus || 'ACTIVE'
             });
         });
 
@@ -1456,6 +1525,15 @@ async function loadAttendanceData() {
         let fullData = userList.map(user => {
             const att = attendanceData.find(d => d.uid === user.uid);
 
+            // Siswa nonaktif tidak dihitung BELUM ABSEN pada sesi baru,
+            // tetapi tetap muncul jika memiliki histori pada sesi terpilih.
+            if (
+                ['INACTIVE', 'DELETED'].includes(user.accountStatus)
+                && !att
+            ) {
+                return null;
+            }
+
             let jam = '-';
 
             if (att && att.createdAt) {
@@ -1474,7 +1552,7 @@ async function loadAttendanceData() {
                 createdAt: att ? att.createdAt : null,
                 role: user.role
             };
-        });
+        }).filter(Boolean);
 
         // Urutkan: yang sudah absen berdasarkan jam paling awal, BELUM ABSEN paling bawah.
         fullData.sort((a, b) => {
@@ -2083,6 +2161,8 @@ function renderUserManagement() {
     const roleFilter = document.getElementById('umFilterRole')?.value || '';
 
     umFilteredData = umData.filter(u => {
+        if (u.accountStatus === 'DELETED') return false;
+
         const matchNama = u.nama.toLowerCase().includes(namaFilter);
         const matchKelas = !kelasFilter || u.classId === kelasFilter;
         const matchRole = !roleFilter || u.role === roleFilter;
@@ -2133,6 +2213,7 @@ function renderUserManagement() {
                     <th>Kelas</th>
                     <th>Role</th>
                     <th>NIS</th>
+                    <th>Status Akun</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
@@ -2142,7 +2223,7 @@ function renderUserManagement() {
     if (umFilteredData.length === 0) {
         tableHTML += `
             <tr>
-                <td colspan="6" class="state-message">
+                <td colspan="7" class="state-message">
                     Tidak ada user ditemukan.
                 </td>
             </tr>
@@ -2157,6 +2238,19 @@ function renderUserManagement() {
                     <td>${ROLE_LABEL[u.role] || u.role || '-'}</td>
                     <td>${u.nis || '-'}</td>
                     <td>
+                        <span class="status-label ${
+                            u.accountStatus === 'INACTIVE'
+                                ? 'status-BELUM_ABSEN'
+                                : 'status-HADIR'
+                        }">
+                            ${
+                                u.accountStatus === 'INACTIVE'
+                                    ? 'NONAKTIF'
+                                    : 'AKTIF'
+                            }
+                        </span>
+                    </td>
+                    <td>
                         ${
                             u.role === 'casis'
                                 ? `
@@ -2167,11 +2261,40 @@ function renderUserManagement() {
                                         ❌ Tolak
                                     </button>
                                 `
-                                : `
-                                    <button class="btn-edit" data-uid="${u.uid}">
-                                        ✏️ Edit
-                                    </button>
-                                `
+                                : u.role === 'student'
+                                    ? `
+                                        <button class="btn-edit" data-uid="${u.uid}">
+                                            ✏️ Edit
+                                        </button>
+
+                                        <button
+                                            class="btn btn-secondary btn-toggle-status"
+                                            data-uid="${u.uid}"
+                                            data-next-status="${
+                                                u.accountStatus === 'INACTIVE'
+                                                    ? 'ACTIVE'
+                                                    : 'INACTIVE'
+                                            }"
+                                        >
+                                            ${
+                                                u.accountStatus === 'INACTIVE'
+                                                    ? '✅ Aktifkan'
+                                                    : '🚫 Nonaktifkan'
+                                            }
+                                        </button>
+
+                                        <button
+                                            class="btn btn-secondary btn-delete-user"
+                                            data-uid="${u.uid}"
+                                        >
+                                            🗑️ Hapus
+                                        </button>
+                                    `
+                                    : `
+                                        <button class="btn-edit" data-uid="${u.uid}">
+                                            ✏️ Edit
+                                        </button>
+                                    `
                         }
                     </td>
                 </tr>
@@ -2201,6 +2324,105 @@ function renderUserManagement() {
         btn.onclick = () => openEditModal(btn.dataset.uid);
     });
 
+    document.querySelectorAll('.btn-toggle-status').forEach(btn => {
+        btn.onclick = async () => {
+            const uid = btn.dataset.uid;
+            const nextStatus = btn.dataset.nextStatus;
+            const user = umData.find(item => item.uid === uid);
+
+            if (!user || user.role !== 'student') return;
+            if (!['ACTIVE', 'INACTIVE'].includes(nextStatus)) return;
+
+            const actionLabel =
+                nextStatus === 'INACTIVE'
+                    ? 'menonaktifkan'
+                    : 'mengaktifkan kembali';
+
+            if (!confirm(
+                `Yakin ingin ${actionLabel} ${user.nama || 'siswa ini'}?`
+            )) {
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.textContent = '⏳ Memproses...';
+
+                await updateDoc(doc(db, 'users', uid), {
+                    accountStatus: nextStatus,
+                    updatedAt: serverTimestamp()
+                });
+
+                user.accountStatus = nextStatus;
+
+                alert(
+                    nextStatus === 'INACTIVE'
+                        ? `🚫 ${user.nama} berhasil dinonaktifkan.`
+                        : `✅ ${user.nama} berhasil diaktifkan kembali.`
+                );
+
+                renderUserManagement();
+
+            } catch (error) {
+                console.error('[ACCOUNT STATUS ERROR]', error);
+                alert('❌ Gagal mengubah status akun siswa.');
+
+                btn.disabled = false;
+                btn.textContent =
+                    nextStatus === 'INACTIVE'
+                        ? '🚫 Nonaktifkan'
+                        : '✅ Aktifkan';
+            }
+        };
+    });
+
+    document.querySelectorAll('.btn-delete-user').forEach(btn => {
+        btn.onclick = async () => {
+            const uid = btn.dataset.uid;
+            const user = umData.find(item => item.uid === uid);
+
+            if (!user || user.role !== 'student') return;
+
+            const confirmed = confirm(
+                `Hapus akun ${user.nama || 'siswa ini'}?\n\n` +
+                `• Siswa tidak bisa login atau absen\n` +
+                `• Siswa hilang dari Manajemen User\n` +
+                `• Histori absensi lama tetap disimpan\n\n` +
+                `Tindakan ini tidak bisa dibatalkan melalui website.`
+            );
+
+            if (!confirmed) return;
+
+            try {
+                btn.disabled = true;
+                btn.textContent = '⏳ Menghapus...';
+
+                await updateDoc(doc(db, 'users', uid), {
+                    accountStatus: 'DELETED',
+                    deletedAt: serverTimestamp(),
+                    deletedBy: currentUser?.uid || null,
+                    updatedAt: serverTimestamp()
+                });
+
+                user.accountStatus = 'DELETED';
+
+                alert(`🗑️ Akun ${user.nama} berhasil dihapus.`);
+                renderUserManagement();
+
+            } catch (error) {
+                console.error('[DELETE STUDENT ERROR]', error);
+
+                alert(
+                    '❌ Gagal menghapus akun siswa. ' +
+                    'Pastikan akun yang digunakan adalah admin.'
+                );
+
+                btn.disabled = false;
+                btn.textContent = '🗑️ Hapus';
+            }
+        };
+    });
+
     // ===== APPROVE CASIS =====
     document.querySelectorAll('.btn-approve').forEach(btn => {
         btn.onclick = async () => {
@@ -2219,6 +2441,7 @@ function renderUserManagement() {
 
                 await updateDoc(doc(db, 'users', uid), {
                     role: 'student',
+                    accountStatus: 'ACTIVE',
                     updatedAt: serverTimestamp()
                 });
 
@@ -2421,6 +2644,17 @@ onAuthStateChanged(auth, async (user) => {
 
         const userData = userDoc.data();
 
+        if (isInactiveAccount(userData)) {
+            await rejectInactiveAccount();
+            return;
+        }
+
+        if (!['student', 'teacher', 'admin', 'casis'].includes(userData.role)) {
+            alert('Role akun tidak valid. Hubungi admin sekolah.');
+            await signOut(auth);
+            return;
+        }
+
         if (userData.role === 'casis') {
             showSection(dashboardSection);
             await renderCasisDashboard(userData);
@@ -2493,6 +2727,7 @@ function setupProfileForm(user) {
                 email: user.email || null,
                 classId,
                 role: 'casis',
+                accountStatus: 'ACTIVE',
                 updatedAt: serverTimestamp()
             }, { merge: true });
 
@@ -2676,17 +2911,22 @@ function showAttendanceResult(success, data) {
 loginBtn.onclick = async () => {
     try {
         loginBtn.disabled = true;
-        loginBtn.textContent = '⏳ Login...';
+        loginBtn.textContent = '⏳ Menghubungkan Google...';
+
+        if (isMobileAuthDevice()) {
+            await signInWithRedirect(auth, provider);
+            return;
+        }
 
         await signInWithPopup(auth, provider);
 
-    } catch (e) {
-        console.error('[AUTH LOGIN ERROR]', e);
-        alert('Login gagal: ' + (e.message || e));
+    } catch (error) {
+        console.error('[AUTH LOGIN ERROR]', error);
+        alert(getAuthErrorMessage(error));
 
     } finally {
         loginBtn.disabled = false;
-        loginBtn.textContent = 'Login dengan Google';
+        loginBtn.textContent = 'Masuk dengan Google';
     }
 };
 

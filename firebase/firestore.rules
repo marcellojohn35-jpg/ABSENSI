@@ -41,7 +41,8 @@ service cloud.firestore {
               'role',
               'classId',
               'uid',
-              'email'
+              'email',
+              'accountStatus'
             ])
           )
         );
@@ -267,6 +268,19 @@ service cloud.firestore {
         return user.role;
       }
 
+      function isCurrentUserActive() {
+        let user = get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data;
+
+        // Akun lama yang belum memiliki accountStatus dianggap ACTIVE.
+        return user != null
+          && (
+            !user.keys().hasAny(['accountStatus'])
+            || user.accountStatus == 'ACTIVE'
+          );
+      }
+
       // ===== TEACHER MANUAL ATTENDANCE HELPERS =====
       function isValidManualStatus(status) {
         return status == 'IZIN' || status == 'SAKIT' || status == 'ALFA';
@@ -283,6 +297,10 @@ service cloud.firestore {
         ).data;
         return targetUser != null
           && targetUser.role == 'student'
+          && (
+            !targetUser.keys().hasAny(['accountStatus'])
+            || targetUser.accountStatus == 'ACTIVE'
+          )
           && targetUser.classId == clientClassId;
       }
 
@@ -303,6 +321,10 @@ service cloud.firestore {
         ).data;
         return targetUser != null
           && targetUser.role == 'student'
+          && (
+            !targetUser.keys().hasAny(['accountStatus'])
+            || targetUser.accountStatus == 'ACTIVE'
+          )
           && targetUser.classId == clientClassId;
       }
 
@@ -313,7 +335,12 @@ service cloud.firestore {
         let targetUser = get(
           /databases/$(database)/documents/users/$(targetUid)
         ).data;
-        return targetUser != null && targetUser.role == 'student';
+        return targetUser != null
+          && targetUser.role == 'student'
+          && (
+            !targetUser.keys().hasAny(['accountStatus'])
+            || targetUser.accountStatus == 'ACTIVE'
+          );
       }
 
       // Variant untuk UPDATE (korekasi): sessionId diambil dari resource.data
@@ -339,6 +366,7 @@ service cloud.firestore {
       // Teacher manual attendance HANYA untuk student di classId-nya sendiri.
       // Admin manual attendance untuk student di kelas mana pun.
       allow create: if request.auth != null
+        && isCurrentUserActive()
         && (
           // ===== STUDENT QR =====
           (getCurrentUserRole() == 'student'
