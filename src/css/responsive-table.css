@@ -395,3 +395,161 @@
     font-size: 8px !important;
   }
 }
+
+
+/* ============================================================
+   CLEAN PREMIUM TABLE
+   ============================================================ */
+
+.attendance-table {
+  background: #fff;
+}
+
+.attendance-table thead th {
+  background: #f8fafc !important;
+  color: #667085 !important;
+  font-size: 10px !important;
+  font-weight: 750 !important;
+  letter-spacing: .055em !important;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e6eaf0 !important;
+}
+
+.attendance-table tbody tr {
+  transition:
+    background-color .14s ease,
+    box-shadow .14s ease;
+}
+
+.attendance-table tbody tr:nth-child(even) {
+  background: #fcfcfd;
+}
+
+.attendance-table tbody tr:hover {
+  background: #f8fafc !important;
+}
+
+.attendance-table tbody td {
+  border-bottom: 1px solid #eef1f4 !important;
+  color: #344054;
+}
+
+/* Nama jadi fokus utama */
+.attendance-table tbody td:nth-child(2) {
+  color: #1d2939 !important;
+  font-weight: 680 !important;
+  letter-spacing: -.01em;
+}
+
+/* Kelas dibuat lebih halus */
+.attendance-table tbody td:nth-child(3) {
+  color: #667085 !important;
+  font-weight: 600;
+}
+
+/* Jam terasa lebih rapi */
+.attendance-table tbody td:nth-child(5) {
+  color: #344054 !important;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status badge */
+.attendance-table .status-label {
+  border: 1px solid transparent;
+  box-shadow: none !important;
+}
+
+/* HADIR */
+.attendance-table .status-HADIR {
+  background: #ecfdf3 !important;
+  color: #16803c !important;
+  border-color: #c9f0d6 !important;
+}
+
+/* TERLAMBAT */
+.attendance-table .status-TERLAMBAT {
+  background: #fff7ed !important;
+  color: #c25d0b !important;
+  border-color: #fed7aa !important;
+}
+
+/* IZIN */
+.attendance-table .status-IZIN {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+  border-color: #dbeafe !important;
+}
+
+/* SAKIT */
+.attendance-table .status-SAKIT {
+  background: #faf5ff !important;
+  color: #9333ea !important;
+  border-color: #e9d5ff !important;
+}
+
+/* ALFA */
+.attendance-table .status-ALFA {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+}
+
+/* BELUM ABSEN */
+.attendance-table .status-BELUM_ABSEN {
+  background: #f2f4f7 !important;
+  color: #667085 !important;
+  border-color: #e4e7ec !important;
+}
+
+
+/* ============================================================
+   MOBILE PREMIUM COMPACT
+   ============================================================ */
+
+@media (max-width: 720px) {
+
+  .table-responsive {
+    border: 1px solid #e4e7ec !important;
+    border-radius: 12px !important;
+    box-shadow:
+      0 1px 2px rgba(16,24,40,.025),
+      0 5px 16px rgba(16,24,40,.025);
+  }
+
+  .attendance-table thead th {
+    height: 34px !important;
+    background: #f7f9fb !important;
+    font-size: 9.5px !important;
+  }
+
+  .attendance-table tbody td {
+    height: 35px !important;
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+  }
+
+  .attendance-table tbody td:nth-child(2) {
+    font-size: 11.5px !important;
+    line-height: 1.2 !important;
+  }
+
+  .attendance-table tbody td:nth-child(3) {
+    font-size: 10px !important;
+  }
+
+  .attendance-table tbody td:nth-child(5) {
+    font-size: 10.5px !important;
+  }
+
+  .attendance-table .status-label {
+    border-radius: 6px !important;
+    font-size: 8.5px !important;
+    font-weight: 750 !important;
+    padding: 3px 4px !important;
+  }
+
+  .attendance-table tbody tr:active {
+    background: #f2f4f7 !important;
+  }
+}
