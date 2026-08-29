@@ -1496,7 +1496,18 @@ async function loadAttendanceData() {
                     <td>${d.jam}</td>
                     <td>
                         <span class="status-label ${statusClass}">
-                            ${d.status === 'BELUM_ABSEN' ? 'BELUM ABSEN' : d.status}
+                            <span class="status-full">
+                                ${d.status === 'BELUM_ABSEN' ? 'BELUM ABSEN' : d.status}
+                            </span>
+                            <span class="status-short">
+                                ${
+                                    d.status === 'BELUM_ABSEN'
+                                        ? 'BELUM'
+                                        : d.status === 'TERLAMBAT'
+                                            ? 'TELAT'
+                                            : d.status
+                                }
+                            </span>
                         </span>
                     </td>
                     <td>
@@ -1505,9 +1516,10 @@ async function loadAttendanceData() {
                                 ? `<button
                                     class="btn btn-secondary"
                                     style="padding:6px 10px;font-size:12px;"
-                                    onclick="rollbackAttendance('${d.uid}', '${d.sessionId}', '${String(d.nama).replace(/'/g, "\\'")}')"
+                                    onclick="rollbackAttendance('${d.uid}', '${d.sessionId}', '${String(d.nama).replace(/'/g, "\\'")}', this)"
                                    >
-                                    ↩️ Rollback
+                                    <span class="rollback-full">↩️ Rollback</span>
+                                    <span class="rollback-short">↩</span>
                                    </button>`
                                 : '-'
                         }

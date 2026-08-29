@@ -609,11 +609,125 @@
   }
 }
 
-/* DEBUG TEST */
-.attendance-table {
-  background: red !important;
+
+/* ============================================================
+   FINAL MOBILE TABLE FIT
+   ============================================================ */
+
+.status-short,
+.rollback-short {
+  display: none;
 }
 
-.attendance-table td {
-  background: red !important;
+@media (max-width: 720px) {
+
+  .table-responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .attendance-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+  }
+
+  /* Hide No + Tanggal only */
+  .attendance-table th:nth-child(1),
+  .attendance-table td:nth-child(1),
+  .attendance-table th:nth-child(4),
+  .attendance-table td:nth-child(4) {
+    display: none !important;
+  }
+
+  /* Restore Aksi */
+  .attendance-table th:nth-child(7),
+  .attendance-table td:nth-child(7) {
+    display: table-cell !important;
+  }
+
+  /* NAMA */
+  .attendance-table th:nth-child(2),
+  .attendance-table td:nth-child(2) {
+    width: auto !important;
+    min-width: 0 !important;
+    padding-left: 10px !important;
+    padding-right: 5px !important;
+  }
+
+  .attendance-table td:nth-child(2) {
+    overflow-wrap: anywhere;
+  }
+
+  /* KELAS */
+  .attendance-table th:nth-child(3),
+  .attendance-table td:nth-child(3) {
+    width: 42px !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+  }
+
+  /* JAM */
+  .attendance-table th:nth-child(5),
+  .attendance-table td:nth-child(5) {
+    width: 44px !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+  }
+
+  /* STATUS */
+  .attendance-table th:nth-child(6),
+  .attendance-table td:nth-child(6) {
+    width: 58px !important;
+    padding-left: 3px !important;
+    padding-right: 3px !important;
+  }
+
+  .attendance-table .status-label {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 4px 2px !important;
+    box-sizing: border-box;
+    text-align: center;
+    overflow: visible !important;
+  }
+
+  .status-full {
+    display: none;
+  }
+
+  .status-short {
+    display: inline;
+    font-size: 8px;
+    font-weight: 750;
+  }
+
+  /* ROLLBACK */
+  .attendance-table th:nth-child(7),
+  .attendance-table td:nth-child(7) {
+    width: 36px !important;
+    padding: 2px !important;
+    text-align: center;
+  }
+
+  .rollback-full {
+    display: none;
+  }
+
+  .rollback-short {
+    display: inline;
+  }
+
+  .attendance-table td:nth-child(7) .btn {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+    border-radius: 7px !important;
+    font-size: 14px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
