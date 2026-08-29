@@ -29,12 +29,8 @@
 /* ---------- Base ---------- */
 
 body {
-  background:
-    linear-gradient(
-      to bottom,
-      #f8fafc 0,
-      var(--ui-bg) 260px
-    );
+  background: linear-gradient(135deg, #0B2545 0%, #13315B 35%, #1B4F72 70%, #2E6F8E 100%);
+  background-attachment: fixed;
   color: var(--ui-text);
 }
 
