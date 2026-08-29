@@ -217,7 +217,35 @@ async function processAbsenPage(user) {
         return;
     }
 
-    absenStatus.textContent = '✅ Session valid.';
+    const hourWIB = Number(
+        new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Jakarta',
+            hour: '2-digit',
+            hour12: false
+        }).format(new Date())
+    );
+
+    let greeting = 'Halo';
+
+    if (hourWIB >= 4 && hourWIB < 11) {
+        greeting = 'Selamat pagi';
+    } else if (hourWIB >= 11 && hourWIB < 15) {
+        greeting = 'Selamat siang';
+    } else if (hourWIB >= 15 && hourWIB < 18) {
+        greeting = 'Selamat sore';
+    } else {
+        greeting = 'Selamat malam';
+    }
+
+    absenStatus.innerHTML = `
+        <span class="student-greeting">
+            ${greeting}, ${uData.nama || 'Siswa'}
+        </span>
+        <span class="student-reminder">
+            Jangan lupa absen hari ini.
+        </span>
+    `;
+
     absenContent.innerHTML = '';
     absenActionArea.style.display = 'block';
 
@@ -415,9 +443,19 @@ absenNowBtn.onclick = async () => {
         });
 
         // SUCCESS: tampilkan success screen
+        const attendanceTime = new Intl.DateTimeFormat('id-ID', {
+            timeZone: 'Asia/Jakarta',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).format(new Date());
+
         showAttendanceResult(true, {
             status,
-            tanggal: s.date
+            tanggal: s.date,
+            jam: attendanceTime,
+            nama: userData.nama || 'Siswa',
+            kelas: userData.classId || '-'
         });
 
     } catch (error) {
@@ -2464,6 +2502,79 @@ function showAttendanceResult(success, data) {
     if (success) {
         // Tampilkan SUCCESS SCREEN
         showSection(successScreenSection);
+
+        const successCard = successScreenSection.querySelector('.student-result-card');
+
+        if (successCard) {
+            const statusClass =
+                data.status === 'TERLAMBAT'
+                    ? 'student-success-status is-late'
+                    : 'student-success-status is-present';
+
+            const statusText =
+                data.status === 'TERLAMBAT'
+                    ? 'Terlambat'
+                    : 'Hadir';
+
+            successCard.innerHTML = `
+                <div class="student-result-icon" aria-hidden="true">✓</div>
+
+                <span class="student-success-eyebrow">
+                    Absensi tercatat
+                </span>
+
+                <h2>Absensi Berhasil</h2>
+
+                <div class="${statusClass}">
+                    ${statusText}
+                </div>
+
+                <div class="student-success-info">
+                    <div class="student-success-primary">
+                        <span class="student-success-label">Jam datang</span>
+                        <strong>${data.jam || '-'}</strong>
+                        <span class="student-success-timezone">WIB</span>
+                    </div>
+
+                    <div class="student-success-grid">
+                        <div>
+                            <span>Nama</span>
+                            <strong>${data.nama || '-'}</strong>
+                        </div>
+
+                        <div>
+                            <span>Kelas</span>
+                            <strong>${data.kelas || '-'}</strong>
+                        </div>
+
+                        <div>
+                            <span>Tanggal</span>
+                            <strong>${data.tanggal || '-'}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="student-success-note">
+                    Absensi kamu sudah tercatat untuk sesi ini.
+                </p>
+
+                <div class="student-result-actions">
+                    <button
+                        id="successBackBtn"
+                        class="btn btn-secondary btn-block"
+                    >
+                        Lihat Absensi
+                    </button>
+
+                    <button
+                        id="successLogoutBtn"
+                        class="btn btn-primary btn-block"
+                    >
+                        Keluar
+                    </button>
+                </div>
+            `;
+        }
 
         // Tombol logout di success screen
         document.getElementById('successBackBtn').onclick = () => {
