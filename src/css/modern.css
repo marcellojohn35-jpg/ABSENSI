@@ -500,3 +500,182 @@ tbody tr:hover {
     font-size: 12px;
   }
 }
+
+/* ===== COMPACT ATTENDANCE MOBILE V2 START ===== */
+.ac-mobile-meta,
+.attendance-date-group {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    table.attendance-compact-table {
+        display: block !important;
+        width: 100% !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+        background: #fff !important;
+        border-radius: 18px !important;
+        overflow: hidden !important;
+    }
+
+    table.attendance-compact-table thead {
+        display: none !important;
+    }
+
+    table.attendance-compact-table tbody {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    table.attendance-compact-table tr.attendance-compact-row {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto 38px !important;
+        grid-template-areas:
+            "name status action"
+            "name status action" !important;
+        align-items: center !important;
+        gap: 4px 10px !important;
+        min-height: 76px !important;
+        padding: 12px 14px !important;
+        margin: 0 !important;
+        background: #fff !important;
+        border: 0 !important;
+        border-bottom: 1px solid #e8edf3 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+
+    table.attendance-compact-table tr.attendance-compact-row:last-child {
+        border-bottom: 0 !important;
+    }
+
+    table.attendance-compact-table tr::before,
+    table.attendance-compact-table tr::after,
+    table.attendance-compact-table td::before,
+    table.attendance-compact-table td::after {
+        content: none !important;
+        display: none !important;
+    }
+
+    table.attendance-compact-table td {
+        display: none !important;
+        width: auto !important;
+        min-width: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+    }
+
+    table.attendance-compact-table td.ac-name {
+        grid-area: name !important;
+        display: block !important;
+        min-width: 0 !important;
+        color: #142238 !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        line-height: 1.3 !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .ac-mobile-meta {
+        display: block !important;
+        margin-top: 5px !important;
+        color: #768296 !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        line-height: 1.25 !important;
+    }
+
+    table.attendance-compact-table td.ac-status {
+        grid-area: status !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-width: 66px !important;
+        min-height: 32px !important;
+        padding: 6px 10px !important;
+        border: 1px solid #dce4ee !important;
+        border-radius: 999px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+    }
+
+    table.attendance-compact-table td.ac-status[data-status="HADIR"] {
+        color: #16833b !important;
+        background: #edf9f1 !important;
+        border-color: #bde8cb !important;
+    }
+
+    table.attendance-compact-table td.ac-status[data-status="TERLAMBAT"] {
+        color: #b85b00 !important;
+        background: #fff6e8 !important;
+        border-color: #f4d4a4 !important;
+    }
+
+    table.attendance-compact-table td.ac-status[data-status="IZIN"] {
+        color: #1768d3 !important;
+        background: #edf5ff !important;
+        border-color: #bfd7fb !important;
+    }
+
+    table.attendance-compact-table td.ac-status[data-status="SAKIT"] {
+        color: #8635c5 !important;
+        background: #faf2ff !important;
+        border-color: #dfc4f1 !important;
+    }
+
+    table.attendance-compact-table td.ac-status[data-status="ALFA"] {
+        color: #cf3344 !important;
+        background: #fff2f3 !important;
+        border-color: #f2c3c8 !important;
+    }
+
+    table.attendance-compact-table td.ac-action {
+        grid-area: action !important;
+        display: block !important;
+    }
+
+    table.attendance-compact-table td.ac-action button,
+    table.attendance-compact-table td.ac-action a {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        padding: 0 !important;
+        border: 1px solid #dde4ec !important;
+        border-radius: 10px !important;
+        background: #f8fafc !important;
+        color: #26384c !important;
+        box-shadow: none !important;
+        font-size: 0 !important;
+    }
+
+    table.attendance-compact-table td.ac-action button::after,
+    table.attendance-compact-table td.ac-action a::after {
+        content: "⋮" !important;
+        display: block !important;
+        font-size: 20px !important;
+        line-height: 1 !important;
+    }
+
+    .attendance-date-group {
+        display: block !important;
+        margin: 0 !important;
+        padding: 13px 14px !important;
+        color: #12355d !important;
+        background: #f7faff !important;
+        border-bottom: 1px solid #e1e8f0 !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+    }
+}
+/* ===== COMPACT ATTENDANCE MOBILE V2 END ===== */
