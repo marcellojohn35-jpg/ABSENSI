@@ -212,7 +212,6 @@ async function processAbsenPage(user) {
         absenProfileInfo.innerHTML = `
             <p><strong>Nama:</strong> ${uData.nama || 'Belum diisi'}</p>
             <p><strong>Kelas:</strong> ${uData.classId || 'Belum diisi'}</p>
-            <p><strong>NIS:</strong> ${uData.nis || '-'}</p>
         `;
         return;
     }
@@ -255,7 +254,6 @@ async function processAbsenPage(user) {
     absenProfileInfo.innerHTML = `
         <p><strong>Nama:</strong> ${uData.nama || 'Belum diisi'}</p>
         <p><strong>Kelas:</strong> ${uData.classId || 'Belum diisi'}</p>
-        <p><strong>NIS:</strong> ${uData.nis || '-'}</p>
     `;
 }
 
