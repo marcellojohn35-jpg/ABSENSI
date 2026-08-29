@@ -107,7 +107,6 @@ async function processAbsenPage(user) {
     // Reset UI absen terlebih dahulu
     absenActionArea.style.display = 'none';
     sessionInfoDisplay.style.display = 'none';
-    absenContent.innerHTML = '';
     absenProfileInfo.style.display = 'none';
     absenStatus.textContent = '';
 
@@ -238,14 +237,13 @@ async function processAbsenPage(user) {
 
     absenStatus.innerHTML = `
         <span class="student-greeting">
-            ${greeting}, ${uData.nama || 'Siswa'}
+            ${greeting}, ${uData.nama || 'Siswa'} 👋
         </span>
         <span class="student-reminder">
-            Jangan lupa absen hari ini.
+            Siap memulai hari? Catat kehadiranmu sekarang.
         </span>
     `;
 
-    absenContent.innerHTML = '';
     absenActionArea.style.display = 'block';
 
     // Tampilkan info user yang sedang absen
