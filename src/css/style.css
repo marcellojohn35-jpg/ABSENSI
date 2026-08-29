@@ -896,6 +896,47 @@ form#profileForm, form#editUserForm {
 .hidden { display: none !important; }
 .mt-16 { margin-top: 16px; }
 .mb-0 { margin-bottom: 0; }
+.mb-2 { margin-bottom: 2px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-16 { margin-bottom: 16px; }
+.w-full { width: 100%; }
+.flex-1 { flex: 1; }
+
+.toolbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.scroll-list-box {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-select-wide { min-width: 220px; }
+
+.filter-date-label {
+  align-self: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.empty-state-inline { padding: 12px; text-align: center; }
+.btn-sm { padding: 6px 10px; font-size: 12px; }
 .text-secondary { color: var(--text-secondary); }
 .text-center { text-align: center; }
 
