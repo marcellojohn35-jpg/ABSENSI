@@ -619,7 +619,7 @@ async function renderDashboard(userData) {
                     ${panelDesc}
                 </p>
 
-                <div style="margin-bottom:12px;">
+                <div <div class="mb-12">
                     <input
                         type="text"
                         id="manualStudentSearch"
