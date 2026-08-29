@@ -90,6 +90,23 @@ function formatTimestampToWIBTime(timestamp) {
     return new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
 }
 
+function formatAttendanceDate(dateValue) {
+    if (!dateValue || dateValue === '-') return '-';
+
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
+    if (!match) return dateValue;
+
+    const [, year, month, day] = match;
+    const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+
+    return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC'
+    }).format(date).replace(/\./g, '');
+}
+
 // ===== Session ID resolver (LEGACY-SAFE) =====
 // Session BARU (hasil handleCreateSession) selalu punya field `sessionId` (== doc.id, "session_NNN").
 // Session LAMA (attendanceSessions/{tanggal}, dari sebelum redesign) TIDAK punya field `sessionId`
@@ -906,14 +923,14 @@ async function initSessionSelector() {
     currentDashboardSessionId = select.value || null;
     currentDashboardSessionDate = selectedOption ? selectedOption.dataset.date : null;
     currentDashboardSessionStatus = selectedOption ? selectedOption.dataset.status : null;
-    if (dateLabel) dateLabel.textContent = currentDashboardSessionDate ? `Tanggal: ${currentDashboardSessionDate}` : '';
+    if (dateLabel) dateLabel.textContent = currentDashboardSessionDate ? `Tanggal: ${formatAttendanceDate(currentDashboardSessionDate)}` : '';
 
     select.onchange = async () => {
         const opt = select.options[select.selectedIndex];
         currentDashboardSessionId = select.value || null;
         currentDashboardSessionDate = opt ? opt.dataset.date : null;
         currentDashboardSessionStatus = opt ? opt.dataset.status : null;
-        if (dateLabel) dateLabel.textContent = currentDashboardSessionDate ? `Tanggal: ${currentDashboardSessionDate}` : '';
+        if (dateLabel) dateLabel.textContent = currentDashboardSessionDate ? `Tanggal: ${formatAttendanceDate(currentDashboardSessionDate)}` : '';
     };
 }
 
@@ -1520,42 +1537,39 @@ async function loadAttendanceData() {
 
         attendanceFilteredData.forEach((d, i) => {
             const statusClass = `status-${d.status}`;
+            const statusLabel = d.status === 'BELUM_ABSEN' ? 'BELUM ABSEN' : d.status;
+            const dateLabel = formatAttendanceDate(d.tanggal);
 
             html += `
                 <tr>
-                    <td>${i + 1}</td>
-                    <td>${d.nama}</td>
-                    <td>${d.classId}</td>
-                    <td>${d.tanggal}</td>
-                    <td>${d.jam}</td>
-                    <td>
-                        <span class="status-label ${statusClass}">
-                            <span class="status-full">
-                                ${d.status === 'BELUM_ABSEN' ? 'BELUM ABSEN' : d.status}
-                            </span>
-                            <span class="status-short">
-                                ${
-                                    d.status === 'BELUM_ABSEN'
-                                        ? 'BELUM'
-                                        : d.status === 'TERLAMBAT'
-                                            ? 'TELAT'
-                                            : d.status
-                                }
-                            </span>
+                    <td class="attendance-number-cell">${i + 1}</td>
+                    <td class="attendance-name-cell">
+                        <span class="attendance-name-text">${d.nama}</span>
+                        <span class="attendance-mobile-meta" aria-label="Kelas ${d.classId}, tanggal ${dateLabel}, pukul ${d.jam}">
+                            <span>${d.classId}</span>
+                            <span>${dateLabel}</span>
+                            <span>${d.jam}</span>
                         </span>
                     </td>
-                    <td>
+                    <td class="attendance-class-cell">${d.classId}</td>
+                    <td class="attendance-date-cell">${dateLabel}</td>
+                    <td class="attendance-time-cell">${d.jam}</td>
+                    <td class="attendance-status-cell">
+                        <span class="status-label ${statusClass}">${statusLabel}</span>
+                    </td>
+                    <td class="attendance-action-cell">
                         ${
                             d.status !== 'BELUM_ABSEN'
                                 ? `<button
-                                    class="btn btn-secondary"
-                                    style="padding:6px 10px;font-size:12px;"
+                                    class="btn btn-secondary attendance-rollback-btn"
                                     onclick="rollbackAttendance('${d.uid}', '${d.sessionId}', '${String(d.nama).replace(/'/g, "\\'")}', this)"
+                                    aria-label="Batalkan absensi ${d.nama}"
+                                    title="Batalkan absensi"
                                    >
-                                    <span class="rollback-full">↩️ Rollback</span>
-                                    <span class="rollback-short">↩</span>
+                                    <span aria-hidden="true">↩</span>
+                                    <span>Batalkan</span>
                                    </button>`
-                                : '-'
+                                : '<span class="attendance-no-action" aria-hidden="true">—</span>'
                         }
                     </td>
                 </tr>
