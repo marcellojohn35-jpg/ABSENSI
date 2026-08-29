@@ -731,3 +731,101 @@
     justify-content: center;
   }
 }
+
+/* ============================================================
+   MOBILE TABLE POLISH V2
+   ============================================================ */
+
+@media (max-width: 720px) {
+
+  .attendance-table tbody td {
+    height: 40px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+
+  /* Nama */
+  .attendance-table th:nth-child(2),
+  .attendance-table td:nth-child(2) {
+    padding-left: 10px !important;
+    padding-right: 7px !important;
+  }
+
+  .attendance-table td:nth-child(2) {
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+    font-weight: 680 !important;
+  }
+
+  /* Kelas */
+  .attendance-table th:nth-child(3),
+  .attendance-table td:nth-child(3) {
+    width: 44px !important;
+    font-size: 10px !important;
+  }
+
+  /* Jam */
+  .attendance-table th:nth-child(5),
+  .attendance-table td:nth-child(5) {
+    width: 46px !important;
+    font-size: 10.5px !important;
+  }
+
+  /* Status */
+  .attendance-table th:nth-child(6),
+  .attendance-table td:nth-child(6) {
+    width: 62px !important;
+    padding-left: 3px !important;
+    padding-right: 3px !important;
+  }
+
+  .attendance-table .status-label {
+    min-height: 24px;
+    padding: 4px 3px !important;
+    border-radius: 7px !important;
+  }
+
+  .status-short {
+    font-size: 9px !important;
+    font-weight: 750 !important;
+    letter-spacing: .01em;
+  }
+
+  /* Aksi / rollback */
+  .attendance-table th:nth-child(7),
+  .attendance-table td:nth-child(7) {
+    width: 38px !important;
+    padding-left: 2px !important;
+    padding-right: 4px !important;
+  }
+
+  .attendance-table td:nth-child(7) .btn {
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+
+    padding: 0 !important;
+    border-radius: 8px !important;
+
+    background: #f8fafc !important;
+    color: #475467 !important;
+    border: 1px solid #e4e7ec !important;
+    box-shadow: none !important;
+  }
+
+  .attendance-table td:nth-child(7) .btn:active {
+    background: #eef2f6 !important;
+    transform: scale(.96);
+  }
+
+  .rollback-short {
+    font-size: 13px !important;
+  }
+
+  /* Header lebih halus */
+  .attendance-table thead th {
+    height: 36px !important;
+    font-size: 9px !important;
+    color: #667085 !important;
+  }
+}
