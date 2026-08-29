@@ -1,0 +1,246 @@
+/* ============================================================
+   STUDENT UI V2
+   ============================================================ */
+
+.student-page {
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.student-shell {
+  width: 100%;
+}
+
+.student-card {
+  background: #ffffff;
+  border: 1px solid #e8ecf2;
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, .03),
+    0 10px 30px rgba(16, 24, 40, .06);
+}
+
+.student-header {
+  margin-bottom: 20px;
+}
+
+.student-eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #667085;
+}
+
+.student-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 760;
+  letter-spacing: -.025em;
+  color: #101828;
+}
+
+.student-subtitle {
+  margin: 7px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #667085;
+}
+
+/* MAIN STATUS */
+
+.student-status-panel {
+  padding: 20px 16px;
+  margin-bottom: 14px;
+  border: 1px solid #e7ebf0;
+  border-radius: 17px;
+  text-align: center;
+  background: #fafbfc;
+}
+
+.student-status-icon {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #eef4ff;
+  color: #2563eb;
+
+  font-size: 20px;
+  font-weight: 800;
+}
+
+#absenStatus {
+  margin: 0 !important;
+  color: #344054 !important;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+/* SESSION */
+
+#sessionInfoDisplay.student-session {
+  margin: 0 0 14px !important;
+  padding: 14px 15px !important;
+
+  border: 1px solid #e7ebf0 !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+
+  font-size: 13px;
+  line-height: 1.6;
+  color: #475467;
+}
+
+/* PROFILE */
+
+#absenProfileInfo.student-profile {
+  margin: 14px 0 0 !important;
+  padding: 13px 15px !important;
+
+  background: #f8fafc !important;
+  border: 1px solid #edf0f4 !important;
+  border-radius: 14px !important;
+
+  color: #475467;
+}
+
+#absenProfileInfo.student-profile p {
+  margin: 4px 0 !important;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+#absenProfileInfo.student-profile strong {
+  color: #101828;
+}
+
+/* CTA */
+
+.student-action {
+  margin-top: 16px;
+}
+
+#absenNowBtn.student-primary-action {
+  min-height: 52px;
+  border-radius: 13px !important;
+
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: -.01em;
+
+  box-shadow: 0 4px 12px rgba(37, 99, 235, .15);
+}
+
+.student-help {
+  margin: 11px 4px 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  text-align: center;
+  color: #98a2b3;
+}
+
+
+/* ============================================================
+   RESULT / SUCCESS
+   ============================================================ */
+
+.student-result-card {
+  text-align: center;
+}
+
+.student-result-icon {
+  width: 62px;
+  height: 62px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 4px auto 16px;
+  border-radius: 50%;
+
+  background: #ecfdf3;
+  color: #027a48;
+
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.student-result-card h2 {
+  margin: 0;
+  color: #101828;
+  font-size: 23px;
+  letter-spacing: -.025em;
+}
+
+.student-result-card > p {
+  max-width: 300px;
+  margin: 8px auto 20px;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.student-result-actions {
+  margin-top: 20px;
+  display: grid;
+  gap: 9px;
+}
+
+.student-result-actions .btn {
+  min-height: 47px;
+  border-radius: 12px !important;
+}
+
+/* OLD ATTENDANCE RESULT SCREEN */
+
+#attendanceResultData {
+  margin: 16px 0;
+  padding: 14px 15px;
+
+  border: 1px solid #e7ebf0;
+  border-radius: 14px;
+  background: #f8fafc;
+
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 520px) {
+  #absenSection.auth-page,
+  #attendanceResultSection.auth-page,
+  #successScreenSection.auth-page {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .student-card {
+    padding: 19px 17px;
+    border-radius: 19px;
+  }
+
+  .student-title {
+    font-size: 22px;
+  }
+
+  .student-status-panel {
+    padding: 18px 14px;
+  }
+}

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/src/css/style.css">
     <link rel="stylesheet" href="/src/css/modern.css">
     <link rel="stylesheet" href="/src/css/responsive-table.css">
+    <link rel="stylesheet" href="/src/css/student-ui.css?v=1">
 
 </head>
 <body>
@@ -47,16 +48,57 @@
 
                 <!-- Halaman Absen (Siswa) -->
                 <div id="absenSection" class="auth-page hidden">
-                    <div class="auth-card">
-                        <h2>Absensi</h2>
-                        <div id="absenContent">
-                            <p id="absenStatus" class="text-secondary">Memvalidasi QR...</p>
+                    <div class="student-page">
+                        <div class="student-shell student-card">
+
+                            <div class="student-header">
+                                <span class="student-eyebrow">Absensi Siswa</span>
+                                <h2 class="student-title">Absensi Hari Ini</h2>
+                                <p class="student-subtitle">
+                                    Periksa status sesi dan data kamu sebelum melakukan absensi.
+                                </p>
+                            </div>
+
+                            <div class="student-status-panel">
+                                <div class="student-status-icon" aria-hidden="true">✓</div>
+
+                                <div id="absenContent">
+                                    <p id="absenStatus" class="text-secondary">
+                                        Memvalidasi absensi...
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div
+                                id="sessionInfoDisplay"
+                                class="session-info-box student-session"
+                                style="display:none;"
+                            ></div>
+
+                            <div
+                                id="absenProfileInfo"
+                                class="profile-info-box student-profile"
+                                style="display:none;"
+                            ></div>
+
+                            <div
+                                id="absenActionArea"
+                                class="student-action"
+                                style="display:none;"
+                            >
+                                <button
+                                    id="absenNowBtn"
+                                    class="btn btn-primary btn-block student-primary-action"
+                                >
+                                    Absen Sekarang
+                                </button>
+
+                                <p class="student-help">
+                                    Pastikan nama, kelas, dan sesi absensi sudah benar.
+                                </p>
+                            </div>
+
                         </div>
-                        <div id="sessionInfoDisplay" class="session-info-box" style="display:none;"></div>
-                        <div id="absenActionArea" style="display:none;">
-                            <button id="absenNowBtn" class="btn btn-primary btn-block">Absen Sekarang</button>
-                        </div>
-                        <div id="absenProfileInfo" class="profile-info-box" style="display:none;"></div>
                     </div>
                 </div>
 
@@ -121,26 +163,69 @@
 
                 <!-- Hasil Absensi -->
                 <div id="attendanceResultSection" class="auth-page hidden">
-                    <div class="auth-card">
-                        <h2 id="attendanceResultTitle"></h2>
-                        <div id="attendanceResultData"></div>
-                        <button id="goToAbsenBtn" class="btn btn-secondary btn-block">↩ Kembali</button>
-                        <button id="attendanceErrorLogoutBtn" class="btn btn-primary btn-block mt-16">Keluar</button>
+                    <div class="student-page">
+                        <div class="student-card student-result-card">
+                            <div class="student-result-icon" aria-hidden="true">!</div>
+
+                            <h2 id="attendanceResultTitle"></h2>
+
+                            <div id="attendanceResultData"></div>
+
+                            <div class="student-result-actions">
+                                <button
+                                    id="goToAbsenBtn"
+                                    class="btn btn-secondary btn-block"
+                                >
+                                    ↩ Kembali
+                                </button>
+
+                                <button
+                                    id="attendanceErrorLogoutBtn"
+                                    class="btn btn-primary btn-block"
+                                >
+                                    Keluar
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Success Screen (Post-Attendance) -->
                 <div id="successScreenSection" class="auth-page hidden">
-                    <div class="auth-card">
-                        <div class="success-box">
-                            <div class="success-icon" aria-hidden="true">✓</div>
-                            <h2>Absensi berhasil!</h2>
-                            <p>Terima kasih sudah melakukan absensi hari ini.</p>
-                            <button id="successBackBtn" class="btn btn-secondary btn-block">↩ Kembali</button>
-                            <button id="successLogoutBtn" class="btn btn-primary btn-block mt-16">Keluar</button>
+                    <div class="student-page">
+                        <div class="student-card student-result-card">
+
+                            <div class="student-result-icon" aria-hidden="true">
+                                ✓
+                            </div>
+
+                            <h2>Absensi Berhasil</h2>
+
+                            <p>
+                                Absensi kamu sudah tercatat. Kamu tidak perlu
+                                melakukan absensi lagi untuk sesi ini.
+                            </p>
+
+                            <div class="student-result-actions">
+                                <button
+                                    id="successBackBtn"
+                                    class="btn btn-secondary btn-block"
+                                >
+                                    Lihat Absensi
+                                </button>
+
+                                <button
+                                    id="successLogoutBtn"
+                                    class="btn btn-primary btn-block"
+                                >
+                                    Keluar
+                                </button>
+                            </div>
+
                         </div>
                     </div>
                 </div>
+
 
             </div>
         </main>
