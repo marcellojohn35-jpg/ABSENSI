@@ -48,57 +48,75 @@
 
                 <!-- Halaman Absen (Siswa) -->
                 <div id="absenSection" class="auth-page hidden">
-                    <div class="student-page">
-                        <div class="student-shell student-card">
+                    <div class="student-app">
 
-                            <div class="student-header">
-                                <span class="student-eyebrow">Absensi Siswa</span>
-                                <h2 class="student-title">Absensi Hari Ini</h2>
-                                <p class="student-subtitle">
-                                    Periksa status sesi dan data kamu sebelum melakukan absensi.
-                                </p>
-                            </div>
-
-                            <div class="student-status-panel">
-                                <div class="student-status-icon" aria-hidden="true">✓</div>
+                        <div class="student-hero">
+                            <div>
+                                <span class="student-hero-small">Selamat datang,</span>
 
                                 <div id="absenContent">
-                                    <p id="absenStatus" class="text-secondary">
+                                    <p id="absenStatus">
                                         Memvalidasi absensi...
                                     </p>
                                 </div>
                             </div>
 
-                            <div
-                                id="sessionInfoDisplay"
-                                class="session-info-box student-session"
-                                style="display:none;"
-                            ></div>
+                            <div class="student-hero-art" aria-hidden="true">
+                                ☀️
+                            </div>
+                        </div>
 
-                            <div
-                                id="absenProfileInfo"
-                                class="profile-info-box student-profile"
-                                style="display:none;"
-                            ></div>
+                        <div
+                            id="sessionInfoDisplay"
+                            class="session-info-box student-block student-session-card"
+                            style="display:none;"
+                        ></div>
 
-                            <div
-                                id="absenActionArea"
-                                class="student-action"
-                                style="display:none;"
+                        <div
+                            id="absenProfileInfo"
+                            class="profile-info-box student-block student-profile-card"
+                            style="display:none;"
+                        ></div>
+
+                        <div class="student-check-card">
+                            <div class="student-check-icon">✓</div>
+
+                            <div>
+                                <strong>Pastikan sebelum absen</strong>
+                                <span>✓ Kamu berada di area sekolah</span>
+                                <span>✓ Data diri kamu sudah benar</span>
+                            </div>
+                        </div>
+
+                        <div
+                            id="absenActionArea"
+                            class="student-action"
+                            style="display:none;"
+                        >
+                            <button
+                                id="absenNowBtn"
+                                class="student-main-button"
                             >
-                                <button
-                                    id="absenNowBtn"
-                                    class="btn btn-primary btn-block student-primary-action"
-                                >
-                                    Absen Sekarang
-                                </button>
+                                <span class="scan-icon">⌗</span>
+                                ABSEN SEKARANG
+                            </button>
 
-                                <p class="student-help">
-                                    Pastikan nama, kelas, dan sesi absensi sudah benar.
-                                </p>
+                            <p class="student-lock-note">
+                                🔒 Absensi hanya dapat dilakukan sekali per sesi
+                            </p>
+                        </div>
+
+                        <div class="student-footer-card">
+                            <div class="student-footer-icon">⌂</div>
+
+                            <div>
+                                <strong>Satu hari, satu absensi</strong>
+                                <p>Terima kasih sudah disiplin ✨</p>
                             </div>
 
+                            <div class="student-heart">♥</div>
                         </div>
+
                     </div>
                 </div>
 

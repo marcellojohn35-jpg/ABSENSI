@@ -459,3 +459,20 @@
     font-size: 25px;
   }
 }
+
+/* Better session timeline */
+.student-session-card::after {
+  content: "06:30  •  07:00  •  08:00";
+  display: block;
+  margin-top: 16px;
+  padding-top: 14px;
+
+  border-top: 3px solid #dbeafe;
+
+  color: #2563eb;
+
+  font-size: 11px;
+  font-weight: 750;
+  text-align: center;
+  letter-spacing: .04em;
+}
