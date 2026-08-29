@@ -1,413 +1,537 @@
-/* ============================================================
-   STUDENT UI V2
-   ============================================================ */
+/* =========================================================
+   STUDENT UI - SLOP EDITION FIXED
+   ========================================================= */
 
+#absenSection,
+#attendanceResultSection,
+#successScreenSection {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(59,130,246,.08), transparent 36%),
+    #f6f8fc;
+}
+
+.student-app,
 .student-page {
   width: 100%;
-  max-width: 460px;
+  max-width: 430px;
   margin: 0 auto;
 }
 
-.student-shell {
-  width: 100%;
+.student-app {
+  padding: 8px 0 30px;
 }
 
-.student-card {
-  background: #ffffff;
-  border: 1px solid #e8ecf2;
-  border-radius: 22px;
+/* HERO */
+
+.student-hero {
+  position: relative;
+  overflow: hidden;
+
+  min-height: 150px;
   padding: 22px;
-  box-shadow:
-    0 1px 2px rgba(16, 24, 40, .03),
-    0 10px 30px rgba(16, 24, 40, .06);
-}
 
-.student-header {
-  margin-bottom: 20px;
-}
-
-.student-eyebrow {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: #667085;
-}
-
-.student-title {
-  margin: 0;
-  font-size: 24px;
-  line-height: 1.2;
-  font-weight: 760;
-  letter-spacing: -.025em;
-  color: #101828;
-}
-
-.student-subtitle {
-  margin: 7px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: #667085;
-}
-
-/* MAIN STATUS */
-
-.student-status-panel {
-  padding: 20px 16px;
-  margin-bottom: 14px;
-  border: 1px solid #e7ebf0;
-  border-radius: 17px;
-  text-align: center;
-  background: #fafbfc;
-}
-
-.student-status-icon {
-  width: 46px;
-  height: 46px;
-  margin: 0 auto 12px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 12px;
 
-  background: #eef4ff;
-  color: #0A66E4;
+  border-radius: 24px;
 
-  font-size: 20px;
-  font-weight: 800;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(255,255,255,.28), transparent 30%),
+    linear-gradient(135deg, #2563eb, #60a5fa);
+
+  color: white;
+
+  box-shadow: 0 15px 32px rgba(37,99,235,.20);
+}
+
+.student-hero::after {
+  content: "";
+  position: absolute;
+
+  width: 150px;
+  height: 150px;
+
+  right: -65px;
+  bottom: -85px;
+
+  border-radius: 50%;
+  background: rgba(255,255,255,.12);
+}
+
+.student-hero > div:first-child {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+}
+
+.student-hero-small {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: rgba(255,255,255,.86);
+
+  font-size: 12px;
+  font-weight: 650;
 }
 
 #absenStatus {
   margin: 0 !important;
-  color: #344054 !important;
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.45;
-}
-
-/* SESSION */
-
-#sessionInfoDisplay.student-session {
-  margin: 0 0 14px !important;
-  padding: 14px 15px !important;
-
-  border: 1px solid #e7ebf0 !important;
-  border-radius: 14px !important;
-  background: #ffffff !important;
-
-  font-size: 13px;
-  line-height: 1.6;
-  color: #475467;
-}
-
-/* PROFILE */
-
-#absenProfileInfo.student-profile {
-  margin: 14px 0 0 !important;
-  padding: 13px 15px !important;
-
-  background: #f8fafc !important;
-  border: 1px solid #edf0f4 !important;
-  border-radius: 14px !important;
-
-  color: #475467;
-}
-
-#absenProfileInfo.student-profile p {
-  margin: 4px 0 !important;
-  font-size: 12.5px;
-  line-height: 1.45;
-}
-
-#absenProfileInfo.student-profile strong {
-  color: #101828;
-}
-
-/* CTA */
-
-.student-action {
-  margin-top: 16px;
-}
-
-#absenNowBtn.student-primary-action {
-  min-height: 52px;
-  border-radius: 13px !important;
-
-  font-size: 14px;
-  font-weight: 750;
-  letter-spacing: -.01em;
-
-  box-shadow: 0 4px 12px rgba(37, 99, 235, .15);
-}
-
-.student-help {
-  margin: 11px 4px 0;
-  font-size: 11.5px;
-  line-height: 1.45;
-  text-align: center;
-  color: #98a2b3;
-}
-
-
-/* ============================================================
-   RESULT / SUCCESS
-   ============================================================ */
-
-.student-result-card {
-  text-align: center;
-}
-
-.student-result-icon {
-  width: 62px;
-  height: 62px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  margin: 4px auto 16px;
-  border-radius: 50%;
-
-  background: #ecfdf3;
-  color: #027a48;
-
-  font-size: 28px;
-  font-weight: 800;
-}
-
-.student-result-card h2 {
-  margin: 0;
-  color: #101828;
-  font-size: 23px;
-  letter-spacing: -.025em;
-}
-
-.student-result-card > p {
-  max-width: 300px;
-  margin: 8px auto 20px;
-  color: #667085;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.student-result-actions {
-  margin-top: 20px;
-  display: grid;
-  gap: 9px;
-}
-
-.student-result-actions .btn {
-  min-height: 47px;
-  border-radius: 12px !important;
-}
-
-/* OLD ATTENDANCE RESULT SCREEN */
-
-#attendanceResultData {
-  margin: 16px 0;
-  padding: 14px 15px;
-
-  border: 1px solid #e7ebf0;
-  border-radius: 14px;
-  background: #f8fafc;
-
-  text-align: left;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-
-/* ============================================================
-   MOBILE
-   ============================================================ */
-
-@media (max-width: 520px) {
-  #absenSection.auth-page,
-  #attendanceResultSection.auth-page,
-  #successScreenSection.auth-page {
-    padding-left: 14px;
-    padding-right: 14px;
-  }
-
-  .student-card {
-    padding: 19px 17px;
-    border-radius: 19px;
-  }
-
-  .student-title {
-    font-size: 22px;
-  }
-
-  .student-status-panel {
-    padding: 18px 14px;
-  }
-}
-
-/* ============================================================
-   STUDENT ERROR STATE
-   ============================================================ */
-
-#attendanceResultSection .student-result-icon {
-  background: #fff4ed;
-  color: #d92d20;
-}
-
-#attendanceResultSection #attendanceResultTitle {
-  color: #101828 !important;
-  font-size: 22px;
-  line-height: 1.25;
-}
-
-#attendanceResultData {
-  background: transparent !important;
-  border: 0 !important;
-  padding: 0 !important;
-  margin: 10px auto 18px !important;
-  text-align: center !important;
-}
-
-.student-error-detail {
-  margin: 0 auto !important;
-  max-width: 300px;
-  color: #667085;
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-#attendanceResultSection .student-result-actions {
-  margin-top: 16px;
-}
-
-
-/* ============================================================
-   STUDENT GREETING
-   ============================================================ */
-
-.student-status-panel {
-  text-align: left;
-}
-
-.student-status-icon {
-  display: none !important;
+  color: white !important;
 }
 
 .student-greeting {
   display: block;
-  margin-bottom: 5px;
 
-  color: #101828;
-  font-size: 18px;
-  font-weight: 760;
-  line-height: 1.3;
-  letter-spacing: -.02em;
+  color: white !important;
+
+  font-size: 22px !important;
+  line-height: 1.2;
+  font-weight: 800;
+
+  letter-spacing: -.025em;
 }
 
 .student-reminder {
   display: block;
 
-  color: #667085;
-  font-size: 13px;
-  font-weight: 450;
-  line-height: 1.5;
+  margin-top: 8px;
+
+  color: rgba(255,255,255,.88) !important;
+
+  font-size: 12px !important;
+  line-height: 1.45;
 }
 
+.student-hero-art {
+  position: relative;
+  z-index: 2;
 
-/* ============================================================
-   SUCCESS DETAIL
-   ============================================================ */
+  flex: 0 0 auto;
+
+  font-size: 46px;
+  line-height: 1;
+}
+
+/* CARDS */
+
+.student-block {
+  margin-top: 16px !important;
+  padding: 18px !important;
+
+  border: 1px solid #e7ecf3 !important;
+  border-radius: 20px !important;
+
+  background: #fff !important;
+
+  box-shadow: 0 8px 24px rgba(15,23,42,.05);
+}
+
+/* SESSION */
+
+.student-session-card {
+  color: #475467;
+}
+
+.student-session-card p {
+  margin: 7px 0 !important;
+
+  color: #475467;
+
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.student-session-card p:first-child {
+  margin-bottom: 10px !important;
+}
+
+.student-session-card strong {
+  color: #101828;
+  font-weight: 750;
+}
+
+.student-session-card .status-label {
+  display: inline-flex;
+
+  margin-left: 5px;
+  padding: 4px 9px !important;
+
+  border-radius: 999px !important;
+
+  font-size: 9px !important;
+  font-weight: 750;
+}
+
+/* PROFILE */
+
+.student-profile-card::before {
+  content: "DATA DIRI";
+
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: #667085;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing: .08em;
+}
+
+.student-profile-card p {
+  margin: 0 !important;
+  padding: 10px 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+
+  border-bottom: 1px solid #eef1f5;
+
+  color: #344054;
+
+  font-size: 12px;
+}
+
+.student-profile-card p:last-child {
+  border-bottom: 0;
+}
+
+.student-profile-card strong {
+  color: #667085;
+  font-weight: 600;
+}
+
+/* CHECK */
+
+.student-check-card {
+  margin-top: 16px;
+  padding: 15px;
+
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  border: 1px solid #bfdbfe;
+  border-radius: 17px;
+
+  background: linear-gradient(135deg, #eff6ff, #f8fbff);
+}
+
+.student-check-icon {
+  width: 34px;
+  height: 34px;
+
+  flex: 0 0 34px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 10px;
+
+  background: #2563eb;
+  color: white;
+
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.student-check-card strong {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #1d4ed8;
+
+  font-size: 12px;
+}
+
+.student-check-card span {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #475467;
+
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* CTA */
+
+.student-action {
+  margin-top: 20px;
+}
+
+.student-main-button {
+  width: 100%;
+  min-height: 58px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  border: 0;
+  border-radius: 17px;
+
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+
+  color: white;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+
+  box-shadow: 0 11px 24px rgba(37,99,235,.22);
+
+  cursor: pointer;
+}
+
+.student-main-button:active {
+  transform: scale(.985);
+}
+
+.student-main-button:disabled {
+  opacity: .6;
+}
+
+.scan-icon {
+  font-size: 20px;
+}
+
+.student-lock-note {
+  margin: 12px 0 0;
+
+  text-align: center;
+
+  color: #667085;
+
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+/* FOOTER */
+
+.student-footer-card {
+  margin-top: 22px;
+  padding: 15px;
+
+  display: grid;
+  grid-template-columns: 36px 1fr 34px;
+  align-items: center;
+  gap: 10px;
+
+  border: 1px solid #e9edf3;
+  border-radius: 18px;
+
+  background: white;
+
+  box-shadow: 0 7px 22px rgba(15,23,42,.04);
+}
+
+.student-footer-icon,
+.student-heart {
+  width: 34px;
+  height: 34px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 10px;
+}
+
+.student-footer-icon {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.student-heart {
+  background: #fff1f2;
+  color: #fb7185;
+}
+
+.student-footer-card strong {
+  display: block;
+
+  color: #1e3a8a;
+
+  font-size: 11px;
+}
+
+.student-footer-card p {
+  margin: 3px 0 0;
+
+  color: #667085;
+
+  font-size: 10px;
+}
+
+/* RESULT */
+
+.student-card {
+  padding: 24px;
+
+  border: 1px solid #e8ecf2;
+  border-radius: 24px;
+
+  background: #fff;
+
+  box-shadow: 0 12px 35px rgba(15,23,42,.06);
+}
+
+.student-result-card {
+  text-align: center;
+}
+
+.student-result-card h2 {
+  margin: 0;
+
+  color: #101828;
+
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.student-result-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+
+  margin-top: 20px;
+}
+
+.student-result-actions .btn {
+  min-height: 48px;
+  border-radius: 14px !important;
+}
+
+/* SUCCESS */
+
+#successScreenSection .student-card {
+  border-color: #dcfce7;
+
+  background:
+    radial-gradient(circle at 50% 0%, rgba(34,197,94,.10), transparent 36%),
+    #fff;
+}
+
+#successScreenSection .student-result-icon {
+  width: 72px;
+  height: 72px;
+
+  margin: 4px auto 22px;
+
+  display: grid !important;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: linear-gradient(145deg, #22c55e, #16a34a);
+  color: white;
+
+  font-size: 35px;
+
+  box-shadow:
+    0 0 0 9px #dcfce7,
+    0 0 0 16px #f0fdf4;
+}
 
 .student-success-eyebrow {
   display: block;
-  margin-bottom: 5px;
 
-  color: #667085;
-  font-size: 11px;
-  font-weight: 750;
+  margin-bottom: 6px;
+
+  color: #16a34a;
+
+  font-size: 10px;
+  font-weight: 800;
+
   letter-spacing: .08em;
   text-transform: uppercase;
 }
 
 .student-success-status {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
 
-  margin: 14px auto 18px;
-  padding: 6px 12px;
+  margin: 14px auto 17px;
+  padding: 6px 14px;
 
   border-radius: 999px;
 
-  font-size: 12px;
-  font-weight: 750;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .student-success-status.is-present {
-  background: #ecfdf3;
-  color: #027a48;
+  background: #dcfce7;
+  color: #15803d;
 }
 
 .student-success-status.is-late {
-  background: #fff7ed;
+  background: #ffedd5;
   color: #c2410c;
 }
 
 .student-success-info {
-  margin-top: 2px;
-
-  border: 1px solid #e7ebf0;
-  border-radius: 16px;
-
   overflow: hidden;
-  background: #fff;
+
+  border: 1px solid #dcfce7;
+  border-radius: 17px;
+
+  background: white;
 }
 
 .student-success-primary {
-  padding: 18px 15px;
+  padding: 18px;
 
-  background: #f8fafc;
+  background: #f0fdf4;
+
   text-align: center;
 }
 
 .student-success-label {
   display: block;
-  margin-bottom: 3px;
+
+  margin-bottom: 4px;
 
   color: #667085;
-  font-size: 11px;
-  font-weight: 650;
+
+  font-size: 10px;
 }
 
 .student-success-primary strong {
-  color: #101828;
-  font-size: 28px;
-  line-height: 1;
-  font-weight: 780;
-  letter-spacing: -.03em;
+  color: #16a34a;
+
+  font-size: 29px;
 }
 
 .student-success-timezone {
   margin-left: 4px;
 
-  color: #98a2b3;
-  font-size: 11px;
-  font-weight: 650;
+  color: #667085;
+
+  font-size: 10px;
 }
 
 .student-success-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-
-  border-top: 1px solid #e7ebf0;
 }
 
 .student-success-grid > div {
   min-width: 0;
-  padding: 12px 13px;
+
+  padding: 11px 12px;
+
+  border-top: 1px solid #edf0f4;
 
   text-align: left;
-  border-bottom: 1px solid #edf0f4;
 }
 
 .student-success-grid > div:nth-child(odd) {
@@ -417,62 +541,130 @@
 .student-success-grid > div:last-child {
   grid-column: 1 / -1;
   border-right: 0;
-  border-bottom: 0;
 }
 
 .student-success-grid span {
   display: block;
 
   color: #98a2b3;
-  font-size: 10px;
-  font-weight: 650;
+
+  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: .04em;
 }
 
 .student-success-grid strong {
   display: block;
+
   margin-top: 3px;
 
-  overflow-wrap: anywhere;
-
   color: #344054;
-  font-size: 12px;
-  line-height: 1.4;
+
+  font-size: 11px;
+
+  overflow-wrap: anywhere;
 }
 
 .student-success-note {
-  margin: 14px auto 0 !important;
+  margin: 14px 0 0 !important;
+  padding: 13px;
 
-  color: #667085 !important;
-  font-size: 12px !important;
+  border-radius: 13px;
+
+  background: #f0fdf4;
+
+  color: #166534 !important;
+
+  font-size: 11px !important;
 }
 
+/* ERROR */
 
-@media (max-width: 390px) {
+#attendanceResultSection .student-card {
+  border-color: #fee2e2;
+
+  background:
+    radial-gradient(circle at 50% 0%, rgba(239,68,68,.09), transparent 38%),
+    #fff;
+}
+
+#attendanceResultSection .student-result-icon {
+  width: 72px;
+  height: 72px;
+
+  margin: 4px auto 22px;
+
+  display: grid !important;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: linear-gradient(145deg, #ef4444, #dc2626) !important;
+  color: white !important;
+
+  font-size: 34px;
+
+  box-shadow:
+    0 0 0 9px #fee2e2,
+    0 0 0 16px #fff1f2;
+}
+
+#attendanceResultTitle {
+  color: #101828 !important;
+
+  font-size: 24px !important;
+  font-weight: 800;
+}
+
+#attendanceResultData {
+  margin: 20px 0 0 !important;
+  padding: 15px !important;
+
+  border: 1px solid #fecaca !important;
+  border-radius: 15px !important;
+
+  background: #fff7f7 !important;
+
+  text-align: left !important;
+}
+
+.student-error-detail {
+  margin: 0 !important;
+
+  color: #475467 !important;
+
+  font-size: 12px !important;
+  line-height: 1.5;
+}
+
+/* MOBILE */
+
+@media (max-width: 520px) {
+  #absenSection.auth-page,
+  #attendanceResultSection.auth-page,
+  #successScreenSection.auth-page {
+    padding: 14px 14px 30px;
+  }
+
+  .student-hero {
+    min-height: 138px;
+    padding: 19px;
+    border-radius: 21px;
+  }
 
   .student-greeting {
-    font-size: 17px;
+    font-size: 20px !important;
   }
 
-  .student-success-primary strong {
-    font-size: 25px;
+  .student-hero-art {
+    font-size: 42px;
   }
-}
 
-/* Better session timeline */
-.student-session-card::after {
-  content: "06:30  •  07:00  •  08:00";
-  display: block;
-  margin-top: 16px;
-  padding-top: 14px;
+  .student-block {
+    padding: 16px !important;
+    border-radius: 18px !important;
+  }
 
-  border-top: 3px solid #dbeafe;
-
-  color: #2563eb;
-
-  font-size: 11px;
-  font-weight: 750;
-  text-align: center;
-  letter-spacing: .04em;
+  .student-result-actions {
+    grid-template-columns: 1fr;
+  }
 }
