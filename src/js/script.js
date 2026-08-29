@@ -1688,24 +1688,6 @@ async function exportToExcel() {
 
     // Urutan prioritas status (dari atas ke bawah)
     const statusOrder = ['HADIR', 'TERLAMBAT', 'IZIN', 'SAKIT', 'ALFA', 'BELUM_ABSEN'];
-
-    // Urutkan: kelompok status dulu, lalu di dalam kelompok urut jam tercepat-terlambat.
-    const sortedData = [...attendanceFilteredData].sort((a, b) => {
-        // 1. Bandingkan urutan status
-        const statusDiff = statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
-        if (statusDiff !== 0) return statusDiff;
-
-        // 2. Kalau status sama, bandingkan jam (createdAt)
-        if (!a.createdAt && !b.createdAt) return 0;
-        if (!a.createdAt) return 1;
-        if (!b.createdAt) return -1;
-
-        const timeA = a.createdAt.seconds ?? a.createdAt._seconds ?? 0;
-        const timeB = b.createdAt.seconds ?? b.createdAt._seconds ?? 0;
-        return timeA - timeB;
-    });
-    
-    const statusOrder = ['HADIR', 'TERLAMBAT', 'IZIN', 'SAKIT', 'ALFA', 'BELUM_ABSEN'];
     const sortedData = [...attendanceFilteredData].sort((a, b) => {
         const classDiff = CLASS_LIST.indexOf(a.classId) - CLASS_LIST.indexOf(b.classId);
         if (classDiff !== 0) return classDiff;
