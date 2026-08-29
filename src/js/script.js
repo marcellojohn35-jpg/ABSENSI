@@ -625,19 +625,12 @@ async function renderDashboard(userData) {
                         id="manualStudentSearch"
                         placeholder="🔍 Cari nama siswa..."
                         autocomplete="off"
-                        style="width:100%;"
+                        class="w-full"
                     >
                 </div>
 
-                <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                    gap:12px;
-                    margin-bottom:10px;
-                    flex-wrap:wrap;
-                ">
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <div class="toolbar-row">
+                    <label class="checkbox-label">
                         <input type="checkbox" id="manualSelectAll">
                         <span>Pilih Semua Hasil</span>
                     </label>
@@ -645,22 +638,12 @@ async function renderDashboard(userData) {
                     <strong id="manualSelectedCount">0 siswa terpilih</strong>
                 </div>
 
-                <div
-                    id="manualStudentList"
-                    style="
-                        max-height:280px;
-                        overflow-y:auto;
-                        border:1px solid var(--border-color, #ddd);
-                        border-radius:8px;
-                        padding:8px;
-                        margin-bottom:12px;
-                    "
-                >
+                <div id="manualStudentList" class="scroll-list-box">
                     <div class="text-secondary">Memuat siswa...</div>
                 </div>
 
-                <div class="filter-container" style="margin-bottom:0;">
-                    <select id="manualStatusSelect" style="flex:1;">
+                <div class="filter-container mb-0">
+                    <select id="manualStatusSelect" class="flex-1">
                         <option value="">Pilih Status...</option>
                         ${statusOptionsHTML}
                     </select>
@@ -688,11 +671,10 @@ async function renderDashboard(userData) {
     // di sebelah dropdown (diisi oleh initSessionSelector()/onchange-nya).
     const filterHTML = `
         <div class="filter-container">
-            <select id="filterSession" style="min-width:220px;">
+            <select id="filterSession" class="filter-select-wide">
                 <option value="">Memuat daftar sesi...</option>
             </select>
-            <span id="filterSessionDateLabel" class="text-secondary" style="align-self:center; font-size:13px;"></span>
-
+            <span id="filterSessionDateLabel" class="filter-date-label"></span>
             <select id="filterClass">
                 <option value="">Semua Kelas</option>
             </select>
@@ -778,8 +760,8 @@ async function renderDashboard(userData) {
 
     dashboardContent.innerHTML = `
         <div>
-            <div style="margin-bottom:16px;">
-                <h3 class="page-title" style="margin-bottom:2px;">Dashboard ${roleHeader}</h3>
+            <div class="mb-16">
+                <h3 class="page-title mb-2">Dashboard ${roleHeader}</h3>
                 <p class="page-subtitle mb-0">Kelola dan pantau kehadiran siswa.</p>
             </div>
             ${userManagementBtnHTML}
