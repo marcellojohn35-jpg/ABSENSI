@@ -244,3 +244,38 @@
     padding: 18px 14px;
   }
 }
+
+/* ============================================================
+   STUDENT ERROR STATE
+   ============================================================ */
+
+#attendanceResultSection .student-result-icon {
+  background: #fff4ed;
+  color: #d92d20;
+}
+
+#attendanceResultSection #attendanceResultTitle {
+  color: #101828 !important;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+#attendanceResultData {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 10px auto 18px !important;
+  text-align: center !important;
+}
+
+.student-error-detail {
+  margin: 0 auto !important;
+  max-width: 300px;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+#attendanceResultSection .student-result-actions {
+  margin-top: 16px;
+}

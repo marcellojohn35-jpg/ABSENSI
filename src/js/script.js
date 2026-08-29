@@ -2467,10 +2467,11 @@ function showAttendanceResult(success, data) {
 
         // Tombol logout di success screen
         document.getElementById('successBackBtn').onclick = () => {
-            if (currentUser) {
-                showSection(dashboardSection);
+            if (currentSessionId) {
+                window.location.href =
+                    '/absen?session=' + encodeURIComponent(currentSessionId);
             } else {
-                window.location.href = '/';
+                window.location.href = '/absen';
             }
         };
 
@@ -2490,23 +2491,51 @@ function showAttendanceResult(success, data) {
     showSection(attendanceResultSection);
     attendanceResultTitle.className = 'error';
 
-    let msg = '❌ Gagal melakukan absensi.';
-    if (data.error?.includes('SESSION_NOT_FOUND')) {
-        msg = '⚠️ Session tidak ditemukan.';
-    } else if (data.error?.includes('SESSION_ARCHIVED')) {
-        msg = '🔒 Sesi ini sudah diarsipkan, tidak bisa absen lagi.';
-    } else if (data.error?.includes('SESSION_CLOSED')) {
-        msg = '⏰ Sesi sudah ditutup.';
-    } else if (data.error?.includes('SESSION_NOT_STARTED')) {
-        msg = '⏰ Sesi belum dimulai.';
-    } else if (data.error?.includes('DUPLICATE')) {
-        msg = '⚠️ Maaf, Anda sudah melakukan absensi sebelumnya. Anda tidak perlu melakukan absensi lagi hari ini.';
-    } else if (data.error?.includes('permission-denied')) {
-        msg = 'Akses ditolak oleh sistem.';
+    let msg = 'Absensi gagal';
+    let detail = 'Terjadi masalah saat mencatat absensi. Silakan coba lagi.';
+
+    const rawError = String(data.error || '');
+
+    if (rawError.includes('SESSION_NOT_FOUND')) {
+        msg = 'Sesi tidak ditemukan';
+        detail = 'QR atau link absensi ini sudah tidak berlaku.';
+    } else if (rawError.includes('SESSION_ARCHIVED')) {
+        msg = 'Sesi sudah berakhir';
+        detail = 'Absensi untuk sesi ini sudah ditutup.';
+    } else if (rawError.includes('SESSION_CLOSED')) {
+        msg = 'Waktu absensi habis';
+        detail = 'Sesi absensi sudah ditutup.';
+    } else if (rawError.includes('SESSION_NOT_STARTED')) {
+        msg = 'Absensi belum dibuka';
+        detail = 'Tunggu sampai waktu absensi dimulai.';
+    } else if (rawError.includes('OUTSIDE_ATTENDANCE_AREA')) {
+        msg = 'Kamu berada di luar area absensi';
+        detail = 'Pastikan kamu berada di area sekolah lalu coba lagi.';
+    } else if (rawError.includes('GEOLOCATION_ERROR:1')) {
+        msg = 'Izin lokasi diperlukan';
+        detail = 'Aktifkan izin lokasi di browser untuk melakukan absensi.';
+    } else if (rawError.includes('GEOLOCATION_ERROR:2')) {
+        msg = 'Lokasi tidak ditemukan';
+        detail = 'Pastikan GPS aktif lalu coba lagi.';
+    } else if (rawError.includes('GEOLOCATION_ERROR:3')) {
+        msg = 'Lokasi terlalu lama';
+        detail = 'Coba lagi di tempat dengan sinyal GPS yang lebih baik.';
+    } else if (rawError.includes('GEOLOCATION_NOT_SUPPORTED')) {
+        msg = 'Lokasi tidak didukung';
+        detail = 'Gunakan browser yang mendukung akses lokasi.';
+    } else if (
+        rawError.includes('DUPLICATE') ||
+        rawError.includes('permission-denied') ||
+        rawError.includes('Permintaan ditolak oleh sistem')
+    ) {
+        msg = 'Absensi tidak dapat diproses';
+        detail = 'Kamu mungkin sudah melakukan absensi atau sesi sudah tidak tersedia.';
     }
 
     attendanceResultTitle.textContent = msg;
-    attendanceResultData.innerHTML = `<p>${data.error || ''}</p>`;
+    attendanceResultData.innerHTML = `
+        <p class="student-error-detail">${detail}</p>
+    `;
 
     goToAbsenBtn.onclick = () => {
         window.location.href = '/absen?session=' + currentSessionId;
