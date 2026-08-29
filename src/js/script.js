@@ -1705,6 +1705,23 @@ async function exportToExcel() {
         return timeA - timeB;
     });
     
+    const statusOrder = ['HADIR', 'TERLAMBAT', 'IZIN', 'SAKIT', 'ALFA', 'BELUM_ABSEN'];
+    const sortedData = [...attendanceFilteredData].sort((a, b) => {
+        const classDiff = CLASS_LIST.indexOf(a.classId) - CLASS_LIST.indexOf(b.classId);
+        if (classDiff !== 0) return classDiff;
+
+        const statusDiff = statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+        if (statusDiff !== 0) return statusDiff;
+
+        if (!a.createdAt && !b.createdAt) return 0;
+        if (!a.createdAt) return 1;
+        if (!b.createdAt) return -1;
+
+        const timeA = a.createdAt.seconds ?? a.createdAt._seconds ?? 0;
+        const timeB = b.createdAt.seconds ?? b.createdAt._seconds ?? 0;
+        return timeA - timeB;
+    });
+    
     sortedData.forEach((d, i) => {
         sheet.addRow({
             no: i + 1,
