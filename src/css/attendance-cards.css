@@ -1,8 +1,6 @@
-/* Attendance list: table on desktop, compact cards on phones. */
+/* Desktop tetap tabel; mobile menjadi daftar ringkas tanpa scroll horizontal. */
 
-.attendance-mobile-meta {
-  display: none;
-}
+.attendance-mobile-meta { display: none; }
 
 .attendance-table .attendance-rollback-btn {
   min-width: 92px;
@@ -12,18 +10,16 @@
   white-space: nowrap;
 }
 
-.attendance-no-action {
-  color: #98a2b3;
-}
+.attendance-no-action { color: #98a2b3; }
 
 @media (max-width: 720px) {
   #attendanceTableContainer .table-responsive {
     width: 100% !important;
     max-width: 100% !important;
-    overflow: visible !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: transparent !important;
+    overflow: hidden !important;
+    border: 1px solid #e4e7ec !important;
+    border-radius: 12px !important;
+    background: #fff !important;
     box-shadow: none !important;
   }
 
@@ -39,32 +35,27 @@
     min-width: 0 !important;
   }
 
-  #attendanceTableContainer .attendance-table thead {
-    display: none !important;
-  }
-
-  #attendanceTableContainer .attendance-table tbody {
-    display: grid !important;
-    gap: 9px;
-  }
+  #attendanceTableContainer .attendance-table thead { display: none !important; }
 
   #attendanceTableContainer .attendance-table tbody tr {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "student status"
-      "student action";
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "student status action";
     align-items: center;
-    column-gap: 10px;
-    row-gap: 8px;
+    gap: 8px;
     width: 100%;
     min-width: 0;
-    min-height: 0 !important;
-    padding: 12px;
+    min-height: 64px !important;
+    padding: 10px 11px;
     background: #fff !important;
-    border: 1px solid #e4e7ec;
-    border-radius: 13px;
-    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    border: 0 !important;
+    border-bottom: 1px solid #eef1f4 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #attendanceTableContainer .attendance-table tbody tr:last-child {
+    border-bottom: 0 !important;
   }
 
   #attendanceTableContainer .attendance-table tbody tr:hover,
@@ -91,20 +82,19 @@
 
   #attendanceTableContainer .attendance-name-cell {
     grid-area: student;
-    align-self: stretch;
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
-    gap: 7px;
+    gap: 5px;
     color: #1d2939 !important;
     white-space: normal !important;
   }
 
   #attendanceTableContainer .attendance-name-text {
     max-width: 100%;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
-    line-height: 1.32;
+    line-height: 1.3;
     overflow-wrap: anywhere;
   }
 
@@ -113,7 +103,7 @@
     flex-wrap: wrap;
     align-items: center;
     color: #667085;
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 600;
     line-height: 1.25;
     font-variant-numeric: tabular-nums;
@@ -121,15 +111,13 @@
 
   #attendanceTableContainer .attendance-mobile-meta > span + span::before {
     content: "•";
-    margin: 0 6px;
+    margin: 0 5px;
     color: #c0c6d0;
   }
 
   #attendanceTableContainer .attendance-status-cell {
     grid-area: status;
-    align-self: start;
     justify-self: end;
-    justify-content: flex-end;
   }
 
   #attendanceTableContainer .attendance-status-cell .status-label {
@@ -137,12 +125,12 @@
     align-items: center;
     justify-content: center;
     width: auto !important;
-    min-width: 88px !important;
+    min-width: 86px !important;
     max-width: none !important;
     min-height: 28px;
-    padding: 6px 9px !important;
+    padding: 6px 8px !important;
     border-radius: 999px !important;
-    font-size: 10px !important;
+    font-size: 9.5px !important;
     font-weight: 750 !important;
     line-height: 1 !important;
     letter-spacing: 0 !important;
@@ -152,25 +140,26 @@
 
   #attendanceTableContainer .attendance-action-cell {
     grid-area: action;
-    align-self: end;
     justify-self: end;
-    justify-content: flex-end;
   }
 
   #attendanceTableContainer .attendance-rollback-btn {
-    width: auto !important;
-    min-width: 0 !important;
+    display: inline-flex !important;
+    width: 28px !important;
+    min-width: 28px !important;
     height: 28px !important;
-    padding: 0 8px !important;
-    gap: 5px;
+    padding: 0 !important;
+    align-items: center;
+    justify-content: center;
     border: 1px solid #e4e7ec !important;
     border-radius: 8px !important;
     background: #f8fafc !important;
     color: #475467 !important;
     box-shadow: none !important;
-    font-size: 10px !important;
+    font-size: 13px !important;
   }
 
+  #attendanceTableContainer .attendance-rollback-btn span:last-child,
   #attendanceTableContainer .attendance-no-action {
     display: none;
   }
@@ -178,21 +167,15 @@
 
 @media (max-width: 390px) {
   #attendanceTableContainer .attendance-table tbody tr {
-    column-gap: 8px;
-    padding: 11px 10px;
+    gap: 6px;
+    padding: 9px;
   }
 
-  #attendanceTableContainer .attendance-name-text {
-    font-size: 13px;
-  }
-
-  #attendanceTableContainer .attendance-mobile-meta {
-    font-size: 10px;
-  }
+  #attendanceTableContainer .attendance-name-text { font-size: 12.5px; }
 
   #attendanceTableContainer .attendance-status-cell .status-label {
-    min-width: 84px !important;
-    padding: 6px 8px !important;
-    font-size: 9.5px !important;
+    min-width: 82px !important;
+    padding: 6px 7px !important;
+    font-size: 9px !important;
   }
 }
