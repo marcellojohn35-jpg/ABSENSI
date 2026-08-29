@@ -161,3 +161,237 @@
     width: 70px;
   }
 }
+
+
+/* ============================================================
+   DASHBOARD DENSITY POLISH
+   ============================================================ */
+
+/* Summary: jangan makan setengah layar */
+.summary-container {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px !important;
+  margin: 12px 0 16px !important;
+}
+
+.summary-card {
+  min-height: 72px !important;
+  padding: 10px 8px !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+.summary-card .num {
+  font-size: 22px !important;
+  line-height: 1.1 !important;
+  margin-bottom: 4px !important;
+}
+
+.summary-card .label {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+
+/* Attendance-rate juga dibuat lebih ringkas */
+.attendance-rate-box {
+  padding: 10px 12px !important;
+  margin-bottom: 10px !important;
+  border-radius: 10px !important;
+}
+
+.attendance-rate-label,
+.attendance-rate-text {
+  font-size: 11px !important;
+}
+
+.attendance-rate-track {
+  height: 6px !important;
+}
+
+
+/* ---------- Attendance table polish ---------- */
+
+.attendance-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.attendance-table thead th {
+  height: 36px;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+  font-size: 10px !important;
+  letter-spacing: .035em;
+  white-space: nowrap;
+}
+
+.attendance-table tbody td {
+  height: 36px;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+
+.attendance-table tbody td:nth-child(2) {
+  color: #273142;
+}
+
+.attendance-table tbody td:nth-child(5) {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 720px) {
+
+  /* 4 statistik per baris */
+  .summary-container {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    margin: 8px 0 12px !important;
+  }
+
+  .summary-card {
+    min-width: 0 !important;
+    min-height: 58px !important;
+    padding: 7px 4px !important;
+    border-radius: 9px !important;
+  }
+
+  .summary-card .num {
+    font-size: 18px !important;
+    margin-bottom: 3px !important;
+  }
+
+  .summary-card .label {
+    font-size: 9px !important;
+    white-space: nowrap;
+  }
+
+
+  /* Tabel benar-benar memakai lebar layar */
+  .table-responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .attendance-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+
+  /* Nama dikasih mayoritas ruang */
+  .attendance-table th:nth-child(2),
+  .attendance-table td:nth-child(2) {
+    width: auto !important;
+    min-width: 0 !important;
+    padding-left: 7px !important;
+    padding-right: 5px !important;
+  }
+
+  .attendance-table td:nth-child(2) {
+    font-size: 11.5px !important;
+    line-height: 1.18 !important;
+  }
+
+
+  /* Kelas */
+  .attendance-table th:nth-child(3),
+  .attendance-table td:nth-child(3) {
+    width: 42px !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    font-size: 10px !important;
+  }
+
+
+  /* Jam */
+  .attendance-table th:nth-child(5),
+  .attendance-table td:nth-child(5) {
+    width: 45px !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    font-size: 10px !important;
+  }
+
+
+  /* Status */
+  .attendance-table th:nth-child(6),
+  .attendance-table td:nth-child(6) {
+    width: 72px !important;
+    padding-left: 2px !important;
+    padding-right: 5px !important;
+  }
+
+  .attendance-table .status-label {
+    display: block !important;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 3px 3px !important;
+
+    font-size: 8.5px !important;
+    font-weight: 700 !important;
+    line-height: 1.1 !important;
+
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+
+  /* Lebih banyak siswa dalam satu layar */
+  .attendance-table tbody td {
+    height: 33px !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .attendance-table thead th {
+    height: 32px !important;
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+  }
+}
+
+
+/* HP sempit */
+@media (max-width: 390px) {
+
+  .summary-container {
+    gap: 5px !important;
+  }
+
+  .summary-card {
+    min-height: 54px !important;
+  }
+
+  .summary-card .num {
+    font-size: 17px !important;
+  }
+
+  .summary-card .label {
+    font-size: 8.5px !important;
+  }
+
+  .attendance-table td:nth-child(2) {
+    font-size: 11px !important;
+  }
+
+  .attendance-table th:nth-child(6),
+  .attendance-table td:nth-child(6) {
+    width: 68px !important;
+  }
+
+  .attendance-table .status-label {
+    font-size: 8px !important;
+  }
+}
