@@ -2073,3 +2073,9 @@ select:focus {
   }
 }
 
+.dashboard-page .page-title {
+  color: #ffffff !important;
+}
+.dashboard-page .page-subtitle {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
