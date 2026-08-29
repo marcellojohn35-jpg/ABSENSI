@@ -1,181 +1,369 @@
-/* Desktop tetap tabel; mobile menjadi daftar ringkas tanpa scroll horizontal. */
+/* ============================================================
+   ATTENDANCE LIST
+   Desktop: tabel biasa
+   Mobile: daftar ringkas dua baris
+   ============================================================ */
 
-.attendance-mobile-meta { display: none; }
+.attendance-mobile-meta {
+    display: none;
+}
 
 .attendance-table .attendance-rollback-btn {
-  min-width: 92px;
-  padding: 7px 10px !important;
-  gap: 6px;
-  font-size: 12px !important;
-  white-space: nowrap;
+    min-width: 92px;
+    padding: 7px 10px !important;
+    gap: 6px;
+    font-size: 12px !important;
+    white-space: nowrap;
 }
 
-.attendance-no-action { color: #98a2b3; }
+.attendance-no-action {
+    color: #98a2b3;
+}
+
+/* ============================================================
+   MOBILE DASHBOARD
+   ============================================================ */
 
 @media (max-width: 720px) {
-  #attendanceTableContainer .table-responsive {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: hidden !important;
-    border: 1px solid #e4e7ec !important;
-    border-radius: 12px !important;
-    background: #fff !important;
-    box-shadow: none !important;
-  }
 
-  #attendanceTableContainer .table-responsive::after {
-    display: none !important;
-    content: none !important;
-  }
+    /* ---------- Summary ---------- */
 
-  #attendanceTableContainer .attendance-table,
-  #attendanceTableContainer .attendance-table tbody {
-    display: block !important;
-    width: 100% !important;
-    min-width: 0 !important;
-  }
+    .summary-container {
+        display: grid !important;
+        grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+        gap: 7px !important;
+        margin: 10px 0 14px !important;
+    }
 
-  #attendanceTableContainer .attendance-table thead { display: none !important; }
+    .summary-card {
+        min-width: 0 !important;
+        min-height: 58px !important;
+        padding: 8px 6px !important;
+        border-radius: 11px !important;
+        box-shadow: none !important;
+    }
 
-  #attendanceTableContainer .attendance-table tbody tr {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    grid-template-areas: "student status action";
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    min-width: 0;
-    min-height: 64px !important;
-    padding: 10px 11px;
-    background: #fff !important;
-    border: 0 !important;
-    border-bottom: 1px solid #eef1f4 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-  }
+    .summary-card:nth-child(1),
+    .summary-card:nth-child(2),
+    .summary-card:nth-child(3),
+    .summary-card:nth-child(7) {
+        grid-column: span 3;
+    }
 
-  #attendanceTableContainer .attendance-table tbody tr:last-child {
-    border-bottom: 0 !important;
-  }
+    .summary-card:nth-child(1) { order: 1; }
+    .summary-card:nth-child(2) { order: 2; }
+    .summary-card:nth-child(3) { order: 3; }
+    .summary-card:nth-child(7) { order: 4; }
 
-  #attendanceTableContainer .attendance-table tbody tr:hover,
-  #attendanceTableContainer .attendance-table tbody tr:active {
-    background: #f9fafb !important;
-  }
+    .summary-card:nth-child(4),
+    .summary-card:nth-child(5),
+    .summary-card:nth-child(6) {
+        grid-column: span 2;
+        min-height: 50px !important;
+    }
 
-  #attendanceTableContainer .attendance-table tbody td {
-    display: flex !important;
-    width: auto !important;
-    min-width: 0 !important;
-    height: auto !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: transparent !important;
-  }
+    .summary-card:nth-child(4) { order: 5; }
+    .summary-card:nth-child(5) { order: 6; }
+    .summary-card:nth-child(6) { order: 7; }
 
-  #attendanceTableContainer .attendance-number-cell,
-  #attendanceTableContainer .attendance-class-cell,
-  #attendanceTableContainer .attendance-date-cell,
-  #attendanceTableContainer .attendance-time-cell {
-    display: none !important;
-  }
+    .summary-card .num {
+        margin: 0 0 3px !important;
+        font-size: 19px !important;
+        line-height: 1 !important;
+    }
 
-  #attendanceTableContainer .attendance-name-cell {
-    grid-area: student;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 5px;
-    color: #1d2939 !important;
-    white-space: normal !important;
-  }
+    .summary-card .label {
+        margin: 0 !important;
+        font-size: 10px !important;
+        line-height: 1.15 !important;
+        white-space: nowrap;
+    }
 
-  #attendanceTableContainer .attendance-name-text {
-    max-width: 100%;
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
-  }
+    /* ---------- Table container ---------- */
 
-  #attendanceTableContainer .attendance-mobile-meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    color: #667085;
-    font-size: 10px;
-    font-weight: 600;
-    line-height: 1.25;
-    font-variant-numeric: tabular-nums;
-  }
+    #attendanceTableContainer .table-responsive {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        border: 1px solid #e4e7ec !important;
+        border-radius: 14px !important;
+        background: #ffffff !important;
+        box-shadow: 0 3px 14px rgba(16, 24, 40, 0.04) !important;
+    }
 
-  #attendanceTableContainer .attendance-mobile-meta > span + span::before {
-    content: "•";
-    margin: 0 5px;
-    color: #c0c6d0;
-  }
+    #attendanceTableContainer .table-responsive::after {
+        display: none !important;
+        content: none !important;
+    }
 
-  #attendanceTableContainer .attendance-status-cell {
-    grid-area: status;
-    justify-self: end;
-  }
+    #attendanceTableContainer .attendance-table,
+    #attendanceTableContainer .attendance-table tbody {
+        display: block !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
 
-  #attendanceTableContainer .attendance-status-cell .status-label {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    width: auto !important;
-    min-width: 86px !important;
-    max-width: none !important;
-    min-height: 28px;
-    padding: 6px 8px !important;
-    border-radius: 999px !important;
-    font-size: 9.5px !important;
-    font-weight: 750 !important;
-    line-height: 1 !important;
-    letter-spacing: 0 !important;
-    white-space: nowrap;
-    overflow: visible !important;
-  }
+    #attendanceTableContainer .attendance-table thead {
+        display: none !important;
+    }
 
-  #attendanceTableContainer .attendance-action-cell {
-    grid-area: action;
-    justify-self: end;
-  }
+    #attendanceTableContainer .attendance-table tbody {
+        counter-reset: attendance-row;
+    }
 
-  #attendanceTableContainer .attendance-rollback-btn {
-    display: inline-flex !important;
-    width: 28px !important;
-    min-width: 28px !important;
-    height: 28px !important;
-    padding: 0 !important;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #e4e7ec !important;
-    border-radius: 8px !important;
-    background: #f8fafc !important;
-    color: #475467 !important;
-    box-shadow: none !important;
-    font-size: 13px !important;
-  }
+    /* ---------- Student row ---------- */
 
-  #attendanceTableContainer .attendance-rollback-btn span:last-child,
-  #attendanceTableContainer .attendance-no-action {
-    display: none;
-  }
+    #attendanceTableContainer .attendance-table tbody tr {
+        counter-increment: attendance-row;
+        display: grid !important;
+        grid-template-columns: 24px minmax(0, 1fr) 76px 32px !important;
+        grid-template-areas: "number student status action" !important;
+        align-items: center !important;
+        gap: 8px !important;
+
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 74px !important;
+        box-sizing: border-box !important;
+
+        margin: 0 !important;
+        padding: 11px 10px !important;
+
+        background: #ffffff !important;
+        border: 0 !important;
+        border-bottom: 1px solid #edf0f4 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+
+    #attendanceTableContainer .attendance-table tbody tr:last-child {
+        border-bottom: 0 !important;
+    }
+
+    #attendanceTableContainer .attendance-table tbody tr:hover,
+    #attendanceTableContainer .attendance-table tbody tr:active {
+        background: #f9fbfd !important;
+    }
+
+    /* Sembunyikan semua kolom dahulu agar tidak ada duplikasi */
+
+    #attendanceTableContainer .attendance-table tbody td {
+        display: none !important;
+        width: auto !important;
+        min-width: 0 !important;
+        height: auto !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        border: 0 !important;
+        background: transparent !important;
+    }
+
+    /* ---------- Nomor ---------- */
+
+    #attendanceTableContainer .attendance-table tbody td.attendance-number-cell {
+        grid-area: number !important;
+        display: flex !important;
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+
+        color: transparent !important;
+        font-size: 0 !important;
+    }
+
+    #attendanceTableContainer
+    .attendance-table
+    tbody
+    td.attendance-number-cell::before {
+        content: counter(attendance-row, decimal-leading-zero);
+        color: #7890aa;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.3;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* ---------- Nama dan metadata ---------- */
+
+    #attendanceTableContainer .attendance-table tbody td.attendance-name-cell {
+        grid-area: student !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        justify-content: center !important;
+        gap: 5px !important;
+
+        min-width: 0 !important;
+        color: #16253a !important;
+        white-space: normal !important;
+    }
+
+    #attendanceTableContainer .attendance-name-text {
+        display: block !important;
+        max-width: 100% !important;
+
+        color: #16253a !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        line-height: 1.28 !important;
+
+        white-space: normal !important;
+        word-break: normal !important;
+        overflow-wrap: break-word !important;
+        hyphens: none !important;
+    }
+
+    #attendanceTableContainer .attendance-mobile-meta {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+
+        max-width: 100% !important;
+        color: #748196 !important;
+
+        font-size: 10px !important;
+        font-weight: 550 !important;
+        line-height: 1.25 !important;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Urutan metadata: kelas • jam • tanggal */
+
+    #attendanceTableContainer .attendance-mobile-meta > span:nth-child(1) {
+        order: 1;
+    }
+
+    #attendanceTableContainer .attendance-mobile-meta > span:nth-child(3) {
+        order: 2;
+    }
+
+    #attendanceTableContainer .attendance-mobile-meta > span:nth-child(2) {
+        order: 3;
+    }
+
+    #attendanceTableContainer
+    .attendance-mobile-meta
+    > span:not(:first-child)::before {
+        content: "•";
+        margin: 0 5px;
+        color: #c0c7d1;
+    }
+
+    /* ---------- Status ---------- */
+
+    #attendanceTableContainer .attendance-table tbody td.attendance-status-cell {
+        grid-area: status !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+    }
+
+    #attendanceTableContainer .attendance-status-cell .status-label {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        width: 74px !important;
+        min-width: 74px !important;
+        max-width: 74px !important;
+        min-height: 30px !important;
+        box-sizing: border-box !important;
+
+        padding: 5px 5px !important;
+        border-radius: 999px !important;
+
+        font-size: 9px !important;
+        font-weight: 750 !important;
+        line-height: 1 !important;
+        letter-spacing: 0 !important;
+
+        text-align: center !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+    }
+
+    #attendanceTableContainer .status-BELUM_ABSEN {
+        font-size: 7.5px !important;
+    }
+
+    /* ---------- Tombol rollback ---------- */
+
+    #attendanceTableContainer .attendance-table tbody td.attendance-action-cell {
+        grid-area: action !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+    }
+
+    #attendanceTableContainer .attendance-rollback-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        width: 30px !important;
+        min-width: 30px !important;
+        height: 30px !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        border: 1px solid #dfe5ec !important;
+        border-radius: 9px !important;
+        background: #f8fafc !important;
+        color: #42566c !important;
+
+        box-shadow: none !important;
+        font-size: 13px !important;
+    }
+
+    #attendanceTableContainer .attendance-rollback-btn:active {
+        background: #edf2f7 !important;
+        transform: scale(0.96);
+    }
+
+    #attendanceTableContainer .attendance-rollback-btn span:last-child,
+    #attendanceTableContainer .attendance-no-action {
+        display: none !important;
+    }
 }
 
+/* ============================================================
+   VERY SMALL PHONES
+   ============================================================ */
+
 @media (max-width: 390px) {
-  #attendanceTableContainer .attendance-table tbody tr {
-    gap: 6px;
-    padding: 9px;
-  }
 
-  #attendanceTableContainer .attendance-name-text { font-size: 12.5px; }
+    #attendanceTableContainer .attendance-table tbody tr {
+        grid-template-columns: 22px minmax(0, 1fr) 70px 30px !important;
+        gap: 6px !important;
+        min-height: 72px !important;
+        padding: 10px 8px !important;
+    }
 
-  #attendanceTableContainer .attendance-status-cell .status-label {
-    min-width: 82px !important;
-    padding: 6px 7px !important;
-    font-size: 9px !important;
-  }
+    #attendanceTableContainer .attendance-name-text {
+        font-size: 13px !important;
+    }
+
+    #attendanceTableContainer .attendance-mobile-meta {
+        font-size: 9.5px !important;
+    }
+
+    #attendanceTableContainer .attendance-status-cell .status-label {
+        width: 68px !important;
+        min-width: 68px !important;
+        max-width: 68px !important;
+        font-size: 8.5px !important;
+    }
+
+    #attendanceTableContainer .status-BELUM_ABSEN {
+        font-size: 7px !important;
+    }
+
+    #attendanceTableContainer .attendance-rollback-btn {
+        width: 28px !important;
+        min-width: 28px !important;
+        height: 28px !important;
+    }
 }
