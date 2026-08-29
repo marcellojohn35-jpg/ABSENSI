@@ -1686,7 +1686,26 @@ async function exportToExcel() {
         { header: 'Status', key: 'status', width: 16 }
     ];
 
-    attendanceFilteredData.forEach((d, i) => {
+    // Urutan prioritas status (dari atas ke bawah)
+    const statusOrder = ['HADIR', 'TERLAMBAT', 'IZIN', 'SAKIT', 'ALFA', 'BELUM_ABSEN'];
+
+    // Urutkan: kelompok status dulu, lalu di dalam kelompok urut jam tercepat-terlambat.
+    const sortedData = [...attendanceFilteredData].sort((a, b) => {
+        // 1. Bandingkan urutan status
+        const statusDiff = statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+        if (statusDiff !== 0) return statusDiff;
+
+        // 2. Kalau status sama, bandingkan jam (createdAt)
+        if (!a.createdAt && !b.createdAt) return 0;
+        if (!a.createdAt) return 1;
+        if (!b.createdAt) return -1;
+
+        const timeA = a.createdAt.seconds ?? a.createdAt._seconds ?? 0;
+        const timeB = b.createdAt.seconds ?? b.createdAt._seconds ?? 0;
+        return timeA - timeB;
+    });
+    
+    sortedData.forEach((d, i) => {
         sheet.addRow({
             no: i + 1,
             nama: d.nama,
