@@ -577,7 +577,7 @@ async function renderDashboard(userData) {
         `;
 
         userManagementBtnHTML = `
-            <button id="userManagementBtn" class="btn btn-secondary btn-block" style="margin-bottom:16px;">
+            <button id="userManagementBtn" class="btn btn-secondary btn-block mb-16">
                 👥 Manajemen User
             </button>
         `;
