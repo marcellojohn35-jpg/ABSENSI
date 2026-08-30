@@ -747,7 +747,7 @@ async function renderDashboard(userData) {
                     ${panelDesc}
                 </p>
 
-                <div <div class="mb-12">
+                <div class="mb-12">
                     <input
                         type="text"
                         id="manualStudentSearch"
@@ -755,6 +755,22 @@ async function renderDashboard(userData) {
                         autocomplete="off"
                         class="w-full"
                     >
+                </div>
+
+                <div class="filter-container mb-12">
+                    <select id="manualClassFilter" class="flex-1">
+                        <option value="">Semua Kelas</option>
+                    </select>
+
+                    <select id="manualAttendanceStatusFilter" class="flex-1">
+                        <option value="">Semua Status</option>
+                        <option value="BELUM_ABSEN">BELUM ABSEN</option>
+                        <option value="HADIR">HADIR</option>
+                        <option value="TERLAMBAT">TERLAMBAT</option>
+                        <option value="IZIN">IZIN</option>
+                        <option value="SAKIT">SAKIT</option>
+                        <option value="ALFA">ALFA</option>
+                    </select>
                 </div>
 
                 <div class="toolbar-row">
@@ -924,6 +940,14 @@ async function renderDashboard(userData) {
             renderManualStudentList();
         });
 
+        document.getElementById('manualClassFilter').addEventListener('change', () => {
+            renderManualStudentList();
+        });
+
+        document.getElementById('manualAttendanceStatusFilter').addEventListener('change', () => {
+            renderManualStudentList();
+        });
+
         document.getElementById('manualSelectAll').addEventListener('change', (event) => {
             const visibleStudents = getVisibleManualStudents();
 
@@ -940,13 +964,16 @@ async function renderDashboard(userData) {
             renderManualStudentList();
         });
 
-        setTimeout(() => populateManualStudentDropdown(userData), 300);
     }
 
     await loadClassOptions();
     // Isi dropdown session (sumber kebenaran filter attendance) lalu load data
     // untuk session yang otomatis terpilih (default: session ACTIVE).
     await initSessionSelector();
+
+    if (userData.role === 'teacher' || userData.role === 'admin') {
+        await populateManualStudentDropdown(userData);
+    }
 }
 
 // ===== Dashboard: Isi dropdown pilihan session (LEGACY-SAFE) =====
@@ -1008,6 +1035,12 @@ async function initSessionSelector() {
         currentDashboardSessionDate = opt ? opt.dataset.date : null;
         currentDashboardSessionStatus = opt ? opt.dataset.status : null;
         if (dateLabel) dateLabel.textContent = currentDashboardSessionDate ? `Tanggal: ${formatAttendanceDate(currentDashboardSessionDate)}` : '';
+
+        if (document.getElementById('teacherManualPanel')) {
+            await populateManualStudentDropdown({
+                role: document.body.dataset.currentRole || 'teacher'
+            });
+        }
     };
 }
 
@@ -1020,7 +1053,27 @@ async function populateManualStudentDropdown(userData) {
     });
 
     try {
-        const snapshot = await getDocs(collection(db, 'users'));
+        const [snapshot, attendanceSnapshot] = await Promise.all([
+            getDocs(collection(db, 'users')),
+            currentDashboardSessionId
+                ? getDocs(query(
+                    collection(db, 'attendance'),
+                    where('sessionId', '==', currentDashboardSessionId)
+                ))
+                : Promise.resolve(null)
+        ]);
+
+        const attendanceByUid = new Map();
+
+        if (attendanceSnapshot) {
+            attendanceSnapshot.forEach(docSnap => {
+                const attendance = docSnap.data();
+                if (attendance.uid) {
+                    attendanceByUid.set(attendance.uid, attendance.status);
+                }
+            });
+        }
+
         const students = [];
 
         snapshot.forEach(docSnap => {
@@ -1033,7 +1086,9 @@ async function populateManualStudentDropdown(userData) {
 
             students.push({
                 uid: docSnap.id,
-                ...data
+                ...data,
+                attendanceStatus:
+                    attendanceByUid.get(docSnap.id) || 'BELUM_ABSEN'
             });
         });
 
@@ -1042,6 +1097,28 @@ async function populateManualStudentDropdown(userData) {
         );
 
         manualStudents = students;
+
+        const classFilter =
+            document.getElementById('manualClassFilter');
+
+        if (classFilter) {
+            const selectedClass = classFilter.value;
+            const classes = [...new Set(
+                students
+                    .map(student => student.classId)
+                    .filter(Boolean)
+            )].sort((a, b) => a.localeCompare(b, 'id'));
+
+            classFilter.innerHTML =
+                '<option value="">Semua Kelas</option>' +
+                classes.map(classId =>
+                    `<option value="${escapeHtml(classId)}">${escapeHtml(classId)}</option>`
+                ).join('');
+
+            if (classes.includes(selectedClass)) {
+                classFilter.value = selectedClass;
+            }
+        }
 
         // Selection yang UID-nya sudah tidak ada dibersihkan.
         const validUids = new Set(students.map(student => student.uid));
@@ -1069,26 +1146,38 @@ async function populateManualStudentDropdown(userData) {
 }
 
 function getVisibleManualStudents() {
-    const searchInput = document.getElementById('manualStudentSearch');
+    const searchInput =
+        document.getElementById('manualStudentSearch');
+    const classFilter =
+        document.getElementById('manualClassFilter');
+    const statusFilter =
+        document.getElementById('manualAttendanceStatusFilter');
 
-    if (!searchInput) {
-        return manualStudents;
-    }
-
-    const keyword = searchInput.value.trim().toLowerCase();
-
-    if (!keyword) {
-        return manualStudents;
-    }
+    const keyword =
+        (searchInput?.value || '').trim().toLowerCase();
+    const selectedClass = classFilter?.value || '';
+    const selectedStatus = statusFilter?.value || '';
 
     return manualStudents.filter(student => {
         const nama = (student.nama || '').toLowerCase();
         const classId = (student.classId || '').toLowerCase();
+        const status =
+            student.attendanceStatus || 'BELUM_ABSEN';
 
-        return (
+        const matchesSearch =
+            !keyword ||
             nama.includes(keyword) ||
-            classId.includes(keyword)
-        );
+            classId.includes(keyword);
+
+        const matchesClass =
+            !selectedClass ||
+            student.classId === selectedClass;
+
+        const matchesStatus =
+            !selectedStatus ||
+            status === selectedStatus;
+
+        return matchesSearch && matchesClass && matchesStatus;
     });
 }
 
@@ -1167,7 +1256,11 @@ function renderManualStudentList() {
 
         const text = document.createElement('span');
         text.textContent =
-            `${student.nama || 'Unknown'} (${student.classId || '-'})`;
+            `${student.nama || 'Unknown'} (${student.classId || '-'}) — ${
+                student.attendanceStatus === 'BELUM_ABSEN'
+                    ? 'BELUM ABSEN'
+                    : student.attendanceStatus
+            }`;
 
         label.appendChild(checkbox);
         label.appendChild(text);
@@ -1296,30 +1389,9 @@ async function handleManualStatus(userData) {
                     );
                 }
 
-                if (
-                    !isAdmin &&
-                    targetData.classId !== userData.classId
-                ) {
-                    throw new Error(
-                        `${targetData.nama || targetUid} bukan bagian dari kelas Anda.`
-                    );
-                }
-
                 const attendanceData = attendanceSnap.exists()
                     ? attendanceSnap.data()
                     : null;
-
-                // Untuk existing attendance, teacher juga harus memastikan
-                // attendance tersebut memang milik kelasnya.
-                if (
-                    attendanceData &&
-                    !isAdmin &&
-                    attendanceData.classId !== userData.classId
-                ) {
-                    throw new Error(
-                        `Attendance ${targetData.nama || targetUid} berada di luar kelas Anda.`
-                    );
-                }
 
                 return {
                     targetUid,
@@ -1405,8 +1477,7 @@ async function handleManualStatus(userData) {
             statusSelect.value = '';
         }
 
-        renderManualStudentList();
-
+        await populateManualStudentDropdown(userData);
         await loadAttendanceData();
 
     } catch (error) {
