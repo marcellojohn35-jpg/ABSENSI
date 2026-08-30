@@ -2256,7 +2256,7 @@ function renderUserManagement() {
 
     // Build filter UI
     const filterUI = `
-        <div class="filter-container">
+        <div class="filter-container um-filter-bar">
             <input type="text" id="umFilterNama" placeholder="Cari nama..." value="${escapeHtml(namaFilter)}">
 
             <select id="umFilterKelas">
@@ -2286,112 +2286,182 @@ function renderUserManagement() {
         </div>
     `;
 
-    // Build table
+    // Build compact user list
+    const displayUsers = [...umFilteredData].sort((a, b) => {
+        const aPriority = a.role === 'casis' ? 0 : 1;
+        const bPriority = b.role === 'casis' ? 0 : 1;
+
+        if (aPriority !== bPriority) {
+            return aPriority - bPriority;
+        }
+
+        return (a.nama || '').localeCompare(b.nama || '', 'id');
+    });
+
     let tableHTML = `
-        <div class="table-responsive">
-        <table class="um-table">
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Nama</th>
-                    <th>Kelas</th>
-                    <th>Role</th>
-                    <th>NIS</th>
-                    <th>Status Akun</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div class="um-list">
+            <div class="um-list-summary">
+                <strong>${displayUsers.length} user</strong>
+                <span>Casis ditampilkan paling atas</span>
+            </div>
     `;
 
-    if (umFilteredData.length === 0) {
+    if (displayUsers.length === 0) {
         tableHTML += `
-            <tr>
-                <td colspan="7" class="state-message">
-                    Tidak ada user ditemukan.
-                </td>
-            </tr>
+            <div class="state-message um-empty">
+                Tidak ada user ditemukan.
+            </div>
         `;
     } else {
-        umFilteredData.forEach((u, i) => {
+        displayUsers.forEach(u => {
+            const isInactive = u.accountStatus === 'INACTIVE';
+            const isCasis = u.role === 'casis';
+
+            const statusText = isCasis
+                ? 'MENUNGGU'
+                : isInactive
+                    ? 'NONAKTIF'
+                    : 'AKTIF';
+
+            const statusClass = isCasis
+                ? 'um-status-pending'
+                : isInactive
+                    ? 'um-status-inactive'
+                    : 'um-status-active';
+
+            const actionHTML = isCasis
+                ? `
+                    <button class="um-menu-item um-menu-approve btn-approve"
+                            data-uid="${escapeHtml(u.uid)}">
+                        <span>✓</span>
+                        <span>Terima sebagai siswa</span>
+                    </button>
+
+                    <button class="um-menu-item um-menu-danger btn-reject"
+                            data-uid="${escapeHtml(u.uid)}">
+                        <span>×</span>
+                        <span>Tolak pendaftaran</span>
+                    </button>
+                `
+                : u.role === 'student'
+                    ? `
+                        <button class="um-menu-item btn-edit"
+                                data-uid="${escapeHtml(u.uid)}">
+                            <span>✎</span>
+                            <span>Edit user</span>
+                        </button>
+
+                        <button class="um-menu-item btn-toggle-status"
+                                data-uid="${escapeHtml(u.uid)}"
+                                data-next-status="${
+                                    isInactive ? 'ACTIVE' : 'INACTIVE'
+                                }">
+                            <span>${isInactive ? '✓' : '⊘'}</span>
+                            <span>${
+                                isInactive ? 'Aktifkan akun' : 'Nonaktifkan akun'
+                            }</span>
+                        </button>
+
+                        <button class="um-menu-item um-menu-danger btn-delete-user"
+                                data-uid="${escapeHtml(u.uid)}">
+                            <span>⌫</span>
+                            <span>Hapus user</span>
+                        </button>
+                    `
+                    : `
+                        <button class="um-menu-item btn-edit"
+                                data-uid="${escapeHtml(u.uid)}">
+                            <span>✎</span>
+                            <span>Edit user</span>
+                        </button>
+                    `;
+
             tableHTML += `
-                <tr>
-                    <td>${i + 1}</td>
-                    <td>${escapeHtml(u.nama || '-')}</td>
-                    <td>${escapeHtml(u.classId || '-')}</td>
-                    <td>${escapeHtml(ROLE_LABEL[u.role] || u.role || '-')}</td>
-                    <td>${escapeHtml(u.nis || '-')}</td>
-                    <td>
-                        <span class="status-label ${
-                            u.accountStatus === 'INACTIVE'
-                                ? 'status-BELUM_ABSEN'
-                                : 'status-HADIR'
-                        }">
+                <div class="um-user-row">
+                    <div class="um-user-main">
+                        <div class="um-user-name">
+                            ${escapeHtml(u.nama || '-')}
+                        </div>
+
+                        <div class="um-user-meta">
+                            <span>${escapeHtml(u.classId || 'Tanpa kelas')}</span>
+                            <span aria-hidden="true">•</span>
+                            <span>${escapeHtml(ROLE_LABEL[u.role] || u.role || '-')}</span>
                             ${
-                                u.accountStatus === 'INACTIVE'
-                                    ? 'NONAKTIF'
-                                    : 'AKTIF'
-                            }
-                        </span>
-                    </td>
-                    <td>
-                        ${
-                            u.role === 'casis'
-                                ? `
-                                    <button class="btn-approve" data-uid="${u.uid}">
-                                        ✅ Approve
-                                    </button>
-                                    <button class="btn-reject" data-uid="${u.uid}">
-                                        ❌ Tolak
-                                    </button>
-                                `
-                                : u.role === 'student'
+                                u.nis
                                     ? `
-                                        <button class="btn-edit" data-uid="${u.uid}">
-                                            ✏️ Edit
-                                        </button>
-
-                                        <button
-                                            class="btn btn-secondary btn-toggle-status"
-                                            data-uid="${u.uid}"
-                                            data-next-status="${
-                                                u.accountStatus === 'INACTIVE'
-                                                    ? 'ACTIVE'
-                                                    : 'INACTIVE'
-                                            }"
-                                        >
-                                            ${
-                                                u.accountStatus === 'INACTIVE'
-                                                    ? '✅ Aktifkan'
-                                                    : '🚫 Nonaktifkan'
-                                            }
-                                        </button>
-
-                                        <button
-                                            class="btn btn-secondary btn-delete-user"
-                                            data-uid="${u.uid}"
-                                        >
-                                            🗑️ Hapus
-                                        </button>
+                                        <span aria-hidden="true">•</span>
+                                        <span>NIS ${escapeHtml(u.nis)}</span>
                                     `
-                                    : `
-                                        <button class="btn-edit" data-uid="${u.uid}">
-                                            ✏️ Edit
-                                        </button>
-                                    `
-                        }
-                    </td>
-                </tr>
+                                    : ''
+                            }
+                        </div>
+                    </div>
+
+                    <span class="um-status ${statusClass}">
+                        ${statusText}
+                    </span>
+
+                    <div class="um-actions">
+                        <button
+                            type="button"
+                            class="um-menu-trigger"
+                            aria-label="Buka aksi untuk ${escapeHtml(u.nama || 'user')}"
+                            aria-expanded="false"
+                        >
+                            ⋮
+                        </button>
+
+                        <div class="um-action-menu" hidden>
+                            ${actionHTML}
+                        </div>
+                    </div>
+                </div>
             `;
         });
     }
 
-    tableHTML += `</tbody></table></div>`;
+    tableHTML += `</div>`;
 
     container.innerHTML = `
         ${filterUI}
         ${tableHTML}
     `;
+
+    container.querySelectorAll('.um-menu-trigger').forEach(button => {
+        button.onclick = event => {
+            event.stopPropagation();
+
+            const menu = button.nextElementSibling;
+            const willOpen = menu.hidden;
+
+            container.querySelectorAll('.um-action-menu').forEach(otherMenu => {
+                otherMenu.hidden = true;
+            });
+
+            container.querySelectorAll('.um-menu-trigger').forEach(otherButton => {
+                otherButton.setAttribute('aria-expanded', 'false');
+            });
+
+            menu.hidden = !willOpen;
+            button.setAttribute(
+                'aria-expanded',
+                willOpen ? 'true' : 'false'
+            );
+        };
+    });
+
+    container.onclick = event => {
+        if (event.target.closest('.um-actions')) return;
+
+        container.querySelectorAll('.um-action-menu').forEach(menu => {
+            menu.hidden = true;
+        });
+
+        container.querySelectorAll('.um-menu-trigger').forEach(button => {
+            button.setAttribute('aria-expanded', 'false');
+        });
+    };
 
     // Attach listeners
     document.getElementById('umApplyFilterBtn').onclick = renderUserManagement;
