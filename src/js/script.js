@@ -2913,11 +2913,6 @@ loginBtn.onclick = async () => {
         loginBtn.disabled = true;
         loginBtn.textContent = '⏳ Menghubungkan Google...';
 
-        if (isMobileAuthDevice()) {
-            await signInWithRedirect(auth, provider);
-            return;
-        }
-
         await signInWithPopup(auth, provider);
 
     } catch (error) {
