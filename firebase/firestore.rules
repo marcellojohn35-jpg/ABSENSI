@@ -408,8 +408,7 @@ service cloud.firestore {
                  request.resource.data.uid,
                  request.resource.data.classId
                )
-            // Teacher hanya boleh menyentuh student di classId-nya sendiri
-            && getCurrentUserClassId() == request.resource.data.classId
+            // Teacher boleh menangani student aktif di semua kelas.
             // Teacher HANYA boleh manual attendance pada session yang ACTIVE
             // (Admin dikecualikan — lihat blok ADMIN MANUAL di bawah).
             && isSessionActive()
@@ -504,10 +503,9 @@ service cloud.firestore {
             && request.resource.data.keys().size() == 7
           )
           ||
-          // ===== TEACHER CORRECTION (kelas sendiri, status terbatas) =====
+          // ===== TEACHER CORRECTION (semua kelas, status terbatas) =====
           (getCurrentUserRole() == 'teacher'
             && isTargetStudentRole(resource.data.uid)
-            && getCurrentUserClassId() == resource.data.classId
             && isValidManualStatus(request.resource.data.status)
             // Konsisten dengan pembatasan CREATE: teacher hanya boleh menyentuh
             // (termasuk koreksi) attendance pada session yang masih ACTIVE.

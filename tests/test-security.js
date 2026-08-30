@@ -340,8 +340,8 @@ const fs = require("fs");
       )
     );
 
-    await test("Teacher tidak bisa manual attendance kelas lain", () =>
-      assertFails(
+    await test("Teacher bisa manual attendance lintas kelas", () =>
+      assertSucceeds(
         setDoc(
           doc(teacher.firestore(), "attendance/student-2_session_001"),
           {

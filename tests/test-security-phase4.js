@@ -179,8 +179,8 @@ async function test(name, fn) {
     )
   );
 
-  await test("Teacher tidak bisa mengubah attendance student lain di luar kelas", () =>
-    assertFails(
+  await test("Teacher bisa mengubah attendance student di luar kelas", () =>
+    assertSucceeds(
       updateDoc(
         doc(teacher.firestore(), "attendance/student-2_session_001"),
         { status: "IZIN" }

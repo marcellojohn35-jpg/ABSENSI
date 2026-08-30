@@ -725,7 +725,7 @@ async function renderDashboard(userData) {
 
         const panelDesc = isAdminPanel
             ? 'Tetapkan/koreksi status attendance untuk siswa mana pun.'
-            : 'Tetapkan/koreksi status IZIN/SAKIT/ALFA untuk siswa di kelas Anda.';
+            : 'Tetapkan/koreksi status IZIN/SAKIT/ALFA untuk siswa di semua kelas.';
 
         const statusOptionsHTML = isAdminPanel
             ? `
@@ -1029,14 +1029,7 @@ async function populateManualStudentDropdown(userData) {
             if (data.role !== 'student') return;
             if (['INACTIVE', 'DELETED'].includes(data.accountStatus)) return;
 
-            // Teacher hanya melihat kelasnya sendiri.
-            // Ini UX filtering; Firestore Rules tetap enforcement utama.
-            if (
-                userData.role === 'teacher' &&
-                data.classId !== userData.classId
-            ) {
-                return;
-            }
+            // Teacher dapat melihat siswa aktif dari semua kelas.
 
             students.push({
                 uid: docSnap.id,
