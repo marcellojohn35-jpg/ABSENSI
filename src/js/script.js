@@ -353,9 +353,9 @@ async function processAbsenPage(user) {
 // ===== GEOLOCATION CONFIG (FIELD TEST — validasi sebelum merge ke main) =====
 const GEOLOCATION_CONFIG = {
     enabled: true,
-    targetLat: -6.263697,
-    targetLng: 106.916734,
-    radiusMeters: 1000
+    targetLat: -6.263838,
+    targetLng: 106.916585,
+    radiusMeters: 5
 };
 
 function getDistanceMeters(lat1, lng1, lat2, lng2) {
