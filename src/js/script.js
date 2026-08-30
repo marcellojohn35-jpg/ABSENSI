@@ -355,7 +355,7 @@ const GEOLOCATION_CONFIG = {
     enabled: true,
     targetLat: -6.263838,
     targetLng: 106.916585,
-    radiusMeters: 5
+    radiusMeters: 25
 };
 
 function getDistanceMeters(lat1, lng1, lat2, lng2) {
