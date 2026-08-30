@@ -1,6 +1,18 @@
 {
   "rewrites": [
     {
+      "source": "/css/:path*",
+      "destination": "/src/css/:path*"
+    },
+    {
+      "source": "/js/:path*",
+      "destination": "/src/js/:path*"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "/src/assets/:path*"
+    },
+    {
       "source": "/absen",
       "destination": "/src/index.html"
     },

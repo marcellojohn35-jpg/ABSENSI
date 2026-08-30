@@ -75,6 +75,16 @@ let currentDashboardSessionStatus = null;
 // login normal dari '/' tidak terpengaruh saat tidak ada route tersimpan.
 const POST_LOGIN_REDIRECT_KEY = 'postLoginRedirect';
 
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    })[char]);
+}
+
 function isMobileAuthDevice() {
     return window.matchMedia('(max-width: 768px)').matches
         || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -293,8 +303,8 @@ async function processAbsenPage(user) {
         // Tampilkan tetap info profil siswa untuk konsistensi UX
         absenProfileInfo.style.display = 'block';
         absenProfileInfo.innerHTML = `
-            <p><strong>Nama:</strong> ${uData.nama || 'Belum diisi'}</p>
-            <p><strong>Kelas:</strong> ${uData.classId || 'Belum diisi'}</p>
+            <p><strong>Nama:</strong> ${escapeHtml(uData.nama || 'Belum diisi')}</p>
+            <p><strong>Kelas:</strong> ${escapeHtml(uData.classId || 'Belum diisi')}</p>
         `;
         return;
     }
@@ -321,7 +331,7 @@ async function processAbsenPage(user) {
 
     absenStatus.innerHTML = `
         <span class="student-greeting">
-            ${greeting}, ${uData.nama || 'Siswa'} 👋
+            ${greeting}, ${escapeHtml(uData.nama || 'Siswa')} 👋
         </span>
         <span class="student-reminder">
             Siap memulai hari? Catat kehadiranmu sekarang.
@@ -334,17 +344,17 @@ async function processAbsenPage(user) {
     absenProfileInfo.style.display = 'block';
 
     absenProfileInfo.innerHTML = `
-        <p><strong>Nama:</strong> ${uData.nama || 'Belum diisi'}</p>
-        <p><strong>Kelas:</strong> ${uData.classId || 'Belum diisi'}</p>
+        <p><strong>Nama:</strong> ${escapeHtml(uData.nama || 'Belum diisi')}</p>
+        <p><strong>Kelas:</strong> ${escapeHtml(uData.classId || 'Belum diisi')}</p>
     `;
 }
 
 
-// ===== GEOLOCATION CONFIG (TESTING) =====
+// ===== GEOLOCATION CONFIG (FIELD TEST — validasi sebelum merge ke main) =====
 const GEOLOCATION_CONFIG = {
     enabled: true,
-    targetLat: -6.191843,
-    targetLng: 106.848513,
+    targetLat: -6.263697,
+    targetLng: 106.916734,
     radiusMeters: 1000
 };
 
@@ -575,17 +585,17 @@ async function renderCasisDashboard(userData) {
             <div class="profile-summary">
                 <div class="profile-row">
                     <span class="label">Nama</span>
-                    <span class="value">${userData.nama || '-'}</span>
+                    <span class="value">${escapeHtml(userData.nama || '-')}</span>
                 </div>
 
                 <div class="profile-row">
                     <span class="label">Kelas</span>
-                    <span class="value">${userData.classId || '-'}</span>
+                    <span class="value">${escapeHtml(userData.classId || '-')}</span>
                 </div>
 
                 <div class="profile-row">
                     <span class="label">Email</span>
-                    <span class="value">${userData.email || currentUser?.email || '-'}</span>
+                    <span class="value">${escapeHtml(userData.email || currentUser?.email || '-')}</span>
                 </div>
 
                 <div class="profile-row">
@@ -651,8 +661,8 @@ async function renderDashboard(userData) {
             <h3 class="page-title">Dashboard Siswa</h3>
             <div class="card">
                 <div class="profile-summary">
-                    <div class="profile-row"><span class="label">Nama</span><span class="value">${userData.nama || '-'}</span></div>
-                    <div class="profile-row"><span class="label">Kelas</span><span class="value">${userData.classId || '-'}</span></div>
+                    <div class="profile-row"><span class="label">Nama</span><span class="value">${escapeHtml(userData.nama || '-')}</span></div>
+                    <div class="profile-row"><span class="label">Kelas</span><span class="value">${escapeHtml(userData.classId || '-')}</span></div>
                     <div class="profile-row"><span class="label">Role</span><span class="value">Siswa</span></div>
                 </div>
             </div>
@@ -1622,16 +1632,16 @@ async function loadAttendanceData() {
                 <tr>
                     <td class="attendance-number-cell">${i + 1}</td>
                     <td class="attendance-name-cell">
-                        <span class="attendance-name-text">${d.nama}</span>
-                        <span class="attendance-mobile-meta" aria-label="Kelas ${d.classId}, tanggal ${dateLabel}, pukul ${d.jam}">
-                            <span>${d.classId}</span>
-                            <span>${dateLabel}</span>
-                            <span>${d.jam}</span>
+                        <span class="attendance-name-text">${escapeHtml(d.nama)}</span>
+                        <span class="attendance-mobile-meta" aria-label="Kelas ${escapeHtml(d.classId)}, tanggal ${escapeHtml(dateLabel)}, pukul ${escapeHtml(d.jam)}">
+                            <span>${escapeHtml(d.classId)}</span>
+                            <span>${escapeHtml(dateLabel)}</span>
+                            <span>${escapeHtml(d.jam)}</span>
                         </span>
                     </td>
-                    <td class="attendance-class-cell">${d.classId}</td>
-                    <td class="attendance-date-cell">${dateLabel}</td>
-                    <td class="attendance-time-cell">${d.jam}</td>
+                    <td class="attendance-class-cell">${escapeHtml(d.classId)}</td>
+                    <td class="attendance-date-cell">${escapeHtml(dateLabel)}</td>
+                    <td class="attendance-time-cell">${escapeHtml(d.jam)}</td>
                     <td class="attendance-status-cell">
                         <span class="status-label ${statusClass}">${statusLabel}</span>
                     </td>
@@ -1640,8 +1650,9 @@ async function loadAttendanceData() {
                             d.status !== 'BELUM_ABSEN'
                                 ? `<button
                                     class="btn btn-secondary attendance-rollback-btn"
-                                    onclick="rollbackAttendance('${d.uid}', '${d.sessionId}', '${String(d.nama).replace(/'/g, "\\'")}', this)"
-                                    aria-label="Batalkan absensi ${d.nama}"
+                                    data-uid="${escapeHtml(d.uid)}"
+                                    data-session-id="${escapeHtml(d.sessionId)}"
+                                    aria-label="Batalkan absensi ${escapeHtml(d.nama)}"
                                     title="Batalkan absensi"
                                    >
                                     <span aria-hidden="true">↩</span>
@@ -1656,6 +1667,15 @@ async function loadAttendanceData() {
 
         html += `</tbody></table></div>`;
         container.innerHTML = html;
+
+        container.querySelectorAll('.attendance-rollback-btn').forEach(button => {
+            button.onclick = () => rollbackAttendance(
+                button.dataset.uid,
+                button.dataset.sessionId,
+                button.closest('tr')?.querySelector('.attendance-name-text')?.textContent || 'siswa',
+                button
+            );
+        });
 
         updateSummary(attendanceFilteredData);
 
@@ -2173,7 +2193,7 @@ function renderUserManagement() {
     // Build filter UI
     const filterUI = `
         <div class="filter-container">
-            <input type="text" id="umFilterNama" placeholder="Cari nama..." value="${namaFilter}">
+            <input type="text" id="umFilterNama" placeholder="Cari nama..." value="${escapeHtml(namaFilter)}">
 
             <select id="umFilterKelas">
                 <option value="">Semua Kelas</option>
@@ -2233,10 +2253,10 @@ function renderUserManagement() {
             tableHTML += `
                 <tr>
                     <td>${i + 1}</td>
-                    <td>${u.nama || '-'}</td>
-                    <td>${u.classId || '-'}</td>
-                    <td>${ROLE_LABEL[u.role] || u.role || '-'}</td>
-                    <td>${u.nis || '-'}</td>
+                    <td>${escapeHtml(u.nama || '-')}</td>
+                    <td>${escapeHtml(u.classId || '-')}</td>
+                    <td>${escapeHtml(ROLE_LABEL[u.role] || u.role || '-')}</td>
+                    <td>${escapeHtml(u.nis || '-')}</td>
                     <td>
                         <span class="status-label ${
                             u.accountStatus === 'INACTIVE'
@@ -2530,7 +2550,7 @@ function openEditModal(uid) {
 
             <form id="editUserForm">
                 <label>Nama:</label>
-                <input type="text" id="editNama" value="${user.nama || ''}" required>
+                <input type="text" id="editNama" value="${escapeHtml(user.nama || '')}" required>
 
                 <label>Kelas:</label>
                 <select id="editKelas">
@@ -2543,7 +2563,7 @@ function openEditModal(uid) {
                 </select>
 
                 <label>NIS (Opsional):</label>
-                <input type="text" id="editNis" value="${user.nis || ''}">
+                <input type="text" id="editNis" value="${escapeHtml(user.nis || '')}">
 
                 <label>Role:</label>
                 <select id="editRole">
@@ -2777,24 +2797,24 @@ function showAttendanceResult(success, data) {
                 <div class="student-success-info">
                     <div class="student-success-primary">
                         <span class="student-success-label">Jam datang</span>
-                        <strong>${data.jam || '-'}</strong>
+                        <strong>${escapeHtml(data.jam || '-')}</strong>
                         <span class="student-success-timezone">WIB</span>
                     </div>
 
                     <div class="student-success-grid">
                         <div>
                             <span>Nama</span>
-                            <strong>${data.nama || '-'}</strong>
+                            <strong>${escapeHtml(data.nama || '-')}</strong>
                         </div>
 
                         <div>
                             <span>Kelas</span>
-                            <strong>${data.kelas || '-'}</strong>
+                            <strong>${escapeHtml(data.kelas || '-')}</strong>
                         </div>
 
                         <div>
                             <span>Tanggal</span>
-                            <strong>${data.tanggal || '-'}</strong>
+                            <strong>${escapeHtml(data.tanggal || '-')}</strong>
                         </div>
                     </div>
                 </div>

@@ -10,6 +10,7 @@ const {
   updateDoc,
   deleteDoc,
   Timestamp,
+  serverTimestamp,
 } = require("firebase/firestore");
 
 const fs = require("fs");
@@ -18,7 +19,7 @@ const fs = require("fs");
   const env = await initializeTestEnvironment({
     projectId: "absensi-security-test",
     firestore: {
-      rules: fs.readFileSync("firestore.rules", "utf8"),
+      rules: fs.readFileSync("firebase/firestore.rules", "utf8"),
     },
   });
 
@@ -64,6 +65,12 @@ const fs = require("fs");
         role: "student",
         nama: "Student 2",
         classId: "XI.2",
+      });
+
+      await setDoc(doc(db, "users/student-3"), {
+        role: "student",
+        nama: "Student 3",
+        classId: "XI.1",
       });
 
       await setDoc(doc(db, "users/teacher-1"), {
@@ -177,8 +184,8 @@ const fs = require("fs");
 
     console.log("\n=== ATTENDANCE SESSION ===");
 
-    await test("Teacher bisa membuat session", () =>
-      assertSucceeds(
+    await test("Teacher tidak bisa membuat session", () =>
+      assertFails(
         setDoc(
           doc(teacher.firestore(), "attendanceSessions/session_003"),
           {
@@ -211,8 +218,8 @@ const fs = require("fs");
       )
     );
 
-    await test("Teacher bisa archive session ACTIVE", () =>
-      assertSucceeds(
+    await test("Teacher tidak bisa archive session ACTIVE", () =>
+      assertFails(
         updateDoc(
           doc(teacher.firestore(), "attendanceSessions/session_001"),
           { status: "ARCHIVED" }
@@ -236,7 +243,7 @@ const fs = require("fs");
 
     const qrRef = doc(
       student1.firestore(),
-      "attendance/student-1_qr_test"
+      "attendance/student-1_session_001"
     );
 
     await test("Student bisa QR attendance dirinya", () =>
@@ -247,8 +254,8 @@ const fs = require("fs");
           status: "HADIR",
           classId: "XI.1",
           method: "qr",
-          sessionId: "session_003",
-          createdAt: Timestamp.now(),
+          sessionId: "session_001",
+          createdAt: serverTimestamp(),
         })
       )
     );
@@ -256,15 +263,15 @@ const fs = require("fs");
     await test("Student tidak bisa absen UID orang lain", () =>
       assertFails(
         setDoc(
-          doc(student1.firestore(), "attendance/student-2_attack"),
+          doc(student1.firestore(), "attendance/student-2_session_001"),
           {
             uid: "student-2",
             tanggal: today,
             status: "HADIR",
             classId: "XI.2",
             method: "qr",
-            sessionId: "session_003",
-            createdAt: Timestamp.now(),
+            sessionId: "session_001",
+            createdAt: serverTimestamp(),
           }
         )
       )
@@ -273,15 +280,15 @@ const fs = require("fs");
     await test("Student tidak bisa memalsukan classId", () =>
       assertFails(
         setDoc(
-          doc(student1.firestore(), "attendance/student-1_fakeclass"),
+          doc(student1.firestore(), "attendance/student-1_session_001"),
           {
-            uid: "student-1",
+            uid: "student-3",
             tanggal: today,
             status: "HADIR",
             classId: "XI.2",
             method: "qr",
-            sessionId: "session_003",
-            createdAt: Timestamp.now(),
+            sessionId: "session_001",
+            createdAt: serverTimestamp(),
           }
         )
       )
@@ -290,15 +297,15 @@ const fs = require("fs");
     await test("Student tidak bisa memakai method manual", () =>
       assertFails(
         setDoc(
-          doc(student2.firestore(), "attendance/student-2_manual"),
+          doc(student2.firestore(), "attendance/student-2_session_001"),
           {
             uid: "student-2",
             tanggal: today,
             status: "IZIN",
             classId: "XI.2",
             method: "manual",
-            sessionId: "session_003",
-            createdAt: Timestamp.now(),
+            sessionId: "session_001",
+            createdAt: serverTimestamp(),
           }
         )
       )
@@ -319,15 +326,15 @@ const fs = require("fs");
     await test("Teacher bisa manual attendance kelas sendiri", () =>
       assertSucceeds(
         setDoc(
-          doc(teacher.firestore(), "attendance/student-1_teacher"),
+          doc(teacher.firestore(), "attendance/student-3_session_001"),
           {
-            uid: "student-1",
+            uid: "student-3",
             tanggal: today,
             status: "IZIN",
             classId: "XI.1",
             method: "manual",
-            sessionId: "session_003",
-            createdAt: Timestamp.now(),
+            sessionId: "session_001",
+            createdAt: serverTimestamp(),
           }
         )
       )
@@ -336,15 +343,15 @@ const fs = require("fs");
     await test("Teacher tidak bisa manual attendance kelas lain", () =>
       assertFails(
         setDoc(
-          doc(teacher.firestore(), "attendance/student-2_teacher"),
+          doc(teacher.firestore(), "attendance/student-2_session_001"),
           {
             uid: "student-2",
             tanggal: today,
             status: "IZIN",
             classId: "XI.2",
             method: "manual",
-            sessionId: "session_003",
-            createdAt: Timestamp.now(),
+            sessionId: "session_001",
+            createdAt: serverTimestamp(),
           }
         )
       )
@@ -353,15 +360,15 @@ const fs = require("fs");
     await test("Teacher tidak bisa memberi status HADIR manual", () =>
       assertFails(
         setDoc(
-          doc(teacher.firestore(), "attendance/student-1_teacher2"),
+          doc(teacher.firestore(), "attendance/student-3_session_001"),
           {
             uid: "student-1",
             tanggal: today,
             status: "HADIR",
             classId: "XI.1",
             method: "manual",
-            sessionId: "session_003",
-            createdAt: Timestamp.now(),
+            sessionId: "session_001",
+            createdAt: serverTimestamp(),
           }
         )
       )
@@ -376,7 +383,7 @@ const fs = require("fs");
     await test("Admin bisa manual attendance lintas kelas", () =>
       assertSucceeds(
         setDoc(
-          doc(admin.firestore(), "attendance/student-2_admin"),
+          doc(admin.firestore(), "attendance/student-2_session_002"),
           {
             uid: "student-2",
             tanggal: today,
@@ -384,7 +391,7 @@ const fs = require("fs");
             classId: "XI.2",
             method: "manual",
             sessionId: "session_002",
-            createdAt: Timestamp.now(),
+            createdAt: serverTimestamp(),
           }
         )
       )
@@ -393,7 +400,7 @@ const fs = require("fs");
     await test("Admin tidak bisa attendance target bukan student", () =>
       assertFails(
         setDoc(
-          doc(admin.firestore(), "attendance/teacher-admin"),
+          doc(admin.firestore(), "attendance/teacher-1_session_002"),
           {
             uid: "teacher-1",
             tanggal: today,
@@ -401,7 +408,7 @@ const fs = require("fs");
             classId: "XI.1",
             method: "manual",
             sessionId: "session_002",
-            createdAt: Timestamp.now(),
+            createdAt: serverTimestamp(),
           }
         )
       )

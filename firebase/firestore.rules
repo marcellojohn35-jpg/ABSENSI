@@ -124,12 +124,11 @@ service cloud.firestore {
 
       allow read: if request.auth != null;
 
-      function isAdminOrTeacher() {
+      function isAdmin() {
         let user = get(
           /databases/$(database)/documents/users/$(request.auth.uid)
         );
-        return user.data.role == 'admin' ||
-               user.data.role == 'teacher';
+        return user.data.role == 'admin';
       }
 
       // CREATE: hanya untuk session BARU (docId harus "session_NNN", dibuat oleh
@@ -137,7 +136,7 @@ service cloud.firestore {
       // proses archive session lama terjadi lewat operasi UPDATE terpisah
       // (di dokumen session yang lain), dalam Firestore transaction yang sama.
       allow create: if request.auth != null
-        && isAdminOrTeacher()
+        && isAdmin()
         && request.resource.data.sessionId == sessionId
         && request.resource.data.status == 'ACTIVE'
         && request.resource.data.date is string
@@ -157,7 +156,7 @@ service cloud.firestore {
       // (doc tanpa field status), karena resource.data.status == 'ACTIVE' pasti
       // gagal untuk dokumen yang field `status`-nya tidak pernah ada.
       allow update: if request.auth != null
-        && isAdminOrTeacher()
+        && isAdmin()
         && resource.data.status == 'ACTIVE'
         && request.resource.data.status == 'ARCHIVED'
         && request.resource.data.sessionId == resource.data.sessionId
@@ -371,7 +370,7 @@ service cloud.firestore {
           // ===== STUDENT QR =====
           (getCurrentUserRole() == 'student'
             && request.auth.uid == request.resource.data.uid
-            && docId.matches('^' + request.auth.uid + '_.*')
+            && docId == request.auth.uid + '_' + request.resource.data.sessionId
             && !exists(/databases/$(database)/documents/attendance/$(docId))
             && isValidSessionTime()
             && isSessionActive()
@@ -401,6 +400,7 @@ service cloud.firestore {
           ||
           // ===== TEACHER MANUAL =====
           (getCurrentUserRole() == 'teacher'
+            && docId == request.resource.data.uid + '_' + request.resource.data.sessionId
             && isValidManualStatus(request.resource.data.status)
             && request.resource.data.uid != request.auth.uid
             // SOURCE OF TRUTH: validasi target dari database
@@ -438,6 +438,7 @@ service cloud.firestore {
           ||
           // ===== ADMIN MANUAL =====
           (getCurrentUserRole() == 'admin'
+            && docId == request.resource.data.uid + '_' + request.resource.data.sessionId
             && isValidFullStatus(request.resource.data.status)
             && request.resource.data.uid != request.auth.uid
             // SOURCE OF TRUTH: validasi target dari database (tanpa batasan classId admin)

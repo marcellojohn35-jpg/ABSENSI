@@ -18,7 +18,7 @@ const fs = require("fs");
   const testEnv = await initializeTestEnvironment({
     projectId: "absensi-test",
     firestore: {
-      rules: fs.readFileSync("firestore.rules", "utf8"),
+      rules: fs.readFileSync("firebase/firestore.rules", "utf8"),
     },
   });
 

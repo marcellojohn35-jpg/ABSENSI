@@ -17,7 +17,7 @@ const fs = require("fs");
   const env = await initializeTestEnvironment({
     projectId: "absensi-security-phase2",
     firestore: {
-      rules: fs.readFileSync("firestore.rules", "utf8"),
+      rules: fs.readFileSync("firebase/firestore.rules", "utf8"),
     },
   });
 
@@ -146,6 +146,23 @@ const fs = require("fs");
             tanggal: today,
             status: "HADIR",
             classId: "XI.1",
+            method: "qr",
+            sessionId: "session_active",
+            createdAt: Timestamp.now(),
+          }
+        )
+      )
+    );
+
+    await test("Student tidak bisa membuat duplikat dengan docId sembarang", () =>
+      assertFails(
+        setDoc(
+          doc(student2.firestore(), "attendance/student-2_duplikat_bypass"),
+          {
+            uid: "student-2",
+            tanggal: today,
+            status: "HADIR",
+            classId: "XI.2",
             method: "qr",
             sessionId: "session_active",
             createdAt: Timestamp.now(),

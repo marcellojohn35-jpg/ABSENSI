@@ -18,7 +18,7 @@ const fs = require("fs");
   const env = await initializeTestEnvironment({
     projectId: "absensi-security-phase3",
     firestore: {
-      rules: fs.readFileSync("firestore.rules", "utf8"),
+      rules: fs.readFileSync("firebase/firestore.rules", "utf8"),
     },
   });
 
@@ -309,8 +309,8 @@ const fs = require("fs");
       )
     );
 
-    await test("Admin tidak bisa menghapus attendance", () =>
-      assertFails(
+    await test("Admin bisa rollback attendance", () =>
+      assertSucceeds(
         deleteDoc(
           doc(admin.firestore(), "attendance/student-1_session_001")
         )

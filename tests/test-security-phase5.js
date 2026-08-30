@@ -3,7 +3,7 @@ const path=require("path");
 const {initializeTestEnvironment,assertFails,assertSucceeds}=require("@firebase/rules-unit-testing");
 const {doc,getDoc,setDoc,updateDoc,deleteDoc,Timestamp}=require("firebase/firestore");
 
-const rules=fs.readFileSync(path.join(__dirname,"firestore.rules"),"utf8");
+const rules=fs.readFileSync(path.join(__dirname, "../firebase/firestore.rules"),"utf8");
 let env,pass=0,fail=0;
 
 async function t(n,f){

@@ -4,7 +4,9 @@
   "description": "",
   "main": "firebase-config.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run test:rules",
+    "test:rules": "npx firebase-tools emulators:exec --only firestore \"npm run test:rules:all\"",
+    "test:rules:all": "node tests/test-attendance.js && node tests/test-security.js && node tests/test-security-phase2.js && node tests/test-security-phase3.js && node tests/test-security-phase4.js && node tests/test-security-phase5.js && node tests/test-users.js"
   },
   "repository": {
     "type": "git",
