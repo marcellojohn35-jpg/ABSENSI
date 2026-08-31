@@ -743,3 +743,87 @@ tbody tr:hover {
         font-size: 15px;
     }
 }
+
+
+/* ===== BULK CASIS APPROVAL ===== */
+
+.um-bulk-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e7edf5;
+}
+
+.um-select-all,
+.um-row-checkbox {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.um-select-all {
+    gap: 9px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.um-select-all input,
+.um-row-checkbox input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #2563eb;
+    cursor: pointer;
+}
+
+.um-user-row-selectable {
+    grid-template-columns: 28px minmax(0, 1fr) auto 38px;
+}
+
+.um-row-checkbox {
+    justify-content: center;
+}
+
+#umApproveSelectedBtn {
+    min-height: 38px;
+    margin: 0;
+    padding: 8px 14px;
+    white-space: nowrap;
+}
+
+#umApproveSelectedBtn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+@media (max-width: 600px) {
+    .um-bulk-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 10px 12px;
+    }
+
+    .um-select-all {
+        min-height: 34px;
+    }
+
+    #umApproveSelectedBtn {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .um-user-row-selectable {
+        grid-template-columns: 24px minmax(0, 1fr) auto 34px;
+        padding-left: 8px;
+    }
+
+    .um-select-all input,
+    .um-row-checkbox input {
+        width: 20px;
+        height: 20px;
+    }
+}

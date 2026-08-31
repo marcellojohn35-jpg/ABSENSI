@@ -53,6 +53,7 @@ let isProcessing = false;
 let currentSessionId = null;
 let umData = [];
 let umFilteredData = [];
+let umSelectedCasisUids = new Set();
 let attendanceFilteredData = [];
 
 // ===== MANUAL ATTENDANCE MULTI SELECT STATE =====
@@ -2227,6 +2228,14 @@ async function loadUserManagementData() {
         // Filter out any users without nama (just in case)
         umData = umData.filter(u => u.nama);
 
+        const currentCasisUids = new Set(
+            umData.filter(u => u.role === 'casis').map(u => u.uid)
+        );
+
+        umSelectedCasisUids = new Set(
+            [...umSelectedCasisUids].filter(uid => currentCasisUids.has(uid))
+        );
+
         renderUserManagement();
 
     } catch (error) {
@@ -2298,12 +2307,41 @@ function renderUserManagement() {
         return (a.nama || '').localeCompare(b.nama || '', 'id');
     });
 
+    const visibleCasis = displayUsers.filter(u => u.role === 'casis');
+    const visibleCasisUids = visibleCasis.map(u => u.uid);
+
+    const allVisibleCasisSelected =
+        visibleCasisUids.length > 0 &&
+        visibleCasisUids.every(uid => umSelectedCasisUids.has(uid));
+
     let tableHTML = `
         <div class="um-list">
             <div class="um-list-summary">
                 <strong>${displayUsers.length} user</strong>
-                <span>Casis ditampilkan paling atas</span>
+                <span>${visibleCasis.length} casis menunggu</span>
             </div>
+
+            ${visibleCasis.length > 0 ? `
+                <div class="um-bulk-toolbar">
+                    <label class="um-select-all">
+                        <input
+                            type="checkbox"
+                            id="umSelectAllCasis"
+                            ${allVisibleCasisSelected ? 'checked' : ''}
+                        >
+                        <span>Pilih semua casis (${visibleCasis.length})</span>
+                    </label>
+
+                    <button
+                        type="button"
+                        id="umApproveSelectedBtn"
+                        class="btn btn-primary"
+                        ${umSelectedCasisUids.size === 0 ? 'disabled' : ''}
+                    >
+                        Terima terpilih (${umSelectedCasisUids.size})
+                    </button>
+                </div>
+            ` : ''}
     `;
 
     if (displayUsers.length === 0) {
@@ -2377,7 +2415,21 @@ function renderUserManagement() {
                     `;
 
             tableHTML += `
-                <div class="um-user-row">
+                <div class="um-user-row ${isCasis ? 'um-user-row-selectable' : ''}">
+                    ${isCasis ? `
+                        <label
+                            class="um-row-checkbox"
+                            aria-label="Pilih ${escapeHtml(u.nama || 'casis')}"
+                        >
+                            <input
+                                type="checkbox"
+                                class="um-casis-checkbox"
+                                data-uid="${escapeHtml(u.uid)}"
+                                ${umSelectedCasisUids.has(u.uid) ? 'checked' : ''}
+                            >
+                        </label>
+                    ` : ''}
+
                     <div class="um-user-main">
                         <div class="um-user-name">
                             ${escapeHtml(u.nama || '-')}
@@ -2465,6 +2517,96 @@ function renderUserManagement() {
 
     // Attach listeners
     document.getElementById('umApplyFilterBtn').onclick = renderUserManagement;
+
+    document.querySelectorAll('.um-casis-checkbox').forEach(checkbox => {
+        checkbox.onchange = () => {
+            const uid = checkbox.dataset.uid;
+
+            if (checkbox.checked) {
+                umSelectedCasisUids.add(uid);
+            } else {
+                umSelectedCasisUids.delete(uid);
+            }
+
+            renderUserManagement();
+        };
+    });
+
+    const selectAllCasis = document.getElementById('umSelectAllCasis');
+
+    if (selectAllCasis) {
+        selectAllCasis.onchange = () => {
+            visibleCasisUids.forEach(uid => {
+                if (selectAllCasis.checked) {
+                    umSelectedCasisUids.add(uid);
+                } else {
+                    umSelectedCasisUids.delete(uid);
+                }
+            });
+
+            renderUserManagement();
+        };
+    }
+
+    const approveSelectedBtn =
+        document.getElementById('umApproveSelectedBtn');
+
+    if (approveSelectedBtn) {
+        approveSelectedBtn.onclick = async () => {
+            const selectedCasis = umData.filter(user =>
+                user.role === 'casis' &&
+                umSelectedCasisUids.has(user.uid)
+            );
+
+            if (selectedCasis.length === 0) return;
+
+            const confirmed = confirm(
+                `Terima ${selectedCasis.length} casis terpilih sebagai siswa?\n\n` +
+                'Nama dan kelas mereka akan langsung masuk ke daftar siswa.'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                approveSelectedBtn.disabled = true;
+                approveSelectedBtn.textContent = '⏳ Memproses...';
+
+                const batch = writeBatch(db);
+
+                selectedCasis.forEach(user => {
+                    batch.update(doc(db, 'users', user.uid), {
+                        role: 'student',
+                        accountStatus: 'ACTIVE',
+                        approvedAt: serverTimestamp(),
+                        approvedBy: currentUser?.uid || null,
+                        updatedAt: serverTimestamp()
+                    });
+                });
+
+                await batch.commit();
+
+                umSelectedCasisUids.clear();
+
+                alert(
+                    `✅ ${selectedCasis.length} casis berhasil diterima sebagai siswa.`
+                );
+
+                await loadUserManagementData();
+
+            } catch (error) {
+                console.error('[BULK CASIS APPROVE ERROR]', error);
+
+                alert(
+                    '❌ Penerimaan massal gagal. Tidak ada data yang diubah.\n\n' +
+                    `Pesan: ${error.message || error}`
+                );
+
+                approveSelectedBtn.disabled = false;
+                approveSelectedBtn.textContent =
+                    `Terima terpilih (${umSelectedCasisUids.size})`;
+            }
+        };
+    }
 
     document.getElementById('umResetFilterBtn').onclick = () => {
         document.getElementById('umFilterNama').value = '';
@@ -2596,8 +2738,12 @@ function renderUserManagement() {
                 await updateDoc(doc(db, 'users', uid), {
                     role: 'student',
                     accountStatus: 'ACTIVE',
+                    approvedAt: serverTimestamp(),
+                    approvedBy: currentUser?.uid || null,
                     updatedAt: serverTimestamp()
                 });
+
+                umSelectedCasisUids.delete(uid);
 
                 alert(`✅ ${user.nama || 'Casis'} berhasil disetujui menjadi Siswa.`);
 
