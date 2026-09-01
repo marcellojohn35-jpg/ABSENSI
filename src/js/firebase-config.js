@@ -9,7 +9,9 @@ import {
     signInWithRedirect,
     getRedirectResult,
     onAuthStateChanged,
-    signOut
+    signOut,
+    setPersistence,
+    browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 
 import {
@@ -28,11 +30,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
+
+// Simpan sesi login di browser.
+// User tetap login setelah refresh / browser ditutup,
+// sampai logout dilakukan secara eksplisit.
+const authPersistenceReady = setPersistence(
+    auth,
+    browserLocalPersistence
+).catch((error) => {
+    console.error('[AUTH PERSISTENCE ERROR]', error);
+});
+
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 export {
     auth,
+    authPersistenceReady,
     db,
     provider,
     signInWithPopup,

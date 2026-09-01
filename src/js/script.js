@@ -2,6 +2,7 @@ console.log("Sistem Absensi URL-Based aktif (Phase 7).");
 
 import {
     auth,
+    authPersistenceReady,
     db,
     provider,
     signInWithPopup,
@@ -9,7 +10,7 @@ import {
     getRedirectResult,
     onAuthStateChanged,
     signOut
-} from './firebase-config.js?v=2';
+} from './firebase-config.js?v=3';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, orderBy, limit, deleteDoc, runTransaction, writeBatch } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 // ===== Auth redirect handling disabled: using popup login =====
@@ -3319,6 +3320,16 @@ loginBtn.onclick = async () => {
     try {
         loginBtn.disabled = true;
         loginBtn.textContent = '⏳ Menghubungkan Google...';
+
+        // Pastikan sesi login disimpan sebelum membuka Google Login.
+        await authPersistenceReady;
+
+        // Kalau Firebase ternyata sudah memulihkan user,
+        // jangan munculkan popup Google lagi.
+        if (auth.currentUser) {
+            console.log('[AUTH] Existing session restored:', auth.currentUser.uid);
+            return;
+        }
 
         await signInWithPopup(auth, provider);
 
