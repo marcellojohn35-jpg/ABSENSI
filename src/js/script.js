@@ -351,17 +351,19 @@ async function processAbsenPage(user) {
 }
 
 
-// ===== GEOLOCATION CONFIG (FIELD TEST — validasi sebelum merge ke main) =====
+// ===== GEOLOCATION CONFIG (RELIABLE LOBBY CHECK) =====
 const GEOLOCATION_CONFIG = {
     enabled: true,
     targetLat: -6.263838,
     targetLng: 106.916585,
-    radiusMeters: 25
+    radiusMeters: 25,
+    maxAcceptableAccuracyMeters: 50,
+    excellentAccuracyMeters: 20,
+    watchTimeoutMs: 12000
 };
 
 function getDistanceMeters(lat1, lng1, lat2, lng2) {
     const R = 6371000;
-
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
 
@@ -381,11 +383,80 @@ function verifyAttendanceLocation() {
             return;
         }
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
+        let watchId = null;
+        let timeoutId = null;
+        let finished = false;
+        let bestReading = null;
+
+        const cleanup = () => {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+
+            if (timeoutId !== null) {
+                clearTimeout(timeoutId);
+            }
+        };
+
+        const finishResolve = value => {
+            if (finished) return;
+            finished = true;
+            cleanup();
+            resolve(value);
+        };
+
+        const finishReject = error => {
+            if (finished) return;
+            finished = true;
+            cleanup();
+            reject(error);
+        };
+
+        const classifyBestReading = () => {
+            if (!bestReading) {
+                finishReject(new Error('GEOLOCATION_ERROR:3'));
+                return;
+            }
+
+            const { accuracy, distance } = bestReading;
+
+            if (accuracy > GEOLOCATION_CONFIG.maxAcceptableAccuracyMeters) {
+                finishReject(new Error(
+                    `LOCATION_ACCURACY_LOW:${Math.round(accuracy)}:${Math.round(distance)}`
+                ));
+                return;
+            }
+
+            if (distance <= GEOLOCATION_CONFIG.radiusMeters) {
+                finishResolve(bestReading);
+                return;
+            }
+
+            const nearestPossibleDistance =
+                Math.max(0, distance - accuracy);
+
+            if (nearestPossibleDistance > GEOLOCATION_CONFIG.radiusMeters) {
+                finishReject(new Error(
+                    `OUTSIDE_ATTENDANCE_AREA:${Math.round(distance)}:${Math.round(accuracy)}`
+                ));
+                return;
+            }
+
+            finishReject(new Error(
+                `LOCATION_ACCURACY_LOW:${Math.round(accuracy)}:${Math.round(distance)}`
+            ));
+        };
+
+        watchId = navigator.geolocation.watchPosition(
+            position => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-                const accuracy = position.coords.accuracy;
+                const rawAccuracy = Number(position.coords.accuracy);
+
+                const accuracy =
+                    Number.isFinite(rawAccuracy)
+                        ? rawAccuracy
+                        : Infinity;
 
                 const distance = getDistanceMeters(
                     lat,
@@ -394,39 +465,59 @@ function verifyAttendanceLocation() {
                     GEOLOCATION_CONFIG.targetLng
                 );
 
-                console.log('[GEOLOCATION]', {
+                const reading = {
                     latitude: lat,
                     longitude: lng,
                     accuracy,
                     distance
-                });
+                };
 
-                if (distance > GEOLOCATION_CONFIG.radiusMeters) {
-                    reject(new Error(
-                        `OUTSIDE_ATTENDANCE_AREA:${Math.round(distance)}`
-                    ));
+                if (
+                    !bestReading ||
+                    reading.accuracy < bestReading.accuracy ||
+                    (
+                        reading.accuracy === bestReading.accuracy &&
+                        reading.distance < bestReading.distance
+                    )
+                ) {
+                    bestReading = reading;
+                }
+
+                console.log('[GEOLOCATION SAMPLE]', reading);
+
+                if (
+                    reading.accuracy <= GEOLOCATION_CONFIG.excellentAccuracyMeters &&
+                    reading.distance <= GEOLOCATION_CONFIG.radiusMeters
+                ) {
+                    finishResolve(reading);
+                }
+            },
+
+            error => {
+                console.error('[GEOLOCATION ERROR]', error);
+
+                if (error.code === 1) {
+                    finishReject(new Error('GEOLOCATION_ERROR:1'));
                     return;
                 }
 
-                resolve({
-                    latitude: lat,
-                    longitude: lng,
-                    accuracy,
-                    distance
-                });
+                if (error.code !== 2 && error.code !== 3) {
+                    finishReject(
+                        new Error(`GEOLOCATION_ERROR:${error.code}`)
+                    );
+                }
             },
-            (error) => {
-                console.error('[GEOLOCATION ERROR]', error);
 
-                reject(new Error(
-                    `GEOLOCATION_ERROR:${error.code}`
-                ));
-            },
             {
                 enableHighAccuracy: true,
-                timeout: 15000,
+                timeout: GEOLOCATION_CONFIG.watchTimeoutMs,
                 maximumAge: 0
             }
+        );
+
+        timeoutId = setTimeout(
+            classifyBestReading,
+            GEOLOCATION_CONFIG.watchTimeoutMs
         );
     });
 }
@@ -3152,6 +3243,11 @@ function showAttendanceResult(success, data) {
 
     const rawError = String(data.error || '');
 
+    const isLocationError =
+        rawError.includes('LOCATION_') ||
+        rawError.includes('GEOLOCATION_') ||
+        rawError.includes('OUTSIDE_ATTENDANCE_AREA');
+
     if (rawError.includes('SESSION_NOT_FOUND')) {
         msg = 'Sesi tidak ditemukan';
         detail = 'QR atau link absensi ini sudah tidak berlaku.';
@@ -3164,18 +3260,21 @@ function showAttendanceResult(success, data) {
     } else if (rawError.includes('SESSION_NOT_STARTED')) {
         msg = 'Absensi belum dibuka';
         detail = 'Tunggu sampai waktu absensi dimulai.';
+    } else if (rawError.includes('LOCATION_ACCURACY_LOW')) {
+        msg = 'Lokasi belum cukup akurat';
+        detail = 'GPS sudah menemukan posisi, tetapi akurasinya belum cukup baik. Aktifkan Lokasi Presisi, tetap di area lobby, lalu coba lokasi lagi.';
     } else if (rawError.includes('OUTSIDE_ATTENDANCE_AREA')) {
         msg = 'Kamu berada di luar area absensi';
-        detail = 'Pastikan kamu berada di area sekolah lalu coba lagi.';
+        detail = 'Sistem membaca posisi di luar area lobby. Pastikan kamu berada di lobby, tunggu GPS stabil, lalu coba lagi.';
     } else if (rawError.includes('GEOLOCATION_ERROR:1')) {
         msg = 'Izin lokasi diperlukan';
-        detail = 'Aktifkan izin lokasi di browser untuk melakukan absensi.';
+        detail = 'Izinkan lokasi untuk website ini dan aktifkan Lokasi Presisi, lalu coba lagi.';
     } else if (rawError.includes('GEOLOCATION_ERROR:2')) {
-        msg = 'Lokasi tidak ditemukan';
-        detail = 'Pastikan GPS aktif lalu coba lagi.';
+        msg = 'Lokasi belum tersedia';
+        detail = 'Pastikan GPS/Lokasi HP aktif. Tunggu beberapa detik di lobby lalu coba lagi.';
     } else if (rawError.includes('GEOLOCATION_ERROR:3')) {
-        msg = 'Lokasi terlalu lama';
-        detail = 'Coba lagi di tempat dengan sinyal GPS yang lebih baik.';
+        msg = 'Pencarian lokasi terlalu lama';
+        detail = 'GPS belum mendapatkan posisi yang cukup baik. Tetap di lobby lalu coba lagi.';
     } else if (rawError.includes('GEOLOCATION_NOT_SUPPORTED')) {
         msg = 'Lokasi tidak didukung';
         detail = 'Gunakan browser yang mendukung akses lokasi.';
@@ -3193,8 +3292,16 @@ function showAttendanceResult(success, data) {
         <p class="student-error-detail">${detail}</p>
     `;
 
-    goToAbsenBtn.onclick = () => {
-        window.location.href = '/absen?session=' + currentSessionId;
+    goToAbsenBtn.textContent = isLocationError
+        ? '🔄 Coba Lokasi Lagi'
+        : 'Kembali ke Absensi';
+
+    goToAbsenBtn.onclick = async () => {
+        await processAbsenPage(currentUser);
+
+        if (isLocationError && currentUser) {
+            absenNowBtn.click();
+        }
     };
 
     document.getElementById('attendanceErrorLogoutBtn').onclick = async () => {
