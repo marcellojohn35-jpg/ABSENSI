@@ -3,6 +3,22 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function signedInUser() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function activeUser() {
+      let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return signedInUser()
+        && (!user.keys().hasAny(['accountStatus']) || user.accountStatus == 'ACTIVE');
+    }
+
+    function activeRole(role) {
+      return activeUser()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
     // ============================================
     // USERS COLLECTION
     // ============================================
@@ -12,8 +28,8 @@ service cloud.firestore {
       // Teacher/Admin: bisa membaca semua users untuk dashboard.
       allow read: if request.auth != null && (
         request.auth.uid == uid ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        activeRole('teacher') ||
+        activeRole('admin')
       );
 
       // User baru HANYA boleh membuat profil dirinya sendiri sebagai CASIS.
@@ -23,7 +39,18 @@ service cloud.firestore {
       // saat create, yang merupakan privilege escalation CRITICAL.)
       allow create: if request.auth != null
         && request.auth.uid == uid
-        && request.resource.data.role == 'casis';
+        && request.resource.data.keys().hasOnly([
+          'uid', 'nama', 'email', 'classId', 'role', 'accountStatus', 'updatedAt'
+        ])
+        && request.resource.data.uid == uid
+        && request.resource.data.uid is string
+        && request.resource.data.nama is string
+        && request.resource.data.email is string
+        && request.resource.data.classId is string
+        && request.resource.data.role == 'casis'
+        && request.resource.data.accountStatus == 'ACTIVE'
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedAt == request.time;
 
       // Admin: boleh update user mana pun, termasuk role dan classId.
       // Student: hanya boleh update dokumennya sendiri, dan TIDAK BOLEH mengubah
@@ -32,25 +59,23 @@ service cloud.firestore {
       allow update: if request.auth != null
         && (
           // ADMIN
-          (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+          activeRole('admin')
           ||
           // STUDENT
           (request.auth.uid == uid
             && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student'
-            && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-              'role',
-              'classId',
-              'uid',
-              'email',
-              'accountStatus'
-            ])
+            && activeUser()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nama', 'updatedAt'])
+            && request.resource.data.nama is string
+            && (!request.resource.data.keys().hasAny(['updatedAt'])
+              || request.resource.data.updatedAt is timestamp)
           )
         );
 
       // Admin hanya boleh menghapus pendaftaran CASIS.
       // User dengan role student/teacher/admin tidak boleh dihapus lewat client.
       allow delete: if request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        && activeRole('admin')
         && resource.data.role == 'casis';
     }
 
@@ -60,14 +85,13 @@ service cloud.firestore {
     match /candidates/{uid} {
 
       function isAdmin() {
-        return request.auth != null
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        return activeRole('admin');
       }
 
       function isCasis() {
         return request.auth != null
           && request.auth.uid == uid
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'casis';
+          && activeRole('casis');
       }
 
       // CASIS hanya boleh membuat data pendaftarannya sendiri.
@@ -82,7 +106,14 @@ service cloud.firestore {
           'createdAt',
           'updatedAt'
         ])
-        && request.resource.data.keys().size() >= 6;
+        && request.resource.data.keys().hasOnly([
+          'uid', 'nama', 'nisn', 'status', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.uid is string
+        && request.resource.data.nama is string
+        && request.resource.data.nisn is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
 
       // CASIS hanya boleh membaca data sendiri.
       // Admin boleh membaca seluruh data CASIS.
@@ -122,13 +153,13 @@ service cloud.firestore {
     // apa adanya dan tetap bisa dibaca (allow read di bawah tidak berubah).
     match /attendanceSessions/{sessionId} {
 
-      allow read: if request.auth != null;
+      allow read: if activeUser();
 
       function isAdmin() {
         let user = get(
           /databases/$(database)/documents/users/$(request.auth.uid)
         );
-        return user.data.role == 'admin';
+        return activeRole('admin');
       }
 
       // CREATE: hanya untuk session BARU (docId harus "session_NNN", dibuat oleh
@@ -148,7 +179,8 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp
             && request.resource.data.createdAt == request.time
         && request.resource.data.keys().hasAll(['sessionId', 'date', 'startTime', 'lateAfter', 'endTime', 'status', 'createdAt'])
-        && request.resource.data.keys().size() == 7;
+        && request.resource.data.keys().size() == 7
+        && getAfter(/databases/$(database)/documents/settings/sessionCounter).data.activeSessionId == sessionId;
 
       // UPDATE: HANYA transisi ACTIVE -> ARCHIVED (proses archive session lama
       // saat admin membuat session baru). Field lain selain `status` TIDAK BOLEH
@@ -187,18 +219,26 @@ service cloud.firestore {
         let user = get(
           /databases/$(database)/documents/users/$(request.auth.uid)
         );
-        return user.data.role == 'admin';
+        return activeRole('admin');
       }
 
       allow read: if request.auth != null && isAdmin();
 
-      allow create, update: if request.auth != null
+      allow create: if request.auth != null
+        && isAdmin()
+        && request.resource.data.lastNumber == 1
+        && request.resource.data.activeSessionId is string
+        && getAfter(/databases/$(database)/documents/attendanceSessions/$(request.resource.data.activeSessionId)).data.status == 'ACTIVE'
+        && request.resource.data.keys().hasOnly(['lastNumber', 'activeSessionId']);
+
+      allow update: if request.auth != null
         && isAdmin()
         && request.resource.data.lastNumber is int
-        && request.resource.data.lastNumber >= 0
+        && request.resource.data.lastNumber == resource.data.lastNumber + 1
         && request.resource.data.activeSessionId is string
-        && request.resource.data.keys().hasAll(['lastNumber', 'activeSessionId'])
-        && request.resource.data.keys().size() == 2;
+        && request.resource.data.activeSessionId != resource.data.activeSessionId
+        && getAfter(/databases/$(database)/documents/attendanceSessions/$(request.resource.data.activeSessionId)).data.status == 'ACTIVE'
+        && request.resource.data.keys().hasOnly(['lastNumber', 'activeSessionId']);
 
       allow delete: if false;
     }
@@ -342,6 +382,13 @@ service cloud.firestore {
           );
       }
 
+      function isHistoricalStudent(targetUid) {
+        let targetUser = get(
+          /databases/$(database)/documents/users/$(targetUid)
+        ).data;
+        return targetUser != null && targetUser.role == 'student';
+      }
+
       // Variant untuk UPDATE (korekasi): sessionId diambil dari resource.data
       // (dokumen existing), bukan request.resource.data, karena update TIDAK
       // BOLEH mengubah sessionId (sudah dikunci terpisah di bawah).
@@ -355,7 +402,7 @@ service cloud.firestore {
 
       // Student: hanya attendance miliknya.
       // Teacher/Admin: bisa membaca seluruh attendance untuk dashboard.
-      allow read: if request.auth != null && (
+      allow read: if activeUser() && (
         request.auth.uid == resource.data.uid ||
         getCurrentUserRole() == 'teacher' ||
         getCurrentUserRole() == 'admin'
@@ -480,10 +527,11 @@ service cloud.firestore {
       // Admin: boleh koreksi status ke salah satu dari 5 status, untuk student
       //        di kelas mana pun, dan tidak boleh mengubah field identitas dokumen.
       allow update: if request.auth != null
+        && isCurrentUserActive()
         && (
           // ===== ADMIN CORRECTION =====
           (getCurrentUserRole() == 'admin'
-            && isTargetStudentRole(resource.data.uid)
+            && isHistoricalStudent(resource.data.uid)
             && isValidFullStatus(request.resource.data.status)
             && request.resource.data.uid == resource.data.uid
             && request.resource.data.tanggal == resource.data.tanggal
@@ -533,6 +581,7 @@ service cloud.firestore {
       // Hanya ADMIN yang boleh menghapus attendance.
       // Student dan Teacher tidak boleh melakukan rollback.
       allow delete: if request.auth != null
+        && isCurrentUserActive()
         && getCurrentUserRole() == 'admin';
     }
   }
