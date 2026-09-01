@@ -24,7 +24,6 @@
     "@firebase/rules-unit-testing": "^5.0.1"
   },
   "dependencies": {
-    "firebase": "^12.18.0",
-    "firebase-admin": "^14.3.0"
+    "firebase": "^12.18.0"
   }
 }
