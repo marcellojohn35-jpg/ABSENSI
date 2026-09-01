@@ -2009,7 +2009,7 @@ async function exportToExcel() {
             };
         });
 
-        const originalStatus = attendanceFilteredData[rowNumber - 2]?.status;
+        const originalStatus = sortedData[rowNumber - 2]?.status;
         const color = statusColors[originalStatus];
 
         if (color) {
