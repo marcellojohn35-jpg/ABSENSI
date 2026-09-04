@@ -3169,200 +3169,525 @@ function setupProfileForm(user) {
 }
 
 // ===== Attendance Result =====
-function showAttendanceResult(success, data) {
-    if (success) {
-        // Tampilkan SUCCESS SCREEN
-        showSection(successScreenSection);
+function showAttendanceResult(success, data = {}) {
+    const homeUrl = currentSessionId
+        ? '/absen?session=' + encodeURIComponent(currentSessionId)
+        : '/absen';
 
-        const successCard = successScreenSection.querySelector('.student-result-card');
+    const bindLogout = (id) => {
+        const button = document.getElementById(id);
 
-        if (successCard) {
-            const statusClass =
-                data.status === 'TERLAMBAT'
-                    ? 'student-success-status is-late'
-                    : 'student-success-status is-present';
+        if (!button) return;
 
-            const statusText =
-                data.status === 'TERLAMBAT'
-                    ? 'Terlambat'
-                    : 'Hadir';
+        button.onclick = async () => {
+            button.disabled = true;
+            button.textContent = 'Keluar...';
 
-            successCard.className =
-                'student-card student-result-card result-success';
-
-            successCard.innerHTML = `
-                <div class="student-result-icon" aria-hidden="true">✓</div>
-
-                <span class="student-success-eyebrow">
-                    Absensi tercatat
-                </span>
-
-                <h2>ABSEN BERHASIL</h2>
-
-                <div class="${statusClass}">
-                    ${statusText}
-                </div>
-
-                <div class="student-success-info">
-                    <div class="student-success-primary">
-                        <span class="student-success-label">Jam datang</span>
-                        <strong>${escapeHtml(data.jam || '-')}</strong>
-                        <span class="student-success-timezone">WIB</span>
-                    </div>
-
-                    <div class="student-success-grid">
-                        <div>
-                            <span>Nama</span>
-                            <strong>${escapeHtml(data.nama || '-')}</strong>
-                        </div>
-
-                        <div>
-                            <span>Kelas</span>
-                            <strong>${escapeHtml(data.kelas || '-')}</strong>
-                        </div>
-
-                        <div>
-                            <span>Tanggal</span>
-                            <strong>${escapeHtml(data.tanggal || '-')}</strong>
-                        </div>
-                    </div>
-                </div>
-
-                <p class="student-success-note">
-                    Absensi kamu sudah tercatat. Kamu tidak perlu absen lagi.
-                </p>
-
-                <div class="student-result-actions">
-                    <button
-                        id="successBackBtn"
-                        class="btn btn-secondary btn-block"
-                    >
-                        Lihat Absensi
-                    </button>
-
-                    <button
-                        id="successLogoutBtn"
-                        class="btn btn-primary btn-block"
-                    >
-                        Logout
-                    </button>
-                </div>
-            `;
-        }
-
-        // Tombol logout di success screen
-        document.getElementById('successBackBtn').onclick = () => {
-            if (currentSessionId) {
-                window.location.href =
-                    '/absen?session=' + encodeURIComponent(currentSessionId);
-            } else {
-                window.location.href = '/absen';
-            }
-        };
-
-        document.getElementById('successLogoutBtn').onclick = async () => {
             try {
                 await signOut(auth);
                 window.location.href = '/';
-            } catch (e) {
-                console.error('Logout error:', e);
+            } catch (error) {
+                console.error('Logout error:', error);
+                button.disabled = false;
+                button.textContent = 'Logout';
             }
         };
+    };
+
+    const bindHome = (id) => {
+        const button = document.getElementById(id);
+
+        if (!button) return;
+
+        button.onclick = () => {
+            window.location.href = homeUrl;
+        };
+    };
+
+    // =====================================================
+    // SUCCESS
+    // =====================================================
+    if (success) {
+        showSection(successScreenSection);
+
+        const card = successScreenSection.querySelector(
+            '.student-result-card'
+        );
+
+        if (!card) {
+            console.error('Success card tidak ditemukan');
+            return;
+        }
+
+        const isLate = data.status === 'TERLAMBAT';
+        const statusText = isLate ? 'Terlambat' : 'Hadir';
+
+        card.className =
+            'student-card student-result-card result-v10 result-success';
+
+        card.innerHTML = `
+            <div class="result-v10-topbar">
+                <div>
+                    <span class="result-v10-brand">
+                        ABSENSI YADIKA 4
+                    </span>
+                    <strong>Hasil Absensi</strong>
+                </div>
+
+                <button
+                    id="successLogoutBtn"
+                    class="result-v10-logout"
+                    type="button"
+                >
+                    Logout
+                </button>
+            </div>
+
+            <div class="result-v10-status result-v10-status-success">
+                <span class="result-v10-status-dot">✓</span>
+                <span>Absensi berhasil dicatat</span>
+            </div>
+
+            <div class="result-v10-hero">
+                <div class="result-v10-icon result-v10-icon-success">
+                    ✓
+                </div>
+
+                <h2>Absensi Berhasil</h2>
+
+                <p>
+                    Kehadiran kamu sudah tersimpan untuk sesi ini.
+                </p>
+            </div>
+
+            <div class="result-v10-info result-v10-info-success">
+                <div class="result-v10-time">
+                    <span>Jam datang</span>
+
+                    <strong>
+                        ${escapeHtml(data.jam || '-')}
+                    </strong>
+
+                    <small>WIB</small>
+                </div>
+
+                <div class="result-v10-grid">
+                    <div>
+                        <span>Status</span>
+                        <strong>${escapeHtml(statusText)}</strong>
+                    </div>
+
+                    <div>
+                        <span>Nama</span>
+                        <strong>
+                            ${escapeHtml(data.nama || '-')}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Kelas</span>
+                        <strong>
+                            ${escapeHtml(data.kelas || '-')}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Tanggal</span>
+                        <strong>
+                            ${escapeHtml(data.tanggal || '-')}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-v10-guidance result-v10-guidance-success">
+                <strong>Selesai</strong>
+
+                <p>
+                    Kamu tidak perlu melakukan absensi lagi
+                    untuk sesi ini.
+                </p>
+            </div>
+
+            <button
+                id="successBackBtn"
+                class="result-v10-primary"
+                type="button"
+            >
+                Kembali ke Home
+            </button>
+        `;
+
+        bindHome('successBackBtn');
+        bindLogout('successLogoutBtn');
 
         return;
     }
 
-    // GAGAL - tampilkan error di attendanceResultSection (existing behavior)
+    // =====================================================
+    // ERROR STATE
+    // =====================================================
     showSection(attendanceResultSection);
-    attendanceResultTitle.className = 'error';
 
-    let msg = 'Absensi gagal';
-    let detail = 'Terjadi masalah saat mencatat absensi. Silakan coba lagi.';
+    const card = attendanceResultSection.querySelector(
+        '.student-result-card'
+    );
+
+    if (!card) {
+        console.error('Attendance result card tidak ditemukan');
+        return;
+    }
 
     const rawError = String(data.error || '');
+
+    let state = {
+        type: 'system',
+        badge: 'Absensi belum tercatat',
+        title: 'Absensi Gagal',
+        detail:
+            'Sistem belum bisa mencatat absensi kamu. Silakan coba lagi.',
+        guideTitle: 'Yang bisa kamu lakukan',
+        steps: [
+            'Pastikan koneksi internet aktif.',
+            'Kembali ke halaman absensi.',
+            'Coba lagi beberapa saat.'
+        ],
+        primary: 'Kembali ke Home',
+        retryLocation: false
+    };
 
     const isLocationError =
         rawError.includes('LOCATION_') ||
         rawError.includes('GEOLOCATION_') ||
         rawError.includes('OUTSIDE_ATTENDANCE_AREA');
 
-    if (rawError.includes('SESSION_NOT_FOUND')) {
-        msg = 'Sesi tidak ditemukan';
-        detail = 'QR atau link absensi ini sudah tidak berlaku.';
-    } else if (rawError.includes('SESSION_ARCHIVED')) {
-        msg = 'Sesi sudah berakhir';
-        detail = 'Absensi untuk sesi ini sudah ditutup.';
-    } else if (rawError.includes('SESSION_CLOSED')) {
-        msg = 'Waktu absensi habis';
-        detail = 'Sesi absensi sudah ditutup.';
-    } else if (rawError.includes('SESSION_NOT_STARTED')) {
-        msg = 'Absensi belum dibuka';
-        detail = 'Tunggu sampai waktu absensi dimulai.';
-    } else if (rawError.includes('LOCATION_ACCURACY_LOW')) {
-        msg = 'LOKASI BELUM TEPAT';
-        detail = 'Lokasi HP kamu belum cukup akurat. Pastikan GPS aktif dan pilih Precise / Lokasi Tepat, lalu coba lagi.';
-    } else if (rawError.includes('OUTSIDE_ATTENDANCE_AREA')) {
-        msg = 'Kamu berada di luar area absensi';
-        detail = 'Sistem membaca posisi di luar area lobby. Pastikan kamu berada di lobby, tunggu GPS stabil, lalu coba lagi.';
-    } else if (rawError.includes('GEOLOCATION_ERROR:1')) {
-        msg = 'IZIN LOKASI BELUM DIBERIKAN';
-        detail = 'Izinkan lokasi untuk website ini. Pilih Izinkan saat digunakan dan aktifkan Precise / Lokasi Tepat, lalu coba lagi.';
-    } else if (rawError.includes('GEOLOCATION_ERROR:2')) {
-        msg = 'Lokasi belum tersedia';
-        detail = 'Pastikan GPS/Lokasi HP aktif. Tunggu beberapa detik di lobby lalu coba lagi.';
-    } else if (rawError.includes('GEOLOCATION_ERROR:3')) {
-        msg = 'Pencarian lokasi terlalu lama';
-        detail = 'GPS belum mendapatkan posisi yang cukup baik. Tetap di lobby lalu coba lagi.';
-    } else if (rawError.includes('GEOLOCATION_NOT_SUPPORTED')) {
-        msg = 'Lokasi tidak didukung';
-        detail = 'Gunakan browser yang mendukung akses lokasi.';
-    } else if (
+    if (
         rawError.includes('DUPLICATE_ATTENDANCE') ||
         rawError.includes('DUPLICATE')
     ) {
-        msg = 'KAMU SUDAH ABSEN';
-        detail = 'Absensi hari ini sudah tercatat. Kamu tidak perlu absen lagi.';
+        state = {
+            type: 'duplicate',
+            badge: 'Sudah tercatat',
+            title: 'Kamu Sudah Absen',
+            detail:
+                'Absensi kamu untuk sesi ini sudah tercatat sebelumnya.',
+            guideTitle: 'Tidak perlu absen lagi',
+            steps: [
+                'Kehadiran sudah tersimpan.',
+                'Tidak perlu menekan tombol absen lagi.',
+                'Kamu bisa kembali ke Home.'
+            ],
+            primary: 'Kembali ke Home',
+            retryLocation: false
+        };
+
+    } else if (rawError.includes('LOCATION_ACCURACY_LOW')) {
+        state = {
+            type: 'location',
+            badge: 'Lokasi belum akurat',
+            title: 'Lokasi Belum Tepat',
+            detail:
+                'Posisi HP belum cukup akurat untuk memastikan kamu berada di area absensi.',
+            guideTitle: 'Perbaiki lokasi',
+            steps: [
+                'Pastikan GPS / Lokasi aktif.',
+                'Pilih Precise / Lokasi Tepat.',
+                'Tetap berada di area lobby lalu coba lagi.'
+            ],
+            primary: 'Coba Lokasi Lagi',
+            retryLocation: true
+        };
+
     } else if (
-        rawError.includes('PERMISSION_DENIED_ATTENDANCE') ||
+        rawError.includes('OUTSIDE_ATTENDANCE_AREA')
+    ) {
+        state = {
+            type: 'location',
+            badge: 'Di luar area',
+            title: 'Lokasi Terlalu Jauh',
+            detail:
+                'Sistem membaca posisi kamu berada di luar area absensi.',
+            guideTitle: 'Sebelum mencoba lagi',
+            steps: [
+                'Datang ke area lobby sekolah.',
+                'Pastikan GPS / Lokasi aktif.',
+                'Tunggu posisi stabil lalu coba lagi.'
+            ],
+            primary: 'Coba Lokasi Lagi',
+            retryLocation: true
+        };
+
+    } else if (
+        rawError.includes('GEOLOCATION_ERROR:1')
+    ) {
+        state = {
+            type: 'location',
+            badge: 'Izin lokasi diperlukan',
+            title: 'Izinkan Lokasi',
+            detail:
+                'Browser belum mendapat izin untuk membaca lokasi HP kamu.',
+            guideTitle: 'Atur izin lokasi',
+            steps: [
+                'Izinkan lokasi untuk website ini.',
+                'Pilih Precise / Lokasi Tepat.',
+                'Kembali ke halaman ini lalu coba lagi.'
+            ],
+            primary: 'Coba Lokasi Lagi',
+            retryLocation: true
+        };
+
+    } else if (
+        rawError.includes('GEOLOCATION_ERROR:2')
+    ) {
+        state = {
+            type: 'location',
+            badge: 'GPS belum tersedia',
+            title: 'Nyalakan GPS',
+            detail:
+                'HP belum bisa memberikan lokasi kamu ke sistem.',
+            guideTitle: 'Periksa HP kamu',
+            steps: [
+                'Nyalakan GPS / Lokasi.',
+                'Pastikan mode pesawat tidak aktif.',
+                'Tunggu beberapa detik lalu coba lagi.'
+            ],
+            primary: 'Coba Lokasi Lagi',
+            retryLocation: true
+        };
+
+    } else if (
+        rawError.includes('GEOLOCATION_ERROR:3')
+    ) {
+        state = {
+            type: 'location',
+            badge: 'Lokasi terlalu lama',
+            title: 'Lokasi Belum Ditemukan',
+            detail:
+                'GPS membutuhkan waktu lebih lama untuk menemukan posisi yang cukup akurat.',
+            guideTitle: 'Coba lagi',
+            steps: [
+                'Tetap berada di lobby.',
+                'Pastikan GPS / Lokasi aktif.',
+                'Tunggu sebentar lalu coba lagi.'
+            ],
+            primary: 'Coba Lokasi Lagi',
+            retryLocation: true
+        };
+
+    } else if (
+        rawError.includes('GEOLOCATION_NOT_SUPPORTED')
+    ) {
+        state = {
+            type: 'system',
+            badge: 'Browser tidak didukung',
+            title: 'Lokasi Tidak Didukung',
+            detail:
+                'Browser ini tidak dapat memberikan lokasi yang dibutuhkan untuk absensi.',
+            guideTitle: 'Gunakan browser lain',
+            steps: [
+                'Gunakan Chrome atau browser terbaru.',
+                'Aktifkan izin lokasi.',
+                'Buka kembali halaman absensi.'
+            ],
+            primary: 'Kembali ke Home',
+            retryLocation: false
+        };
+
+    } else if (
+        rawError.includes('SESSION_NOT_FOUND') ||
+        rawError.includes('SESSION_ARCHIVED')
+    ) {
+        state = {
+            type: 'session',
+            badge: 'Sesi tidak tersedia',
+            title: 'Sesi Sudah Berakhir',
+            detail:
+                'QR atau link absensi ini sudah tidak berlaku.',
+            guideTitle: 'Apa selanjutnya?',
+            steps: [
+                'Jangan gunakan QR lama.',
+                'Gunakan sesi absensi yang sedang aktif.',
+                'Hubungi guru jika sesi seharusnya masih terbuka.'
+            ],
+            primary: 'Kembali ke Home',
+            retryLocation: false
+        };
+
+    } else if (
+        rawError.includes('SESSION_CLOSED')
+    ) {
+        state = {
+            type: 'session',
+            badge: 'Waktu habis',
+            title: 'Absensi Sudah Ditutup',
+            detail:
+                'Waktu untuk melakukan absensi pada sesi ini sudah selesai.',
+            guideTitle: 'Sesi telah selesai',
+            steps: [
+                'Kamu tidak dapat absen lewat sesi ini.',
+                'Jangan gunakan QR lama.',
+                'Hubungi guru jika membutuhkan bantuan.'
+            ],
+            primary: 'Kembali ke Home',
+            retryLocation: false
+        };
+
+    } else if (
+        rawError.includes('SESSION_NOT_STARTED')
+    ) {
+        state = {
+            type: 'session',
+            badge: 'Belum dibuka',
+            title: 'Absensi Belum Dimulai',
+            detail:
+                'Sesi absensi belum masuk waktu aktif.',
+            guideTitle: 'Tunggu sesi dimulai',
+            steps: [
+                'Tetap gunakan QR yang benar.',
+                'Tunggu sampai waktu absensi dimulai.',
+                'Coba kembali setelah sesi aktif.'
+            ],
+            primary: 'Kembali ke Home',
+            retryLocation: false
+        };
+
+    } else if (
         rawError.includes('permission-denied') ||
         rawError.includes('Permintaan ditolak oleh sistem')
     ) {
-        msg = 'ABSENSI BELUM TERCATAT';
-        detail = 'Sistem belum bisa menyimpan absensi kamu. Silakan kembali dan coba lagi.';
+        state = {
+            type: 'system',
+            badge: 'Tidak dapat diproses',
+            title: 'Absensi Belum Tercatat',
+            detail:
+                'Sistem menolak permintaan absensi ini.',
+            guideTitle: 'Periksa sebelum mencoba lagi',
+            steps: [
+                'Pastikan sesi absensi masih aktif.',
+                'Pastikan kamu menggunakan akun sendiri.',
+                'Kembali ke Home lalu coba lagi.'
+            ],
+            primary: 'Kembali ke Home',
+            retryLocation: false
+        };
     }
 
-    attendanceResultTitle.textContent = msg;
-    attendanceResultData.innerHTML = `
-        <p class="student-error-detail">${detail}</p>
+    const stepsHtml = state.steps
+        .map(
+            (step, index) => `
+                <li>
+                    <span>${index + 1}</span>
+                    <p>${escapeHtml(step)}</p>
+                </li>
+            `
+        )
+        .join('');
+
+    const accentClass =
+        state.type === 'location'
+            ? 'result-v10-location'
+            : state.type === 'duplicate'
+                ? 'result-v10-duplicate'
+                : state.type === 'session'
+                    ? 'result-v10-session'
+                    : 'result-v10-error';
+
+    card.className =
+        `student-card student-result-card result-v10 ${accentClass}`;
+
+    card.innerHTML = `
+        <div class="result-v10-topbar">
+            <div>
+                <span class="result-v10-brand">
+                    ABSENSI YADIKA 4
+                </span>
+                <strong>Hasil Absensi</strong>
+            </div>
+
+            <button
+                id="attendanceErrorLogoutBtn"
+                class="result-v10-logout"
+                type="button"
+            >
+                Logout
+            </button>
+        </div>
+
+        <div class="result-v10-status">
+            <span class="result-v10-status-dot">!</span>
+            <span>${escapeHtml(state.badge)}</span>
+        </div>
+
+        <div class="result-v10-hero">
+            <div class="result-v10-icon">
+                !
+            </div>
+
+            <h2>${escapeHtml(state.title)}</h2>
+
+            <p>${escapeHtml(state.detail)}</p>
+        </div>
+
+        <div class="result-v10-guidance">
+            <strong>
+                ${escapeHtml(state.guideTitle)}
+            </strong>
+
+            <ol>
+                ${stepsHtml}
+            </ol>
+        </div>
+
+        <button
+            id="goToAbsenBtn"
+            class="result-v10-primary"
+            type="button"
+        >
+            ${escapeHtml(state.primary)}
+        </button>
     `;
 
-    const isDuplicateAttendance =
-        rawError.includes('DUPLICATE_ATTENDANCE') ||
-        rawError.includes('ALREADY_ATTENDED');
+    const primaryButton = document.getElementById(
+        'goToAbsenBtn'
+    );
 
-    goToAbsenBtn.textContent = isDuplicateAttendance
-        ? 'Kembali ke Home'
-        : isLocationError
-            ? 'Coba Lagi'
-            : 'Kembali ke Home';
+    if (primaryButton) {
+        primaryButton.onclick = async () => {
+            if (
+                state.retryLocation &&
+                currentUser
+            ) {
+                primaryButton.disabled = true;
+                primaryButton.textContent =
+                    'Memeriksa lokasi...';
 
-    goToAbsenBtn.onclick = async () => {
-        await processAbsenPage(currentUser);
+                try {
+                    await processAbsenPage(currentUser);
 
-        if (isLocationError && currentUser) {
-            absenNowBtn.click();
-        }
-    };
+                    if (absenNowBtn) {
+                        absenNowBtn.click();
+                    }
+                } catch (error) {
+                    console.error(
+                        'Retry location error:',
+                        error
+                    );
 
-    document.getElementById('attendanceErrorLogoutBtn').onclick = async () => {
-        try {
-            await signOut(auth);
-            window.location.href = '/';
-        } catch (e) {
-            console.error('Logout error:', e);
-        }
-    };
+                    primaryButton.disabled = false;
+                    primaryButton.textContent =
+                        state.primary;
+                }
+
+                return;
+            }
+
+            window.location.href = homeUrl;
+        };
+    }
+
+    bindLogout('attendanceErrorLogoutBtn');
 }
+
 
 // ===== Auth Actions =====
 loginBtn.onclick = async () => {
