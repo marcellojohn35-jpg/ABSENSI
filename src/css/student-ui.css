@@ -1750,3 +1750,774 @@
     }
 }
 
+
+
+/* ===== STUDENT UI V5 CLEAN LAYOUT ===== */
+
+/* Hilangkan kemungkinan layout lama menarik CTA ke kiri */
+.student-app {
+    display: block !important;
+    width: 100% !important;
+    max-width: 430px !important;
+    margin: 0 auto !important;
+}
+
+/* HEADER HOME */
+
+.student-home-toolbar {
+    width: 100% !important;
+    margin: 18px 0 14px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+}
+
+.student-home-title {
+    min-width: 0;
+}
+
+.student-home-kicker {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #64748b;
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: .09em;
+}
+
+.student-home-title strong {
+    display: block;
+
+    color: #111827;
+
+    font-size: 19px;
+    font-weight: 850;
+
+    letter-spacing: -.025em;
+}
+
+.student-logout-button {
+    flex: 0 0 auto;
+
+    min-width: 82px;
+    min-height: 44px;
+
+    padding: 0 14px;
+
+    border: 1px solid #e5e7eb !important;
+    border-radius: 13px !important;
+
+    background: #fff !important;
+    color: #475569 !important;
+
+    font-size: 11px !important;
+    font-weight: 800 !important;
+
+    box-shadow: none !important;
+}
+
+/* ===============================
+   CTA ABSEN — WAJIB CENTER
+   =============================== */
+
+#absenActionArea.student-action {
+    width: 100% !important;
+
+    margin: 0 auto 18px !important;
+    padding: 0 !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border: 0 !important;
+    background: transparent !important;
+
+    box-shadow: none !important;
+}
+
+#absenNowBtn.student-main-button {
+    width: calc(100% - 2px) !important;
+    max-width: 382px !important;
+
+    height: 174px !important;
+    min-height: 174px !important;
+
+    margin: 0 auto !important;
+    padding: 24px !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 26px !important;
+
+    text-align: center !important;
+
+    font-size: 25px !important;
+    line-height: 1.05 !important;
+}
+
+#absenNowBtn.student-main-button::before {
+    margin: 0 auto 10px !important;
+}
+
+#absenNowBtn.student-main-button::after {
+    margin-top: 9px !important;
+}
+
+.student-lock-note {
+    width: 100%;
+
+    margin: 11px auto 0 !important;
+
+    text-align: center !important;
+}
+
+/* ===============================
+   SESSION — LANGSUNG DI BAWAH CTA
+   =============================== */
+
+#sessionInfoDisplay.student-session-card {
+    position: relative;
+
+    width: 100% !important;
+
+    margin: 0 0 14px !important;
+    padding: 18px !important;
+
+    display: block !important;
+
+    border: 1px solid #e4e9f0 !important;
+    border-radius: 19px !important;
+
+    background: #fff !important;
+
+    box-shadow: none !important;
+}
+
+#sessionInfoDisplay.student-session-card::before {
+    content: "SESI HARI INI";
+
+    display: block;
+
+    margin-bottom: 11px;
+
+    color: #64748b;
+
+    font-size: 9px;
+    font-weight: 850;
+
+    letter-spacing: .09em;
+}
+
+#sessionInfoDisplay.student-session-card p {
+    margin: 0 !important;
+    padding: 8px 0 !important;
+
+    border-bottom: 1px solid #f0f2f5;
+
+    color: #64748b !important;
+
+    font-size: 11px !important;
+    line-height: 1.55 !important;
+}
+
+#sessionInfoDisplay.student-session-card p:last-child {
+    padding-bottom: 0 !important;
+
+    border-bottom: 0;
+}
+
+#sessionInfoDisplay.student-session-card strong {
+    color: #1f2937 !important;
+
+    font-weight: 800 !important;
+}
+
+#sessionInfoDisplay .status-label {
+    margin-left: 5px !important;
+}
+
+/* ===============================
+   TUTORIAL — SATU DAN COMPACT
+   =============================== */
+
+.student-location-help {
+    width: 100% !important;
+
+    margin: 0 0 14px !important;
+    padding: 16px !important;
+
+    border: 1px solid #e4e9f0 !important;
+    border-radius: 19px !important;
+
+    background: #fff !important;
+
+    box-shadow: none !important;
+}
+
+.student-location-help-head {
+    margin: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+}
+
+.student-location-help h3 {
+    margin: 0 !important;
+
+    font-size: 14px !important;
+}
+
+.student-location-help-head p {
+    margin-top: 4px !important;
+}
+
+.student-location-tutorial {
+    margin-top: 13px !important;
+}
+
+/* PROFILE */
+
+#absenProfileInfo.student-profile-card {
+    margin: 0 0 14px !important;
+    padding: 18px !important;
+
+    border-radius: 19px !important;
+
+    box-shadow: none !important;
+}
+
+/* Small phone */
+
+@media (max-width: 380px) {
+    #absenNowBtn.student-main-button {
+        width: 100% !important;
+
+        height: 164px !important;
+        min-height: 164px !important;
+
+        font-size: 22px !important;
+    }
+
+    .student-home-title strong {
+        font-size: 17px;
+    }
+}
+
+
+
+/* ===== STUDENT HOME CLEAN V6 ===== */
+
+
+/* ========================================================
+   HOME WRAPPER
+   ======================================================== */
+
+.student-app {
+    width: 100% !important;
+    max-width: 430px !important;
+
+    margin: 0 auto !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+
+    display: block !important;
+}
+
+
+/* ========================================================
+   JUDUL + LOGOUT
+   ======================================================== */
+
+.student-home-toolbar {
+    width: 100% !important;
+
+    margin: 18px 0 14px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    gap: 12px !important;
+}
+
+.student-home-title {
+    min-width: 0 !important;
+}
+
+.student-home-kicker {
+    display: block !important;
+
+    margin-bottom: 4px !important;
+
+    color: #64748b !important;
+
+    font-size: 9px !important;
+    font-weight: 800 !important;
+
+    letter-spacing: .09em !important;
+}
+
+.student-home-title strong {
+    display: block !important;
+
+    color: #111827 !important;
+
+    font-size: 19px !important;
+    font-weight: 850 !important;
+
+    line-height: 1.2 !important;
+}
+
+.student-logout-button {
+    flex: 0 0 auto !important;
+
+    min-width: 82px !important;
+    height: 44px !important;
+
+    padding: 0 14px !important;
+
+    border: 1px solid #e5e7eb !important;
+    border-radius: 13px !important;
+
+    background: white !important;
+    color: #475569 !important;
+
+    font-size: 11px !important;
+    font-weight: 800 !important;
+
+    box-shadow: none !important;
+}
+
+
+/* ========================================================
+   ABSEN SEKARANG — CENTER
+   ======================================================== */
+
+#absenActionArea {
+    width: 100% !important;
+
+    margin: 0 0 16px !important;
+    padding: 0 !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    background: transparent !important;
+    border: 0 !important;
+
+    box-shadow: none !important;
+}
+
+#absenNowBtn {
+    width: 100% !important;
+    max-width: 390px !important;
+
+    min-height: 174px !important;
+    height: 174px !important;
+
+    margin: 0 auto !important;
+
+    padding: 24px !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    border: 0 !important;
+    border-radius: 26px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #075bd8,
+            #1970ec
+        ) !important;
+
+    color: white !important;
+
+    text-align: center !important;
+
+    font-size: 25px !important;
+    font-weight: 900 !important;
+
+    line-height: 1.05 !important;
+
+    box-shadow:
+        0 15px 30px
+        rgba(19, 99, 220, .20) !important;
+}
+
+#absenNowBtn::before {
+    content: "⌖" !important;
+
+    width: 54px !important;
+    height: 54px !important;
+
+    margin-bottom: 12px !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    border-radius: 17px !important;
+
+    background:
+        rgba(255,255,255,.15) !important;
+
+    font-size: 30px !important;
+}
+
+#absenNowBtn::after {
+    content: "Tekan untuk mulai absensi" !important;
+
+    margin-top: 10px !important;
+
+    color:
+        rgba(255,255,255,.78) !important;
+
+    font-size: 10px !important;
+    font-weight: 600 !important;
+}
+
+.student-lock-note {
+    width: 100% !important;
+
+    margin: 10px 0 0 !important;
+
+    text-align: center !important;
+
+    color: #94a3b8 !important;
+
+    font-size: 9px !important;
+}
+
+
+/* ========================================================
+   SESI HARI INI
+   ======================================================== */
+
+#sessionInfoDisplay {
+    width: 100% !important;
+
+    margin: 0 0 14px !important;
+    padding: 18px !important;
+
+    border: 1px solid #e5e9ef !important;
+    border-radius: 19px !important;
+
+    background: white !important;
+
+    box-shadow: none !important;
+}
+
+#sessionInfoDisplay::before {
+    content: "SESI HARI INI" !important;
+
+    display: block !important;
+
+    margin-bottom: 10px !important;
+
+    color: #64748b !important;
+
+    font-size: 9px !important;
+    font-weight: 850 !important;
+
+    letter-spacing: .09em !important;
+}
+
+#sessionInfoDisplay p {
+    margin: 0 !important;
+
+    padding: 8px 0 !important;
+
+    border-bottom:
+        1px solid #f0f2f5 !important;
+
+    color: #64748b !important;
+
+    font-size: 11px !important;
+
+    line-height: 1.55 !important;
+}
+
+#sessionInfoDisplay p:last-child {
+    border-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+#sessionInfoDisplay strong {
+    color: #1f2937 !important;
+
+    font-weight: 800 !important;
+}
+
+
+/* ========================================================
+   TUTORIAL LOKASI
+   ======================================================== */
+
+.student-location-help {
+    width: 100% !important;
+
+    margin: 0 0 14px !important;
+    padding: 16px !important;
+
+    border: 1px solid #e5e9ef !important;
+    border-radius: 19px !important;
+
+    background: white !important;
+
+    box-shadow: none !important;
+}
+
+.student-location-help-head {
+    display: flex !important;
+
+    align-items: center !important;
+
+    gap: 11px !important;
+
+    margin: 0 !important;
+}
+
+.student-help-icon {
+    width: 40px !important;
+    height: 40px !important;
+
+    flex: 0 0 40px !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    border-radius: 12px !important;
+
+    background: #edf4ff !important;
+    color: #1764dc !important;
+
+    font-size: 20px !important;
+}
+
+.student-help-kicker {
+    display: block !important;
+
+    margin-bottom: 2px !important;
+
+    color: #2563eb !important;
+
+    font-size: 8px !important;
+    font-weight: 850 !important;
+}
+
+.student-location-help h3 {
+    margin: 0 !important;
+
+    color: #1f2937 !important;
+
+    font-size: 14px !important;
+    font-weight: 800 !important;
+}
+
+.student-location-help-head p {
+    margin: 4px 0 0 !important;
+
+    color: #94a3b8 !important;
+
+    font-size: 9px !important;
+    line-height: 1.4 !important;
+}
+
+
+/* Tutorial tertutup secara default */
+
+.student-location-tutorial {
+    margin-top: 13px !important;
+
+    padding-top: 12px !important;
+
+    border-top:
+        1px solid #eef1f5 !important;
+}
+
+.student-location-tutorial summary {
+    min-height: 44px !important;
+
+    padding: 0 14px !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    border-radius: 12px !important;
+
+    background: #f1f6ff !important;
+    color: #155ecb !important;
+
+    font-size: 11px !important;
+    font-weight: 800 !important;
+
+    cursor: pointer !important;
+
+    list-style: none !important;
+}
+
+.student-location-tutorial summary::-webkit-details-marker {
+    display: none !important;
+}
+
+.student-summary-arrow {
+    font-size: 22px !important;
+}
+
+
+/* PILIHAN PRECISE */
+
+.student-location-choice-grid {
+    display: grid !important;
+
+    grid-template-columns:
+        1fr 1fr !important;
+
+    gap: 8px !important;
+
+    margin-top: 14px !important;
+}
+
+.student-precise-choice {
+    min-width: 0 !important;
+
+    padding: 12px !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+
+    gap: 8px !important;
+
+    border-radius: 14px !important;
+}
+
+.student-choice-icon {
+    width: 28px !important;
+    height: 28px !important;
+
+    flex: 0 0 28px !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    border-radius: 50% !important;
+
+    color: white !important;
+
+    font-size: 14px !important;
+    font-weight: 900 !important;
+}
+
+.student-precise-good {
+    border:
+        1px solid #bbf7d0 !important;
+
+    background: #f0fdf4 !important;
+}
+
+.student-precise-good
+.student-choice-icon {
+    background: #16a34a !important;
+}
+
+.student-precise-bad {
+    border:
+        1px solid #fecaca !important;
+
+    background: #fff7f7 !important;
+}
+
+.student-precise-bad
+.student-choice-icon {
+    background: #ef4444 !important;
+}
+
+.student-precise-choice strong,
+.student-precise-choice span,
+.student-precise-choice small {
+    display: block !important;
+}
+
+.student-precise-choice strong {
+    font-size: 10px !important;
+}
+
+.student-precise-choice span {
+    margin-top: 2px !important;
+
+    font-size: 8px !important;
+}
+
+.student-precise-choice small {
+    margin-top: 4px !important;
+
+    font-size: 7px !important;
+    font-weight: 900 !important;
+}
+
+
+/* ========================================================
+   DATA DIRI
+   ======================================================== */
+
+#absenProfileInfo {
+    width: 100% !important;
+
+    margin: 0 0 14px !important;
+
+    padding: 18px !important;
+
+    border-radius: 19px !important;
+
+    box-shadow: none !important;
+}
+
+
+/* ========================================================
+   SMALL PHONE
+   ======================================================== */
+
+@media (max-width: 380px) {
+
+    .student-app {
+        padding-left: 11px !important;
+        padding-right: 11px !important;
+    }
+
+    #absenNowBtn {
+        height: 164px !important;
+        min-height: 164px !important;
+
+        font-size: 22px !important;
+    }
+
+    .student-location-choice-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .student-home-title strong {
+        font-size: 17px !important;
+    }
+}
+
