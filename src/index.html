@@ -8,8 +8,8 @@
     <link rel="stylesheet" href="/css/style.css?v=2">
     <link rel="stylesheet" href="/css/modern.css?v=2">
     <link rel="stylesheet" href="/css/responsive-table.css?v=2">
-    <link rel="stylesheet" href="/css/student-ui.css?v=5">
     <link rel="stylesheet" href="/css/attendance-cards.css?v=3">
+    <link rel="stylesheet" href="/css/student-ui.css?v=11">
 
 </head>
 <body>
@@ -49,11 +49,30 @@
 
                 <!-- Halaman Absen (Siswa) -->
                 <div id="absenSection" class="auth-page hidden">
-                    <div class="student-app">
+                    <div class="student-v11">
 
-                        <div class="student-hero">
-                            <div>
-                                <span class="student-hero-small">Selamat datang,</span>
+                        <section class="student-v11-hero">
+                            <div class="student-v11-hero-grid"></div>
+
+                            <div class="student-v11-hero-top">
+                                <div class="student-v11-live">
+                                    <span></span>
+                                    ABSENSI SISWA
+                                </div>
+
+                                <button
+                                    id="studentHomeLogoutBtn"
+                                    class="student-v11-logout"
+                                    type="button"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+
+                            <div class="student-v11-hero-copy">
+                                <span class="student-v11-kicker">
+                                    SELAMAT DATANG
+                                </span>
 
                                 <div id="absenContent">
                                     <p id="absenStatus">
@@ -62,213 +81,148 @@
                                 </div>
                             </div>
 
-                            <div class="student-hero-art" aria-hidden="true">
-                                ☀️
+                            <div class="student-v11-orbit" aria-hidden="true">
+                                <div class="student-v11-orbit-core">Y4</div>
                             </div>
-                        </div>
+                        </section>
 
+                        <section class="student-v11-command">
+                            <div class="student-v11-command-head">
+                                <div>
+                                    <span class="student-v11-section-label">
+                                        KEHADIRAN HARI INI
+                                    </span>
 
-                <!-- STUDENT HOME V4 -->
+                                    <h2>Siap untuk absen?</h2>
+                                </div>
 
+                                <div class="student-v11-ready">
+                                    <span></span>
+                                    SIAP
+                                </div>
+                            </div>
 
-
-
-
-
-
-                <!-- STUDENT HOME V4 -->
-
-
-
-
-
-
-
-
-
-
-
-
-                <div class="student-home-toolbar">
-                    <div class="student-home-title">
-                        <span class="student-home-kicker">
-                            ABSENSI SISWA
-                        </span>
-
-                        <strong>Absensi Hari Ini</strong>
-                    </div>
-
-                    <button
-                        id="studentHomeLogoutBtn"
-                        class="student-logout-button"
-                        type="button"
-                    >
-                        Logout
-                    </button>
-                </div>
-
-<div
-                            id="absenActionArea"
-                            class="student-action"
-                            style="display:none;"
-                        >
-                            <button
-                                id="absenNowBtn"
-                                class="student-main-button"
+                            <div
+                                id="absenActionArea"
+                                class="student-action"
+                                style="display:none;"
                             >
-                        ABSEN SEKARANG
-                    </button>
+                                <button
+                                    id="absenNowBtn"
+                                    class="student-main-button"
+                                    type="button"
+                                >
+                                    <span class="student-v11-scan-icon" aria-hidden="true">
+                                        ⌖
+                                    </span>
 
-                            <p class="student-lock-note">
-                        Tekan tombol di atas untuk mulai absensi.
-                    </p>
-                        </div>
-<div
+                                    <span class="student-v11-main-copy">
+                                        <strong>ABSEN SEKARANG</strong>
+                                        <small>Gunakan lokasi HP untuk mencatat kehadiran</small>
+                                    </span>
+
+                                    <span class="student-v11-arrow" aria-hidden="true">
+                                        →
+                                    </span>
+                                </button>
+
+                                <p class="student-lock-note">
+                                    Pastikan kamu berada di area sekolah sebelum menekan tombol.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section
                             id="sessionInfoDisplay"
-                            class="session-info-box student-block student-session-card"
+                            class="session-info-box student-session-card"
                             style="display:none;"
-                        ></div>
+                        ></section>
 
-                <section
-                    class="student-location-help"
-                    aria-label="Bantuan lokasi"
-                >
-                    <div class="student-location-help-head">
-                        <div class="student-help-icon" aria-hidden="true">
-                            ⌖
-                        </div>
+                        <section class="student-location-help">
+                            <div class="student-v11-card-head">
+                                <div class="student-v11-card-icon">
+                                    ⌖
+                                </div>
 
-                        <div class="student-help-copy">
-                            <span class="student-help-kicker">
-                                BANTUAN LOKASI
-                            </span>
+                                <div>
+                                    <span class="student-v11-section-label">
+                                        BANTUAN LOKASI
+                                    </span>
 
-                            <h3>Lokasi bermasalah?</h3>
+                                    <h3>GPS bikin absensi gagal?</h3>
+                                </div>
+                            </div>
 
-                            <p>
-                                Buka panduan jika GPS atau izin lokasi
-                                membuat absensi gagal.
+                            <p class="student-v11-help-intro">
+                                Periksa pengaturan lokasi HP sebelum mencoba lagi.
                             </p>
-                        </div>
-                    </div>
 
-                    <details class="student-location-tutorial">
-                        <summary>
-                            <span>Buka panduan lokasi</span>
-                            <span class="student-summary-arrow">›</span>
-                        </summary>
+                            <details class="student-location-tutorial">
+                                <summary>
+                                    <span>Lihat panduan lokasi</span>
+                                    <span class="student-summary-arrow">+</span>
+                                </summary>
 
-                        <div class="student-tutorial-body">
+                                <div class="student-tutorial-body">
+                                    <div class="student-v11-location-choice">
+                                        <div class="student-v11-choice good">
+                                            <span>✓</span>
 
-                            <div class="student-location-choice-grid">
+                                            <div>
+                                                <strong>Precise</strong>
+                                                <small>Lokasi Tepat · pilih ini</small>
+                                            </div>
+                                        </div>
 
-                                <div class="student-precise-choice student-precise-good">
-                                    <span class="student-choice-icon">
-                                        ✓
-                                    </span>
+                                        <div class="student-v11-choice bad">
+                                            <span>×</span>
 
-                                    <div>
-                                        <strong>Precise</strong>
-                                        <span>Lokasi Tepat</span>
-                                        <small>PILIH INI</small>
+                                            <div>
+                                                <strong>Neighborhood</strong>
+                                                <small>Perkiraan · jangan pilih</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <ol class="student-v11-steps">
+                                        <li>
+                                            <span>01</span>
+                                            <p>Nyalakan GPS / Lokasi di HP.</p>
+                                        </li>
+
+                                        <li>
+                                            <span>02</span>
+                                            <p>Izinkan browser mengakses lokasi.</p>
+                                        </li>
+
+                                        <li>
+                                            <span>03</span>
+                                            <p>Pilih <strong>Precise / Lokasi Tepat</strong>.</p>
+                                        </li>
+
+                                        <li>
+                                            <span>04</span>
+                                            <p>Kembali dan tekan <strong>Absen Sekarang</strong>.</p>
+                                        </li>
+                                    </ol>
+
+                                    <div class="student-v11-location-warning">
+                                        Lokasi Perkiraan bisa bergeser dan membuat absensi ditolak.
                                     </div>
                                 </div>
+                            </details>
+                        </section>
 
-                                <div class="student-precise-choice student-precise-bad">
-                                    <span class="student-choice-icon">
-                                        ×
-                                    </span>
-
-                                    <div>
-                                        <strong>Neighborhood</strong>
-                                        <span>Perkiraan</span>
-                                        <small>JANGAN PILIH</small>
-                                    </div>
-                                </div>
-
-                            </div>
-
-                            <div class="student-tutorial-steps">
-
-                                <div class="student-tutorial-step">
-                                    <span>1</span>
-                                    <p>
-                                        Nyalakan
-                                        <strong>GPS / Lokasi</strong>.
-                                    </p>
-                                </div>
-
-                                <div class="student-tutorial-step">
-                                    <span>2</span>
-                                    <p>
-                                        Izinkan browser memakai lokasi.
-                                    </p>
-                                </div>
-
-                                <div class="student-tutorial-step">
-                                    <span>3</span>
-                                    <p>
-                                        Pilih
-                                        <strong>
-                                            Precise / Lokasi Tepat
-                                        </strong>.
-                                    </p>
-                                </div>
-
-                                <div class="student-tutorial-step">
-                                    <span>4</span>
-                                    <p>
-                                        Kembali lalu tekan
-                                        <strong>Absen Sekarang</strong>.
-                                    </p>
-                                </div>
-
-                            </div>
-
-                            <div class="student-tutorial-warning">
-                                Jangan pilih Neighborhood / Perkiraan.
-                                Lokasi bisa bergeser dan absensi dapat gagal.
-                            </div>
-
-                        </div>
-                    </details>
-                </section>
-
-
-
-
-
-
-
-
-                        <div
+                        <section
                             id="absenProfileInfo"
-                            class="profile-info-box student-block student-profile-card"
+                            class="profile-info-box student-profile-card"
                             style="display:none;"
-                        ></div>
+                        ></section>
 
-                        <div class="student-check-card">
-                            <div class="student-check-icon">✓</div>
-
-                            <div>
-                                <strong>Pastikan sebelum absen</strong>
-                                <span>✓ Kamu berada di area sekolah</span>
-                                <span>✓ Data diri kamu sudah benar</span>
-                            </div>
-                        </div>
-
-
-
-                        <div class="student-footer-card">
-                            <span class="student-footer-kicker">HARI INI</span>
-
-                            <strong>Datang. Absen. Mulai harimu.</strong>
-
-                            <p>
-                                Kebiasaan kecil yang dilakukan setiap hari
-                                membentuk disiplin yang besar.
-                            </p>
-                        </div>
+                        <footer class="student-v11-footer">
+                            <span>SMA YADIKA 4</span>
+                            <strong>Datang · Absen · Mulai Hari</strong>
+                        </footer>
 
                     </div>
                 </div>
@@ -334,30 +288,8 @@
 
                 <!-- Hasil Absensi -->
                 <div id="attendanceResultSection" class="auth-page hidden">
-                    <div class="student-page">
-                        <div class="student-card student-result-card">
-                            <div class="student-result-icon" aria-hidden="true">!</div>
-
-                            <h2 id="attendanceResultTitle"></h2>
-
-                            <div id="attendanceResultData"></div>
-
-                            <div class="student-result-actions">
-                                <button
-                                    id="goToAbsenBtn"
-                                    class="btn btn-secondary btn-block"
-                                >
-                                    ↩ Kembali
-                                </button>
-
-                                <button
-                                    id="attendanceErrorLogoutBtn"
-                                    class="btn btn-primary btn-block"
-                                >
-                                    Logout
-                                </button>
-                            </div>
-                        </div>
+                    <div class="student-result-page">
+                        <div class="student-card student-result-card"></div>
                     </div>
                 </div>
 
@@ -377,37 +309,8 @@
 
                 <!-- Success Screen (Post-Attendance) -->
                 <div id="successScreenSection" class="auth-page hidden">
-                    <div class="student-page">
-                        <div class="student-card student-result-card">
-
-                            <div class="student-result-icon" aria-hidden="true">
-                                ✓
-                            </div>
-
-                            <h2>Absensi Berhasil</h2>
-
-                            <p>
-                                Absensi kamu sudah tercatat. Kamu tidak perlu
-                                melakukan absensi lagi untuk sesi ini.
-                            </p>
-
-                            <div class="student-result-actions">
-                                <button
-                                    id="successBackBtn"
-                                    class="btn btn-secondary btn-block"
-                                >
-                                    Lihat Absensi
-                                </button>
-
-                                <button
-                                    id="successLogoutBtn"
-                                    class="btn btn-primary btn-block"
-                                >
-                                    Logout
-                                </button>
-                            </div>
-
-                        </div>
+                    <div class="student-result-page">
+                        <div class="student-card student-result-card"></div>
                     </div>
                 </div>
 
