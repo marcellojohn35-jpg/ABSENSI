@@ -2521,139 +2521,17 @@
     }
 }
 
-
-
-/* ===== RESULT LOGOUT TOP V7 ===== */
-
-/*
-   RESULT SCREEN
-   Logout kecil di kanan atas.
-   Tombol Kembali tetap di bawah.
-*/
-
-#attendanceResultSection .student-result-card,
-#successScreenSection .student-result-card {
-    position: relative !important;
-
-    padding-top: 72px !important;
-}
-
-/* =========================
-   LOGOUT — KANAN ATAS
-   ========================= */
-
-#attendanceErrorLogoutBtn,
-#successLogoutBtn {
-    position: absolute !important;
-
-    top: 18px !important;
-    right: 18px !important;
-
-    width: auto !important;
-    min-width: 78px !important;
-    max-width: none !important;
-
-    height: 42px !important;
-    min-height: 42px !important;
-
-    margin: 0 !important;
-    padding: 0 14px !important;
-
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-
-    border: 1px solid #dfe5ec !important;
-    border-radius: 13px !important;
-
-    background: #ffffff !important;
-    color: #475569 !important;
-
-    font-size: 11px !important;
-    font-weight: 800 !important;
-
-    box-shadow:
-        0 4px 12px rgba(15, 23, 42, .05) !important;
-
-    z-index: 10 !important;
-}
-
-/* Hilangkan style full-width lama dari Logout */
-
-#attendanceErrorLogoutBtn.btn-block,
-#successLogoutBtn.btn-block {
-    width: auto !important;
-}
-
-/* =========================
-   ACTION AREA BAWAH
-   ========================= */
-
-#attendanceResultSection .student-result-actions,
-#successScreenSection .student-result-actions {
-    position: static !important;
-
-    margin-top: 20px !important;
-
-    display: block !important;
-}
-
-/* Tombol kembali tetap full width */
-
-#goToAbsenBtn,
-#successBackBtn {
-    width: 100% !important;
-
-    min-height: 50px !important;
-
-    margin: 0 !important;
-
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-
-    border-radius: 14px !important;
-
-    font-size: 11px !important;
-    font-weight: 800 !important;
-}
-
-/* =========================
-   MOBILE
-   ========================= */
-
-@media (max-width: 380px) {
-
-    #attendanceErrorLogoutBtn,
-    #successLogoutBtn {
-        top: 14px !important;
-        right: 14px !important;
-
-        min-width: 72px !important;
-
-        height: 40px !important;
-        min-height: 40px !important;
-    }
-
-    #attendanceResultSection .student-result-card,
-    #successScreenSection .student-result-card {
-        padding-top: 66px !important;
-    }
-}
-
-
-
-/* ===== RESULT REDESIGN V8 ===== */
+/* ===== RESULT SCREEN POLISH V9 ===== */
 
 /* ========================================================
-   RESULT PAGE WRAPPER
+   RESULT PAGE BASE
    ======================================================== */
 
 #attendanceResultSection,
 #successScreenSection {
     background:
-        radial-gradient(circle at 20% 0%, rgba(37, 99, 235, .06), transparent 32%),
-        #f5f7fb !important;
+        radial-gradient(circle at top left, rgba(37, 99, 235, .07), transparent 34%),
+        linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
 }
 
 #attendanceResultSection .student-page,
@@ -2661,7 +2539,7 @@
     width: 100% !important;
     max-width: 430px !important;
     margin: 0 auto !important;
-    padding: 18px 14px 28px !important;
+    padding: 20px 14px 32px !important;
 }
 
 /* ========================================================
@@ -2673,35 +2551,35 @@
     position: relative !important;
     overflow: hidden !important;
 
-    padding: 78px 22px 22px !important;
+    margin-top: 10px !important;
+    padding: 72px 22px 22px !important;
 
-    border: 1px solid #e7edf5 !important;
-    border-radius: 28px !important;
-
-    background:
-        linear-gradient(180deg, rgba(255,255,255,.98), rgba(249,251,255,.98)) !important;
+    border: 1px solid #e7edf4 !important;
+    border-radius: 30px !important;
+    background: rgba(255, 255, 255, .97) !important;
 
     box-shadow:
-        0 18px 42px rgba(15, 23, 42, .08) !important;
+        0 20px 40px rgba(15, 23, 42, .08),
+        0 4px 10px rgba(15, 23, 42, .03) !important;
 
     text-align: center !important;
 }
 
 #attendanceResultSection .student-result-card::before,
 #successScreenSection .student-result-card::before {
-    content: "STATUS ABSENSI";
+    content: "HASIL ABSENSI";
     position: absolute;
     top: 24px;
     left: 22px;
 
     color: #64748b;
     font-size: 10px;
-    font-weight: 850;
-    letter-spacing: .11em;
+    font-weight: 800;
+    letter-spacing: .12em;
 }
 
 /* ========================================================
-   LOGOUT CHIP — TOP RIGHT
+   LOGOUT TOP RIGHT
    ======================================================== */
 
 #attendanceErrorLogoutBtn,
@@ -2711,19 +2589,18 @@
     right: 18px !important;
 
     width: auto !important;
-    min-width: 82px !important;
-    max-width: none !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    margin: 0 !important;
+    min-width: 84px !important;
+    height: 40px !important;
+    min-height: 40px !important;
     padding: 0 14px !important;
+    margin: 0 !important;
 
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
 
-    border: 1px solid #dbe2ea !important;
-    border-radius: 14px !important;
+    border: 1px solid #dbe3ec !important;
+    border-radius: 999px !important;
 
     background: #ffffff !important;
     color: #475569 !important;
@@ -2732,7 +2609,7 @@
     font-weight: 800 !important;
 
     box-shadow: 0 6px 14px rgba(15, 23, 42, .05) !important;
-    z-index: 10 !important;
+    z-index: 5 !important;
 }
 
 #attendanceErrorLogoutBtn.btn-block,
@@ -2741,48 +2618,45 @@
 }
 
 /* ========================================================
-   ICON
+   RESULT ICON
    ======================================================== */
 
 #attendanceResultSection .student-result-icon,
 #successScreenSection .student-result-icon {
-    width: 104px !important;
-    height: 104px !important;
-    margin: 0 auto 20px !important;
+    width: 96px !important;
+    height: 96px !important;
+    margin: 4px auto 18px !important;
 
     display: grid !important;
     place-items: center !important;
 
     border-radius: 50% !important;
     color: white !important;
-    font-size: 48px !important;
+    font-size: 42px !important;
     font-weight: 900 !important;
 
-    box-shadow: 0 16px 28px rgba(15, 23, 42, .12) !important;
+    box-shadow: 0 14px 26px rgba(15, 23, 42, .12) !important;
 }
 
 #attendanceResultSection .student-result-icon {
-    background:
-        linear-gradient(180deg, #ff4d4f, #ef2f2f) !important;
+    background: linear-gradient(180deg, #ff5a5f, #ef2f45) !important;
 }
 
 #successScreenSection .student-result-icon {
-    background:
-        linear-gradient(180deg, #22c55e, #16a34a) !important;
+    background: linear-gradient(180deg, #22c55e, #16a34a) !important;
 }
 
 /* ========================================================
-   TITLE + TEXT
+   TITLE + DESCRIPTION
    ======================================================== */
 
 #attendanceResultSection h2,
 #successScreenSection h2 {
     margin: 0 !important;
-
     color: #0f172a !important;
-    font-size: 20px !important;
+    font-size: 18px !important;
     font-weight: 900 !important;
-    line-height: 1.15 !important;
+    line-height: 1.18 !important;
     letter-spacing: -.03em !important;
 }
 
@@ -2790,45 +2664,56 @@
     text-transform: uppercase !important;
 }
 
-#successScreenSection .student-result-card > p,
-#attendanceResultSection .student-result-card > p {
-    margin: 12px auto 0 !important;
+#attendanceResultSection .student-result-card > p,
+#successScreenSection .student-result-card > p {
+    margin: 10px auto 0 !important;
     max-width: 290px !important;
 
     color: #64748b !important;
     font-size: 12px !important;
-    line-height: 1.6 !important;
+    line-height: 1.65 !important;
 }
 
 /* ========================================================
-   DETAIL BOX
+   ERROR DETAIL BOX
    ======================================================== */
 
 #attendanceResultData {
     margin-top: 18px !important;
-    padding: 18px !important;
+    padding: 16px 16px 16px !important;
 
-    border: 1px solid #fecdd3 !important;
+    border: 1px solid #f3d0d5 !important;
     border-radius: 18px !important;
-    background: #fff7f7 !important;
+    background: linear-gradient(180deg, #fff9fa, #fff4f5) !important;
 
     text-align: left !important;
+}
+
+#attendanceResultData::before {
+    content: "KETERANGAN";
+    display: block !important;
+    margin-bottom: 8px !important;
+
+    color: #e11d48 !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    letter-spacing: .08em !important;
 }
 
 .student-error-detail {
     margin: 0 !important;
     color: #475569 !important;
     font-size: 12px !important;
-    line-height: 1.75 !important;
+    line-height: 1.7 !important;
 }
 
 /* ========================================================
-   SUCCESS DETAIL
+   SUCCESS STATUS
    ======================================================== */
 
 .student-success-status {
     margin: 14px auto 0 !important;
-    min-height: 40px !important;
+    min-height: 38px !important;
     padding: 0 16px !important;
 
     display: inline-flex !important;
@@ -2841,13 +2726,13 @@
 }
 
 .student-success-status.is-present {
-    background: #e7f8ee !important;
+    background: #eafaf0 !important;
     color: #15803d !important;
     border: 1px solid #bbf7d0 !important;
 }
 
 .student-success-status.is-late {
-    background: #fff7e8 !important;
+    background: #fff7e7 !important;
     color: #b45309 !important;
     border: 1px solid #fde68a !important;
 }
@@ -2856,16 +2741,16 @@
     margin-top: 18px !important;
     padding: 18px !important;
 
-    border: 1px solid #bbf7d0 !important;
+    border: 1px solid #d8f1df !important;
     border-radius: 18px !important;
-    background: #f0fdf4 !important;
+    background: linear-gradient(180deg, #f5fdf7, #effcf3) !important;
 
     text-align: left !important;
 }
 
 .student-success-primary {
-    padding-bottom: 14px !important;
     margin-bottom: 14px !important;
+    padding-bottom: 14px !important;
     border-bottom: 1px solid rgba(22, 163, 74, .14) !important;
 }
 
@@ -2891,8 +2776,8 @@
 
 .student-success-grid {
     display: grid !important;
-    gap: 12px !important;
     grid-template-columns: 1fr !important;
+    gap: 12px !important;
 }
 
 .student-success-grid strong {
@@ -2911,7 +2796,7 @@
 }
 
 /* ========================================================
-   ACTION BUTTONS
+   ACTIONS
    ======================================================== */
 
 #attendanceResultSection .student-result-actions,
@@ -2920,10 +2805,11 @@
     display: block !important;
 }
 
+/* tombol utama bawah */
 #goToAbsenBtn,
 #successBackBtn {
     width: 100% !important;
-    min-height: 54px !important;
+    min-height: 52px !important;
     margin: 0 !important;
 
     display: flex !important;
@@ -2942,6 +2828,12 @@
     box-shadow: 0 12px 24px rgba(37, 99, 235, .18) !important;
 }
 
+/* kalau ada tombol lain nyangkut di bawah, sembunyikan */
+#attendanceResultSection .student-result-actions .btn + .btn:not(#goToAbsenBtn):not(#successBackBtn),
+#successScreenSection .student-result-actions .btn + .btn:not(#goToAbsenBtn):not(#successBackBtn) {
+    display: none !important;
+}
+
 /* ========================================================
    SMALL PHONE
    ======================================================== */
@@ -2955,7 +2847,7 @@
 
     #attendanceResultSection .student-result-card,
     #successScreenSection .student-result-card {
-        padding: 72px 18px 18px !important;
+        padding: 68px 18px 18px !important;
         border-radius: 24px !important;
     }
 
@@ -2963,21 +2855,20 @@
     #successLogoutBtn {
         top: 14px !important;
         right: 14px !important;
-        min-width: 74px !important;
-        height: 40px !important;
-        min-height: 40px !important;
+        min-width: 76px !important;
+        height: 38px !important;
+        min-height: 38px !important;
     }
 
     #attendanceResultSection .student-result-icon,
     #successScreenSection .student-result-icon {
-        width: 92px !important;
-        height: 92px !important;
-        font-size: 42px !important;
+        width: 88px !important;
+        height: 88px !important;
+        font-size: 38px !important;
     }
 
     #attendanceResultSection h2,
     #successScreenSection h2 {
-        font-size: 18px !important;
+        font-size: 17px !important;
     }
 }
-
