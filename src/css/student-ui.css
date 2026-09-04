@@ -2521,3 +2521,123 @@
     }
 }
 
+
+
+/* ===== RESULT LOGOUT TOP V7 ===== */
+
+/*
+   RESULT SCREEN
+   Logout kecil di kanan atas.
+   Tombol Kembali tetap di bawah.
+*/
+
+#attendanceResultSection .student-result-card,
+#successScreenSection .student-result-card {
+    position: relative !important;
+
+    padding-top: 72px !important;
+}
+
+/* =========================
+   LOGOUT — KANAN ATAS
+   ========================= */
+
+#attendanceErrorLogoutBtn,
+#successLogoutBtn {
+    position: absolute !important;
+
+    top: 18px !important;
+    right: 18px !important;
+
+    width: auto !important;
+    min-width: 78px !important;
+    max-width: none !important;
+
+    height: 42px !important;
+    min-height: 42px !important;
+
+    margin: 0 !important;
+    padding: 0 14px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border: 1px solid #dfe5ec !important;
+    border-radius: 13px !important;
+
+    background: #ffffff !important;
+    color: #475569 !important;
+
+    font-size: 11px !important;
+    font-weight: 800 !important;
+
+    box-shadow:
+        0 4px 12px rgba(15, 23, 42, .05) !important;
+
+    z-index: 10 !important;
+}
+
+/* Hilangkan style full-width lama dari Logout */
+
+#attendanceErrorLogoutBtn.btn-block,
+#successLogoutBtn.btn-block {
+    width: auto !important;
+}
+
+/* =========================
+   ACTION AREA BAWAH
+   ========================= */
+
+#attendanceResultSection .student-result-actions,
+#successScreenSection .student-result-actions {
+    position: static !important;
+
+    margin-top: 20px !important;
+
+    display: block !important;
+}
+
+/* Tombol kembali tetap full width */
+
+#goToAbsenBtn,
+#successBackBtn {
+    width: 100% !important;
+
+    min-height: 50px !important;
+
+    margin: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 14px !important;
+
+    font-size: 11px !important;
+    font-weight: 800 !important;
+}
+
+/* =========================
+   MOBILE
+   ========================= */
+
+@media (max-width: 380px) {
+
+    #attendanceErrorLogoutBtn,
+    #successLogoutBtn {
+        top: 14px !important;
+        right: 14px !important;
+
+        min-width: 72px !important;
+
+        height: 40px !important;
+        min-height: 40px !important;
+    }
+
+    #attendanceResultSection .student-result-card,
+    #successScreenSection .student-result-card {
+        padding-top: 66px !important;
+    }
+}
+
