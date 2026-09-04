@@ -3299,14 +3299,14 @@ function showAttendanceResult(success, data) {
         msg = 'Absensi belum dibuka';
         detail = 'Tunggu sampai waktu absensi dimulai.';
     } else if (rawError.includes('LOCATION_ACCURACY_LOW')) {
-        msg = 'Lokasi belum cukup akurat';
-        detail = 'GPS sudah menemukan posisi, tetapi akurasinya belum cukup baik. Aktifkan Lokasi Presisi, tetap di area lobby, lalu coba lokasi lagi.';
+        msg = 'LOKASI BELUM TEPAT';
+        detail = 'Lokasi HP kamu belum cukup akurat. Pastikan GPS aktif dan pilih Precise / Lokasi Tepat, lalu coba lagi.';
     } else if (rawError.includes('OUTSIDE_ATTENDANCE_AREA')) {
         msg = 'Kamu berada di luar area absensi';
         detail = 'Sistem membaca posisi di luar area lobby. Pastikan kamu berada di lobby, tunggu GPS stabil, lalu coba lagi.';
     } else if (rawError.includes('GEOLOCATION_ERROR:1')) {
-        msg = 'Izin lokasi diperlukan';
-        detail = 'Izinkan lokasi untuk website ini dan aktifkan Lokasi Presisi, lalu coba lagi.';
+        msg = 'IZIN LOKASI BELUM DIBERIKAN';
+        detail = 'Izinkan lokasi untuk website ini. Pilih Izinkan saat digunakan dan aktifkan Precise / Lokasi Tepat, lalu coba lagi.';
     } else if (rawError.includes('GEOLOCATION_ERROR:2')) {
         msg = 'Lokasi belum tersedia';
         detail = 'Pastikan GPS/Lokasi HP aktif. Tunggu beberapa detik di lobby lalu coba lagi.';
@@ -3317,12 +3317,18 @@ function showAttendanceResult(success, data) {
         msg = 'Lokasi tidak didukung';
         detail = 'Gunakan browser yang mendukung akses lokasi.';
     } else if (
-        rawError.includes('DUPLICATE') ||
+        rawError.includes('DUPLICATE_ATTENDANCE') ||
+        rawError.includes('DUPLICATE')
+    ) {
+        msg = 'KAMU SUDAH ABSEN';
+        detail = 'Absensi hari ini sudah tercatat. Kamu tidak perlu absen lagi.';
+    } else if (
+        rawError.includes('PERMISSION_DENIED_ATTENDANCE') ||
         rawError.includes('permission-denied') ||
         rawError.includes('Permintaan ditolak oleh sistem')
     ) {
-        msg = 'Absensi tidak dapat diproses';
-        detail = 'Kamu mungkin sudah melakukan absensi atau sesi sudah tidak tersedia.';
+        msg = 'ABSENSI BELUM TERCATAT';
+        detail = 'Sistem belum bisa menyimpan absensi kamu. Silakan kembali dan coba lagi.';
     }
 
     attendanceResultTitle.textContent = msg;
