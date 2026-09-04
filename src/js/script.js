@@ -24,6 +24,7 @@ const attendanceResultSection = $('attendanceResultSection');
 const absenSection = $('absenSection');
 const userManagementContainer = $('userManagementContainer');
 const successScreenSection = $('successScreenSection');
+const tugasSection = $('tugasSection');
 
 const absenContent = $('absenContent');
 const absenStatus = $('absenStatus');
@@ -146,7 +147,7 @@ function showSection(id) {
     // Menggunakan class "hidden" (bukan inline style.display) supaya tiap section
     // tetap memakai display mode aslinya dari CSS (flex untuk auth-page, block
     // untuk dashboard-page) alih-alih dipaksa "block" oleh inline style.
-    [loadingState, loginSection, dashboardSection, profileSetupSection, attendanceResultSection, absenSection, userManagementContainer, successScreenSection].forEach(el => el.classList.add('hidden'));
+    [loadingState, loginSection, dashboardSection, profileSetupSection, attendanceResultSection, absenSection, userManagementContainer, successScreenSection, tugasSection].forEach(el => el.classList.add('hidden'));
     if (id) id.classList.remove('hidden');
 }
 
@@ -647,7 +648,30 @@ absenNowBtn.onclick = async () => {
         let errorMessage = error.message;
 
         if (error.code === 'permission-denied') {
-            errorMessage = 'Permintaan ditolak oleh sistem. Pastikan session valid, waktu tepat, dan Anda belum absen.';
+            let duplicateConfirmed = false;
+
+            try {
+                if (currentUser && currentSessionId) {
+                    const existingAttendance = await getDoc(
+                        doc(
+                            db,
+                            'attendance',
+                            `${currentUser.uid}_${currentSessionId}`
+                        )
+                    );
+
+                    duplicateConfirmed = existingAttendance.exists();
+                }
+            } catch (duplicateCheckError) {
+                console.log(
+                    '[ABSEN] duplicate check tidak tersedia:',
+                    duplicateCheckError?.message || duplicateCheckError
+                );
+            }
+
+            errorMessage = duplicateConfirmed
+                ? 'DUPLICATE_ATTENDANCE'
+                : 'PERMISSION_DENIED_ATTENDANCE';
         }
 
         showAttendanceResult(false, {
@@ -657,7 +681,7 @@ absenNowBtn.onclick = async () => {
     } finally {
         isProcessing = false;
         absenNowBtn.disabled = false;
-        absenNowBtn.textContent = "✅ Absen Sekarang";
+        absenNowBtn.textContent = "ABSEN SEKARANG";
     }
 };
 
@@ -759,7 +783,12 @@ async function renderDashboard(userData) {
                     <div class="profile-row"><span class="label">Role</span><span class="value">Siswa</span></div>
                 </div>
             </div>
+            <button id="tugasBtn" class="btn btn-primary btn-block mt-16">
+                📚 Lihat Tugas / PR
+            </button>
         `;
+        const tugasBtnEl = document.getElementById('tugasBtn');
+        if (tugasBtnEl) tugasBtnEl.onclick = openTugasPage;
         return;
     }
 
@@ -798,8 +827,11 @@ async function renderDashboard(userData) {
         `;
 
         userManagementBtnHTML = `
-            <button id="userManagementBtn" class="btn btn-secondary btn-block mb-16">
+            <button id="userManagementBtn" class="btn btn-secondary btn-block mb-8">
                 👥 Manajemen User
+            </button>
+            <button id="tugasBtn" class="btn btn-secondary btn-block mb-16">
+                📚 Tugas / PR
             </button>
         `;
     }
@@ -1018,6 +1050,8 @@ async function renderDashboard(userData) {
             showSection(userManagementContainer);
             loadUserManagementData();
         };
+
+        document.getElementById('tugasBtn').onclick = openTugasPage;
 
         checkTodaySession();
     }
@@ -3153,6 +3187,9 @@ function showAttendanceResult(success, data) {
                     ? 'Terlambat'
                     : 'Hadir';
 
+            successCard.className =
+                'student-card student-result-card result-success';
+
             successCard.innerHTML = `
                 <div class="student-result-icon" aria-hidden="true">✓</div>
 
@@ -3160,7 +3197,7 @@ function showAttendanceResult(success, data) {
                     Absensi tercatat
                 </span>
 
-                <h2>Absensi Berhasil</h2>
+                <h2>ABSEN BERHASIL</h2>
 
                 <div class="${statusClass}">
                     ${statusText}
@@ -3192,7 +3229,7 @@ function showAttendanceResult(success, data) {
                 </div>
 
                 <p class="student-success-note">
-                    Absensi kamu sudah tercatat untuk sesi ini.
+                    Absensi kamu sudah tercatat. Kamu tidak perlu absen lagi.
                 </p>
 
                 <div class="student-result-actions">
@@ -3207,7 +3244,7 @@ function showAttendanceResult(success, data) {
                         id="successLogoutBtn"
                         class="btn btn-primary btn-block"
                     >
-                        Keluar
+                        Logout
                     </button>
                 </div>
             `;
@@ -3293,9 +3330,15 @@ function showAttendanceResult(success, data) {
         <p class="student-error-detail">${detail}</p>
     `;
 
-    goToAbsenBtn.textContent = isLocationError
-        ? '🔄 Coba Lokasi Lagi'
-        : 'Kembali ke Absensi';
+    const isDuplicateAttendance =
+        rawError.includes('DUPLICATE_ATTENDANCE') ||
+        rawError.includes('ALREADY_ATTENDED');
+
+    goToAbsenBtn.textContent = isDuplicateAttendance
+        ? 'Kembali ke Home'
+        : isLocationError
+            ? 'Coba Lagi'
+            : 'Kembali ke Home';
 
     goToAbsenBtn.onclick = async () => {
         await processAbsenPage(currentUser);
@@ -3343,6 +3386,27 @@ loginBtn.onclick = async () => {
     }
 };
 
+const studentHomeLogoutBtn =
+    document.getElementById('studentHomeLogoutBtn');
+
+if (studentHomeLogoutBtn) {
+    studentHomeLogoutBtn.onclick = async () => {
+        const confirmed = window.confirm(
+            'Logout dari akun?\n\nKamu akan keluar dari akun ini.'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            await signOut(auth);
+            window.location.href = '/';
+        } catch (e) {
+            console.error('Student logout error:', e);
+            alert('Logout gagal. Silakan coba lagi.');
+        }
+    };
+}
+
 logoutBtn.onclick = async () => {
     try {
         await signOut(auth);
@@ -3377,3 +3441,329 @@ document.getElementById('backToDashboardBtn').onclick = async () => {
 };
 
 console.log("✅ Foundation URL-Based siap (Phase 7).");
+// ============================================
+// TUGAS / PR MODULE
+// ============================================
+const TUGAS_MAPEL = [
+    'Matematika', 'Fisika', 'Agama',
+    'Bahasa Indonesia', 'Bahasa Inggris',
+    'Kimia', 'Biologi', 'Lainnya'
+];
+
+let tugasData = [];
+let tugasSearchKeyword = '';
+let tugasFilterMapel = '';
+let tugasFilterKelas = '';
+let tugasEditingId = null;
+
+function formatTugasDate(ts) {
+    if (!ts) return '-';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'Asia/Jakarta'
+    }).format(d);
+}
+
+async function loadTugasData() {
+    const snap = await getDocs(
+        query(collection(db, 'tugas'), orderBy('createdAt', 'desc'))
+    );
+    tugasData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+function getVisibleTugas() {
+    const kw = tugasSearchKeyword.trim().toLowerCase();
+    return tugasData.filter(t => {
+        const matchKw = !kw
+            || (t.title || '').toLowerCase().includes(kw)
+            || (t.description || '').toLowerCase().includes(kw);
+        return matchKw
+            && (!tugasFilterMapel || t.mapel === tugasFilterMapel)
+            && (!tugasFilterKelas || t.classId === tugasFilterKelas);
+    });
+}
+
+async function buildKelasOptions(selected, includeAll) {
+    const snap = await getDocs(
+        query(collection(db, 'users'), where('role', '==', 'student'))
+    );
+    const kelasList = [...new Set(
+        snap.docs.map(d => d.data().classId).filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b, 'id'));
+
+    let opts = includeAll ? '<option value="all">📢 Semua Kelas</option>' : '';
+    opts += '<option value="">Semua Kelas</option>';
+    opts += kelasList.map(c =>
+        `<option value="${escapeHtml(c)}" ${c === selected ? 'selected' : ''}>${escapeHtml(c)}</option>`
+    ).join('');
+    return opts;
+}
+
+function renderTugasList() {
+    const list = document.getElementById('tugasList');
+    const countEl = document.getElementById('tugasResultCount');
+    if (!list) return;
+
+    const visible = getVisibleTugas();
+    if (countEl) {
+        countEl.textContent = `${visible.length} dari ${tugasData.length} tugas`;
+    }
+
+    if (visible.length === 0) {
+        list.innerHTML = `<div class="text-secondary" style="padding:16px;text-align:center;">
+            ${tugasData.length === 0
+                ? 'Belum ada tugas.'
+                : 'Tidak ada tugas yang cocok.'}</div>`;
+        return;
+    }
+
+    list.innerHTML = visible.map(t => {
+        const kelasLabel = t.classId === 'all' ? '📢 Semua Kelas' : escapeHtml(t.classId || '-');
+        const canEdit = window.currentTugasRole !== 'student'
+            && (window.currentTugasRole === 'admin'
+                || t.createdBy === (currentUser?.uid || null));
+        const actions = canEdit
+            ? `<button class="btn btn-secondary btn-xs" onclick="window.openTugasEdit('${t.id}')">✏️</button>
+               <button class="btn btn-danger btn-xs" onclick="window.deleteTugas('${t.id}')">🗑️</button>`
+            : '';
+        return `<div class="card" style="margin-bottom:12px;">
+            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;margin-bottom:2px;">
+                ${escapeHtml(t.mapel || '-')} · ${kelasLabel}
+            </div>
+            <div style="font-weight:600;font-size:15px;margin-bottom:4px;">
+                ${escapeHtml(t.title || '(tanpa judul)')}
+            </div>
+            <div style="font-size:13px;color:#374151;white-space:pre-wrap;margin-bottom:6px;">
+                ${escapeHtml(t.description || '')}
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+                <div style="font-size:11px;color:#6b7280;">
+                    ${escapeHtml(t.createdByName || '-')} · ${formatTugasDate(t.createdAt)}
+                </div>
+                <div style="display:flex;gap:4px;">${actions}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Editor state
+let tugasEditorMode = 'create'; // 'create' | 'edit'
+
+function openTugasEditor(id) {
+    const t = id ? tugasData.find(x => x.id === id) : null;
+    tugasEditingId = id || null;
+    tugasEditorMode = t ? 'edit' : 'create';
+
+    document.getElementById('tugasEditorTitle').textContent = t ? '✏️ Edit Tugas' : '➕ Tambah Tugas';
+    document.getElementById('tugasTitle').value = t?.title || '';
+    document.getElementById('tugasDescription').value = t?.description || '';
+    document.getElementById('tugasMapel').value = t?.mapel || 'Matematika';
+    document.getElementById('tugasEditor').style.display = 'block';
+    document.getElementById('tugasEditorMsg').style.display = 'none';
+}
+
+function closeTugasEditor() {
+    document.getElementById('tugasEditor').style.display = 'none';
+    tugasEditingId = null;
+}
+
+window.openTugasEdit = (id) => openTugasEditor(id);
+
+window.deleteTugas = async (id) => {
+    const t = tugasData.find(x => x.id === id);
+    if (!t) return;
+    if (!confirm(`Hapus tugas "${t.title}"?`)) return;
+    try {
+        await deleteDoc(doc(db, 'tugas', id));
+        await loadTugasData();
+        renderTugasList();
+    } catch (error) {
+        alert(`Gagal menghapus: ${error.message}`);
+    }
+};
+
+async function handleSaveTugas() {
+    const title = document.getElementById('tugasTitle').value.trim();
+    const description = document.getElementById('tugasDescription').value.trim();
+    const mapel = document.getElementById('tugasMapel').value;
+    const classId = document.getElementById('tugasClassId').value;
+    const msgEl = document.getElementById('tugasEditorMsg');
+    const isAdmin = window.currentTugasRole === 'admin';
+
+    msgEl.style.display = 'none';
+    msgEl.className = 'alert';
+
+    if (!title) { msgEl.className='alert alert-danger'; msgEl.textContent='Judul wajib diisi.'; msgEl.style.display='block'; return; }
+    if (title.length > 200) { msgEl.className='alert alert-danger'; msgEl.textContent='Judul maks 200 karakter.'; msgEl.style.display='block'; return; }
+    if (!mapel) { msgEl.className='alert alert-danger'; msgEl.textContent='Pilih mapel.'; msgEl.style.display='block'; return; }
+    if (!classId) { msgEl.className='alert alert-danger'; msgEl.textContent=isAdmin ? 'Pilih kelas (atau Semua Kelas).' : 'Pilih kelas.'; msgEl.style.display='block'; return; }
+    if (!isAdmin && classId === 'all') { msgEl.className='alert alert-danger'; msgEl.textContent='Hanya admin bisa broadcast.'; msgEl.style.display='block'; return; }
+    if (description.length > 4000) { msgEl.className='alert alert-danger'; msgEl.textContent='Deskripsi maks 4000 karakter.'; msgEl.style.display='block'; return; }
+
+    const btn = document.getElementById('tugasSaveBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳';
+
+    try {
+        const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+        const createdByName = userSnap.data()?.nama || currentUser?.displayName || 'Unknown';
+
+        if (tugasEditingId) {
+            await updateDoc(doc(db, 'tugas', tugasEditingId), {
+                title, description, mapel, classId, updatedAt: serverTimestamp()
+            });
+        } else {
+            await addDoc(collection(db, 'tugas'), {
+                title, description, mapel, classId,
+                createdBy: currentUser.uid, createdByName,
+                createdAt: serverTimestamp()
+            });
+        }
+
+        closeTugasEditor();
+        await loadTugasData();
+        renderTugasList();
+    } catch (error) {
+        console.error('[TUGAS SAVE]', error);
+        msgEl.className = 'alert alert-danger';
+        msgEl.textContent = `Gagal: ${error.message}`;
+        msgEl.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Simpan';
+    }
+}
+
+async function renderTugasPage(userData) {
+    window.currentTugasRole = userData.role;
+    const canManage = userData.role === 'teacher' || userData.role === 'admin';
+
+    const kelasFilterOpts = await buildKelasOptions(tugasFilterKelas, true);
+    const kelasEditorOpts = await buildKelasOptions('', userData.role === 'admin');
+
+    const content = document.getElementById('tugasContent');
+    content.innerHTML = `
+        ${canManage ? `
+        <div class="card" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <div class="card-title">📝 Kelola Tugas</div>
+                <button id="tugasAddBtn" class="btn btn-primary">➕ Tambah</button>
+            </div>
+            <div id="tugasEditor" style="display:none;padding-top:12px;border-top:1px solid #e5e7eb;">
+                <div class="card-title" id="tugasEditorTitle">➕ Tambah Tugas</div>
+                <div class="form-group">
+                    <label for="tugasTitle">Judul *</label>
+                    <input type="text" id="tugasTitle" maxlength="200" placeholder="Contoh: Latihan Soal Bab 3" class="w-full">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="form-group">
+                        <label for="tugasMapel">Mapel *</label>
+                        <select id="tugasMapel" class="w-full">
+                            ${TUGAS_MAPEL.map(m => `<option value="${m}">${m}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="tugasClassId">Kelas Target *</label>
+                        <select id="tugasClassId" class="w-full">
+                            <option value="">— Pilih —</option>
+                            ${kelasEditorOpts}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="tugasDescription">Deskripsi / Catatan</label>
+                    <textarea id="tugasDescription" rows="3" maxlength="4000" placeholder="Detail tugas, halaman, instruksi..." class="w-full"></textarea>
+                </div>
+                <div id="tugasEditorMsg" class="alert" style="display:none;"></div>
+                <div style="display:flex;gap:8px;">
+                    <button id="tugasSaveBtn" class="btn btn-primary">💾 Simpan</button>
+                    <button id="tugasCancelBtn" class="btn btn-secondary">Batal</button>
+                </div>
+            </div>
+        </div>
+        ` : ''}
+
+        <div class="card" style="margin-bottom:16px;">
+            <div class="card-title">🔍 Filter &amp; Cari</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;">
+                <div class="form-group mb-0">
+                    <label>Cari</label>
+                    <input type="text" id="tugasSearch" placeholder="Judul / deskripsi..." value="${escapeHtml(tugasSearchKeyword)}" class="w-full">
+                </div>
+                <div class="form-group mb-0">
+                    <label>Mapel</label>
+                    <select id="tugasMapelFilter" class="w-full">
+                        <option value="">Semua</option>
+                        ${TUGAS_MAPEL.map(m => `<option value="${m}">${m}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group mb-0">
+                    <label>Kelas</label>
+                    <select id="tugasKelasFilter" class="w-full">${kelasFilterOpts}</select>
+                </div>
+                <button id="tugasResetBtn" class="btn btn-secondary">Reset</button>
+            </div>
+            <div id="tugasResultCount" class="text-secondary" style="font-size:12px;margin-top:6px;"></div>
+        </div>
+
+        <div id="tugasList"></div>
+    `;
+
+    // Wire events
+    if (canManage) {
+        document.getElementById('tugasAddBtn').onclick = () => openTugasEditor(null);
+        document.getElementById('tugasSaveBtn').onclick = handleSaveTugas;
+        document.getElementById('tugasCancelBtn').onclick = closeTugasEditor;
+    }
+    document.getElementById('tugasSearch').oninput = e => { tugasSearchKeyword = e.target.value; renderTugasList(); };
+    document.getElementById('tugasMapelFilter').onchange = e => { tugasFilterMapel = e.target.value; renderTugasList(); };
+    document.getElementById('tugasKelasFilter').onchange = e => { tugasFilterKelas = e.target.value; renderTugasList(); };
+    document.getElementById('tugasResetBtn').onclick = () => {
+        tugasSearchKeyword = ''; tugasFilterMapel = ''; tugasFilterKelas = '';
+        document.getElementById('tugasSearch').value = '';
+        document.getElementById('tugasMapelFilter').value = '';
+        document.getElementById('tugasKelasFilter').value = '';
+        renderTugasList();
+    };
+
+    await loadTugasData();
+    renderTugasList();
+}
+
+async function openTugasPage() {
+    if (!currentUser) { showSection(loginSection); return; }
+    try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (!userDoc.exists()) {
+            showSection(profileSetupSection); setupProfileForm(currentUser); return;
+        }
+        const uData = userDoc.data();
+        if (isInactiveAccount(uData)) { await rejectInactiveAccount(); return; }
+        showSection(tugasSection);
+        await renderTugasPage(uData);
+    } catch (error) {
+        console.error('[TUGAS PAGE ERROR]', error);
+        alert('Gagal membuka halaman tugas.');
+    }
+}
+
+document.getElementById('backToDashboardFromTugasBtn').onclick = async () => {
+    if (!currentUser) { showSection(loginSection); return; }
+    try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+            showSection(dashboardSection);
+            await renderDashboard(userDoc.data());
+        } else {
+            showSection(profileSetupSection);
+            setupProfileForm(currentUser);
+        }
+    } catch (error) {
+        console.error('[BACK FROM TUGAS]', error);
+    }
+};
+
+window.openTugasPage = openTugasPage;
+console.log("✅ Modul Tugas siap.");
