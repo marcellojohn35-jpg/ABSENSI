@@ -356,7 +356,7 @@ const GEOLOCATION_CONFIG = {
     enabled: true,
     targetLat: -6.263838,
     targetLng: 106.916585,
-    radiusMeters: 25,
+    radiusMeters: 300,
     maxAcceptableAccuracyMeters: 50,
     excellentAccuracyMeters: 20,
     watchTimeoutMs: 12000
