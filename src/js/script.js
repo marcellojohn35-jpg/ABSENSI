@@ -967,6 +967,10 @@ async function renderDashboard(userData) {
             <button id="exportBtn" class="btn btn-success">
                 📥 Export Excel
             </button>
+
+            <button id="exportPngBtn" class="btn btn-success">
+                🖼️ Export PNG
+            </button>
         </div>
     `;
 
@@ -1058,6 +1062,7 @@ async function renderDashboard(userData) {
 
     document.getElementById('applyFilterBtn').onclick = () => loadAttendanceData();
     document.getElementById('exportBtn').onclick = exportToExcel;
+    document.getElementById('exportPngBtn').onclick = exportToPNG;
 
     // Manual attendance listeners
     if (userData.role === 'teacher' || userData.role === 'admin') {
@@ -2000,6 +2005,254 @@ function updateSummary(data) {
         rateFill.style.width = rate + '%';
         rateText.textContent = total > 0 ? rate + '%' : '-';
     }
+}
+
+
+// ===== Export to PNG =====
+// Menjaga struktur visual export Excel:
+// No | Nama | Kelas | Tanggal | Jam | Status
+async function exportToPNG() {
+    if (!attendanceFilteredData || attendanceFilteredData.length === 0) {
+        alert('Tidak ada data untuk diekspor.');
+        return;
+    }
+
+    const statusColors = {
+        HADIR: '#D4EDDA',
+        TERLAMBAT: '#FFF3CD',
+        IZIN: '#D1ECF1',
+        SAKIT: '#F8D7DA',
+        ALFA: '#E2E3E5',
+        BELUM_ABSEN: '#E2E3E5'
+    };
+
+    const statusOrder = [
+        'HADIR',
+        'TERLAMBAT',
+        'IZIN',
+        'SAKIT',
+        'ALFA',
+        'BELUM_ABSEN'
+    ];
+
+    const sortedData = [...attendanceFilteredData].sort((a, b) => {
+        const classDiff =
+            CLASS_LIST.indexOf(a.classId) -
+            CLASS_LIST.indexOf(b.classId);
+
+        if (classDiff !== 0) return classDiff;
+
+        const statusDiff =
+            statusOrder.indexOf(a.status) -
+            statusOrder.indexOf(b.status);
+
+        if (statusDiff !== 0) return statusDiff;
+
+        if (!a.createdAt && !b.createdAt) return 0;
+        if (!a.createdAt) return 1;
+        if (!b.createdAt) return -1;
+
+        const timeA =
+            a.createdAt.seconds ??
+            a.createdAt._seconds ??
+            0;
+
+        const timeB =
+            b.createdAt.seconds ??
+            b.createdAt._seconds ??
+            0;
+
+        return timeA - timeB;
+    });
+
+    // Lebar mengikuti proporsi XLSX:
+    // 6, 30, 12, 14, 10, 16
+    const columns = [
+        { title: 'No', width: 60, align: 'center' },
+        { title: 'Nama', width: 300, align: 'left' },
+        { title: 'Kelas', width: 120, align: 'center' },
+        { title: 'Tanggal', width: 140, align: 'center' },
+        { title: 'Jam', width: 100, align: 'center' },
+        { title: 'Status', width: 160, align: 'center' }
+    ];
+
+    const scale = 2;
+    const rowHeight = 44;
+    const headerHeight = 48;
+
+    const logicalWidth =
+        columns.reduce((total, col) => total + col.width, 0);
+
+    const logicalHeight =
+        headerHeight + (sortedData.length * rowHeight);
+
+    const canvas = document.createElement('canvas');
+
+    canvas.width = logicalWidth * scale;
+    canvas.height = logicalHeight * scale;
+
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+        alert('Browser tidak mendukung pembuatan PNG.');
+        return;
+    }
+
+    ctx.scale(scale, scale);
+
+    // Background putih
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, logicalWidth, logicalHeight);
+
+    ctx.textBaseline = 'middle';
+    ctx.font = '14px Arial, sans-serif';
+
+    // Header
+    let x = 0;
+
+    columns.forEach(col => {
+        ctx.fillStyle = '#4285F4';
+        ctx.fillRect(x, 0, col.width, headerHeight);
+
+        ctx.strokeStyle = '#DDDDDD';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, 0, col.width, headerHeight);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 14px Arial, sans-serif';
+        ctx.textAlign = col.align;
+
+        let textX;
+
+        if (col.align === 'left') {
+            textX = x + 10;
+        } else if (col.align === 'right') {
+            textX = x + col.width - 10;
+        } else {
+            textX = x + col.width / 2;
+        }
+
+        ctx.fillText(
+            col.title,
+            textX,
+            headerHeight / 2
+        );
+
+        x += col.width;
+    });
+
+    // Data
+    sortedData.forEach((d, index) => {
+        const y =
+            headerHeight +
+            (index * rowHeight);
+
+        const statusText =
+            d.status === 'BELUM_ABSEN'
+                ? 'BELUM ABSEN'
+                : (d.status || '-');
+
+        const values = [
+            String(index + 1),
+            d.nama || '-',
+            d.classId || '-',
+            d.tanggal || '-',
+            d.jam || '-',
+            statusText
+        ];
+
+        x = 0;
+
+        columns.forEach((col, colIndex) => {
+            if (colIndex === 5 && statusColors[d.status]) {
+                ctx.fillStyle = statusColors[d.status];
+            } else {
+                ctx.fillStyle = '#FFFFFF';
+            }
+
+            ctx.fillRect(
+                x,
+                y,
+                col.width,
+                rowHeight
+            );
+
+            ctx.strokeStyle = '#DDDDDD';
+            ctx.lineWidth = 1;
+
+            ctx.strokeRect(
+                x,
+                y,
+                col.width,
+                rowHeight
+            );
+
+            ctx.fillStyle = '#222222';
+            ctx.font = '14px Arial, sans-serif';
+            ctx.textAlign = col.align;
+
+            let textX;
+
+            if (col.align === 'left') {
+                textX = x + 10;
+            } else if (col.align === 'right') {
+                textX = x + col.width - 10;
+            } else {
+                textX = x + col.width / 2;
+            }
+
+            // Hindari teks nama keluar dari cell.
+            let text = String(values[colIndex]);
+
+            if (colIndex === 1) {
+                const maxWidth = col.width - 20;
+
+                while (
+                    text.length > 1 &&
+                    ctx.measureText(text).width > maxWidth
+                ) {
+                    text = text.slice(0, -1);
+                }
+
+                if (text !== String(values[colIndex])) {
+                    text =
+                        text.slice(0, Math.max(0, text.length - 3)) +
+                        '...';
+                }
+            }
+
+            ctx.fillText(
+                text,
+                textX,
+                y + rowHeight / 2
+            );
+
+            x += col.width;
+        });
+    });
+
+    canvas.toBlob(blob => {
+        if (!blob) {
+            alert('Gagal membuat file PNG.');
+            return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.download =
+            `absensi_${currentDashboardSessionId || getJakartaDateStr()}.png`;
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+        }, 1000);
+
+    }, 'image/png');
 }
 
 // ===== Export to Excel (XLSX) =====
