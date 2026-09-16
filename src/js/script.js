@@ -971,6 +971,10 @@ async function renderDashboard(userData) {
             <button id="exportPngBtn" class="btn btn-success">
                 🖼️ Export PNG
             </button>
+
+            <button id="weeklyRecapBtn" class="btn btn-primary">
+                📊 Rekap Mingguan
+            </button>
         </div>
     `;
 
@@ -1063,6 +1067,7 @@ async function renderDashboard(userData) {
     document.getElementById('applyFilterBtn').onclick = () => loadAttendanceData();
     document.getElementById('exportBtn').onclick = exportToExcel;
     document.getElementById('exportPngBtn').onclick = exportToPNG;
+    document.getElementById('weeklyRecapBtn').onclick = generateWeeklyRecap;
 
     // Manual attendance listeners
     if (userData.role === 'teacher' || userData.role === 'admin') {
@@ -2004,6 +2009,624 @@ function updateSummary(data) {
         const rate = total > 0 ? Math.round(((hadir + terlambat) / total) * 100) : 0;
         rateFill.style.width = rate + '%';
         rateText.textContent = total > 0 ? rate + '%' : '-';
+    }
+}
+
+
+
+// ============================================================
+// WEEKLY ATTENDANCE RECAP
+// Selected session menentukan minggu yang akan direkap.
+// Output:
+// - R.KEHADIRAN
+// - R.KETERLAMBATAN
+// - TGL <tanggal> untuk setiap session
+// ============================================================
+
+async function generateWeeklyRecap() {
+    if (typeof ExcelJS === 'undefined') {
+        alert('Library Excel belum termuat. Coba refresh halaman.');
+        return;
+    }
+
+    if (!currentDashboardSessionDate) {
+        alert('Pilih session terlebih dahulu.');
+        return;
+    }
+
+    const button = document.getElementById('weeklyRecapBtn');
+    const originalText = button?.innerHTML;
+
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = '⏳ Membuat rekap...';
+    }
+
+    try {
+        // ----------------------------------------------------
+        // Hitung range Senin - Minggu berdasarkan session
+        // ----------------------------------------------------
+
+        const selectedDate =
+            new Date(currentDashboardSessionDate + 'T00:00:00+07:00');
+
+        if (Number.isNaN(selectedDate.getTime())) {
+            throw new Error('Tanggal session tidak valid.');
+        }
+
+        const day = selectedDate.getDay();
+        const diffToMonday = day === 0 ? -6 : 1 - day;
+
+        const monday = new Date(selectedDate);
+        monday.setDate(selectedDate.getDate() + diffToMonday);
+
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        const toDateString = date => {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+
+            return `${y}-${m}-${d}`;
+        };
+
+        const mondayStr = toDateString(monday);
+        const sundayStr = toDateString(sunday);
+
+        console.log('[WEEKLY RECAP]', mondayStr, sundayStr);
+
+        // ----------------------------------------------------
+        // Load USERS + SESSIONS
+        // ----------------------------------------------------
+
+        const [usersSnapshot, sessionsSnapshot] = await Promise.all([
+            getDocs(collection(db, 'users')),
+            getDocs(collection(db, 'attendanceSessions'))
+        ]);
+
+        const students = [];
+
+        usersSnapshot.forEach(docSnap => {
+            const u = docSnap.data();
+
+            if (u.role !== 'student') return;
+
+            if (
+                ['INACTIVE', 'DELETED'].includes(
+                    u.accountStatus
+                )
+            ) {
+                return;
+            }
+
+            students.push({
+                uid: docSnap.id,
+                nama: u.nama || 'Unknown',
+                classId: u.classId || '-'
+            });
+        });
+
+        // ----------------------------------------------------
+        // Ambil session pada minggu terpilih
+        // ----------------------------------------------------
+
+        const weeklySessions = [];
+
+        sessionsSnapshot.forEach(docSnap => {
+            const data = docSnap.data();
+
+            if (!data.date) return;
+
+            if (
+                data.date >= mondayStr &&
+                data.date <= sundayStr
+            ) {
+                weeklySessions.push({
+                    id: resolveSessionId(docSnap),
+                    date: data.date,
+                    status: data.status || 'LEGACY'
+                });
+            }
+        });
+
+        weeklySessions.sort((a, b) =>
+            a.date.localeCompare(b.date)
+        );
+
+        if (weeklySessions.length === 0) {
+            alert('Tidak ada session pada minggu ini.');
+            return;
+        }
+
+        // ----------------------------------------------------
+        // Load attendance semua session minggu ini
+        // ----------------------------------------------------
+
+        const attendanceBySession = new Map();
+
+        for (const session of weeklySessions) {
+            const snap = await getDocs(
+                query(
+                    collection(db, 'attendance'),
+                    where('sessionId', '==', session.id)
+                )
+            );
+
+            const map = new Map();
+
+            snap.forEach(docSnap => {
+                const a = docSnap.data();
+
+                if (a.uid) {
+                    map.set(a.uid, {
+                        ...a,
+                        createdAt: a.createdAt || null
+                    });
+                }
+            });
+
+            attendanceBySession.set(session.id, map);
+        }
+
+        // ----------------------------------------------------
+        // Daftar kelas
+        // ----------------------------------------------------
+
+        const classes = CLASS_LIST.filter(classId =>
+            students.some(student =>
+                student.classId === classId
+            )
+        );
+
+        // ----------------------------------------------------
+        // Workbook
+        // ----------------------------------------------------
+
+        const workbook = new ExcelJS.Workbook();
+
+        workbook.creator = 'Sistem Absensi SMA YADIKA 4';
+        workbook.created = new Date();
+
+        const thinBorder = {
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thin', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } }
+        };
+
+        function styleHeader(row) {
+            row.eachCell(cell => {
+                cell.font = {
+                    bold: true,
+                    color: { argb: 'FFFFFFFF' }
+                };
+
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF4285F4' }
+                };
+
+                cell.alignment = {
+                    horizontal: 'center',
+                    vertical: 'middle',
+                    wrapText: true
+                };
+
+                cell.border = thinBorder;
+            });
+
+            row.height = 28;
+        }
+
+        function styleAllCells(sheet) {
+            sheet.eachRow(row => {
+                row.eachCell(cell => {
+                    cell.border = thinBorder;
+
+                    if (row.number !== 1) {
+                        cell.alignment = {
+                            horizontal: 'center',
+                            vertical: 'middle'
+                        };
+                    }
+                });
+            });
+        }
+
+        // ====================================================
+        // SHEET 1 — REKAP KEHADIRAN
+        // ====================================================
+
+        const hadirSheet =
+            workbook.addWorksheet('R.KEHADIRAN');
+
+        hadirSheet.columns = [
+            { header: 'NO', width: 7 },
+            { header: 'KELAS', width: 14 },
+
+            ...weeklySessions.map(session => ({
+                header: session.date,
+                width: 15
+            })),
+
+            { header: 'AVERAGE', width: 15 }
+        ];
+
+        classes.forEach((classId, index) => {
+            const classStudents =
+                students.filter(student =>
+                    student.classId === classId
+                );
+
+            const percentages = [];
+
+            weeklySessions.forEach(session => {
+                const attendanceMap =
+                    attendanceBySession.get(session.id);
+
+                let hadir = 0;
+
+                classStudents.forEach(student => {
+                    const att =
+                        attendanceMap.get(student.uid);
+
+                    if (
+                        att &&
+                        (
+                            att.status === 'HADIR' ||
+                            att.status === 'TERLAMBAT'
+                        )
+                    ) {
+                        hadir++;
+                    }
+                });
+
+                const pct =
+                    classStudents.length > 0
+                        ? hadir / classStudents.length
+                        : 0;
+
+                percentages.push(pct);
+            });
+
+            const average =
+                percentages.length > 0
+                    ? percentages.reduce(
+                        (a, b) => a + b,
+                        0
+                    ) / percentages.length
+                    : 0;
+
+            const row = hadirSheet.addRow([
+                index + 1,
+                classId,
+                ...percentages,
+                average
+            ]);
+
+            for (
+                let col = 3;
+                col <= 3 + weeklySessions.length;
+                col++
+            ) {
+                row.getCell(col).numFmt = '0.00%';
+            }
+        });
+
+        styleHeader(hadirSheet.getRow(1));
+        styleAllCells(hadirSheet);
+
+        hadirSheet.views = [
+            { state: 'frozen', ySplit: 1 }
+        ];
+
+        // ====================================================
+        // SHEET 2 — REKAP KETERLAMBATAN
+        // ====================================================
+
+        const lateSheet =
+            workbook.addWorksheet('R.KETERLAMBATAN');
+
+        lateSheet.columns = [
+            { header: 'NO', width: 7 },
+            { header: 'KELAS', width: 14 },
+
+            ...weeklySessions.map(session => ({
+                header: session.date,
+                width: 15
+            })),
+
+            { header: 'SUM', width: 12 },
+            { header: 'AVERAGE', width: 15 }
+        ];
+
+        classes.forEach((classId, index) => {
+            const classStudents =
+                students.filter(student =>
+                    student.classId === classId
+                );
+
+            const lateCounts = [];
+
+            weeklySessions.forEach(session => {
+                const attendanceMap =
+                    attendanceBySession.get(session.id);
+
+                let count = 0;
+
+                classStudents.forEach(student => {
+                    const att =
+                        attendanceMap.get(student.uid);
+
+                    if (
+                        att &&
+                        att.status === 'TERLAMBAT'
+                    ) {
+                        count++;
+                    }
+                });
+
+                lateCounts.push(count);
+            });
+
+            const total =
+                lateCounts.reduce(
+                    (a, b) => a + b,
+                    0
+                );
+
+            const average =
+                lateCounts.length
+                    ? total / lateCounts.length
+                    : 0;
+
+            lateSheet.addRow([
+                index + 1,
+                classId,
+                ...lateCounts,
+                total,
+                average
+            ]);
+        });
+
+        styleHeader(lateSheet.getRow(1));
+        styleAllCells(lateSheet);
+
+        lateSheet.views = [
+            { state: 'frozen', ySplit: 1 }
+        ];
+
+        // ====================================================
+        // SHEET DETAIL PER TANGGAL
+        // ====================================================
+
+        for (const session of weeklySessions) {
+            const dayNumber =
+                Number(session.date.slice(-2));
+
+            let sheetName = `TGL ${dayNumber}`;
+
+            // Excel tidak boleh punya nama sheet duplikat.
+            if (workbook.getWorksheet(sheetName)) {
+                sheetName =
+                    `TGL ${dayNumber}-${session.id}`
+                        .slice(0, 31);
+            }
+
+            const sheet =
+                workbook.addWorksheet(sheetName);
+
+            sheet.columns = [
+                {
+                    header: 'No',
+                    key: 'no',
+                    width: 7
+                },
+                {
+                    header: 'Kelas',
+                    key: 'kelas',
+                    width: 14
+                },
+                {
+                    header: 'Nama Siswa',
+                    key: 'nama',
+                    width: 32
+                },
+                {
+                    header: 'Jam Kedatangan',
+                    key: 'jam',
+                    width: 20
+                },
+                {
+                    header: 'Status',
+                    key: 'status',
+                    width: 18
+                }
+            ];
+
+            const attendanceMap =
+                attendanceBySession.get(session.id);
+
+            const rows = [];
+
+            students.forEach(student => {
+                const att =
+                    attendanceMap.get(student.uid);
+
+                let jam = '-';
+                let status = 'BELUM ABSEN';
+
+                if (att) {
+                    status =
+                        att.status === 'BELUM_ABSEN'
+                            ? 'BELUM ABSEN'
+                            : att.status;
+
+                    if (att.createdAt) {
+                        jam =
+                            formatTimestampToWIBTime(
+                                att.createdAt
+                            );
+                    }
+                }
+
+                rows.push({
+                    student,
+                    att,
+                    jam,
+                    status
+                });
+            });
+
+            rows.sort((a, b) => {
+                const classDiff =
+                    CLASS_LIST.indexOf(
+                        a.student.classId
+                    ) -
+                    CLASS_LIST.indexOf(
+                        b.student.classId
+                    );
+
+                if (classDiff !== 0) {
+                    return classDiff;
+                }
+
+                const ta =
+                    a.att?.createdAt?.seconds ??
+                    Number.MAX_SAFE_INTEGER;
+
+                const tb =
+                    b.att?.createdAt?.seconds ??
+                    Number.MAX_SAFE_INTEGER;
+
+                if (ta !== tb) return ta - tb;
+
+                return a.student.nama.localeCompare(
+                    b.student.nama,
+                    'id'
+                );
+            });
+
+            rows.forEach((item, index) => {
+                const row = sheet.addRow({
+                    no: index + 1,
+                    kelas: item.student.classId,
+                    nama: item.student.nama,
+                    jam: item.jam,
+                    status: item.status
+                });
+
+                const colors = {
+                    HADIR: 'FFD4EDDA',
+                    TERLAMBAT: 'FFFFF3CD',
+                    IZIN: 'FFD1ECF1',
+                    SAKIT: 'FFF8D7DA',
+                    ALFA: 'FFE2E3E5',
+                    'BELUM ABSEN': 'FFE2E3E5'
+                };
+
+                const color =
+                    colors[item.status];
+
+                if (color) {
+                    row.getCell('status').fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: color }
+                    };
+                }
+            });
+
+            styleHeader(sheet.getRow(1));
+            styleAllCells(sheet);
+
+            sheet.views = [
+                { state: 'frozen', ySplit: 1 }
+            ];
+
+            sheet.autoFilter = {
+                from: {
+                    row: 1,
+                    column: 1
+                },
+                to: {
+                    row: 1,
+                    column: 5
+                }
+            };
+        }
+
+        // ====================================================
+        // DOWNLOAD
+        // ====================================================
+
+        const buffer =
+            await workbook.xlsx.writeBuffer();
+
+        const blob = new Blob(
+            [buffer],
+            {
+                type:
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            }
+        );
+
+        const url =
+            URL.createObjectURL(blob);
+
+        const link =
+            document.createElement('a');
+
+        const monthName =
+            new Intl.DateTimeFormat(
+                'id-ID',
+                {
+                    month: 'long',
+                    timeZone: 'Asia/Jakarta'
+                }
+            )
+            .format(selectedDate)
+            .replace(/\s+/g, '_');
+
+        link.href = url;
+
+        link.download =
+            `Rekap_Absensi_${monthName}_${mondayStr}_${sundayStr}.xlsx`;
+
+        document.body.appendChild(link);
+
+        link.click();
+        link.remove();
+
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+        }, 1000);
+
+        alert(
+            `Rekap mingguan berhasil dibuat.\n\n` +
+            `${weeklySessions.length} session\n` +
+            `${students.length} siswa\n` +
+            `${classes.length} kelas`
+        );
+
+    } catch (error) {
+        console.error(
+            '[WEEKLY RECAP ERROR]',
+            error
+        );
+
+        alert(
+            'Gagal membuat rekap mingguan: ' +
+            (error?.message || error)
+        );
+
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
     }
 }
 
